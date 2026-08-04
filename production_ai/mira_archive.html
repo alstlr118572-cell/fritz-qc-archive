@@ -1758,22 +1758,6 @@
           <p class="hint">사용자 승인과 현재 사용자 상태를 분리해서 관리합니다.</p>
         </div>
       </section>
-      <section class="panel cupping-panel">
-        <div class="section-title">
-          <div>
-            <h3>홈페이지 이름 관리</h3>
-            <p class="hint">모든 기기에서 보이는 홈페이지 이름을 변경합니다. 이름에는 프릳츠 QC 아카이브가 포함됩니다.</p>
-          </div>
-        </div>
-        <form class="notice-form" id="siteSettingsForm">
-          <div class="field" style="grid-column: span 3;">
-            <label for="siteTitleInput">홈페이지 이름</label>
-            <input id="siteTitleInput" required placeholder="예: 프릳츠 QC 아카이브">
-          </div>
-          <button class="primary" type="submit">저장</button>
-          <p id="siteSettingsMessage"></p>
-        </form>
-      </section>
       <section class="panel admin-grid">
         <div>
           <h3>사용자 승인 대기</h3>
@@ -1816,7 +1800,6 @@
     const sessionKey = "mira_blend_qc_session_v1";
     const savedIdKey = "mira_blend_qc_saved_user_id_v1";
     const blendCatalogKey = "mira_blend_qc_catalog_v1";
-    const siteSettingsKey = "mira_blend_qc_site_settings_v1";
     const adminKey = "MIRA-ADMIN";
     const primaryAdminUserId = "eomms0110";
     const primaryAdminPassword = "Fritz0110!";
@@ -1993,7 +1976,6 @@
     const passwordPanel = document.querySelector("#passwordPanel");
     const passwordPanelButton = document.querySelector("#passwordPanelButton");
     const closePasswordPanelButton = document.querySelector("#closePasswordPanelButton");
-    const siteTitleText = document.querySelector("#siteTitleText");
     const passwordFields = {
       current: document.querySelector("#currentPasswordInput"),
       next: document.querySelector("#newPasswordInput"),
@@ -2097,12 +2079,6 @@
       message: document.querySelector("#blendCatalogMessage"),
       list: document.querySelector("#blendCatalogList")
     };
-    const siteSettingsForm = document.querySelector("#siteSettingsForm");
-    const siteSettingsFields = {
-      title: document.querySelector("#siteTitleInput"),
-      message: document.querySelector("#siteSettingsMessage")
-    };
-    let siteSettings = readSiteSettings();
     let activeBlendSheet = "올드독";
     let activeAppView = "dashboard";
     let editingCuppingId = "";
@@ -2113,15 +2089,22 @@
       return location.protocol === "http:" || location.protocol === "https:";
     }
 
-    function readStoreValue(key) {
+    function readStoreValue(key, options = {}) {
       if (canUseSharedStore()) {
         try {
           const request = new XMLHttpRequest();
           request.open("GET", `/api/store/${encodeURIComponent(key)}`, false);
           request.send();
           if (request.status === 200) return JSON.parse(request.responseText).value;
-        } catch {
+          if (options.requireShared) throw new Error("공용 저장소 응답이 올바르지 않습니다.");
+        } catch (error) {
+          if (options.requireShared) {
+            throw new Error(error.message || "공용 저장소 연결에 실패했습니다.");
+          }
           return undefined;
+        }
+        if (options.requireShared) {
+          throw new Error("공용 저장소 연결에 실패했습니다.");
         }
       }
       const raw = localStorage.getItem(key);
@@ -2162,36 +2145,6 @@
       }
     }
 
-    function normalizeSiteTitle(value) {
-      const text = normalizeText(value);
-      if (!text) return requiredSiteTitle;
-      return text.includes(requiredSiteTitle) ? text : `${requiredSiteTitle} ${text}`;
-    }
-
-    function readSiteSettings() {
-      const parsed = readStoreValue(siteSettingsKey);
-      const fallback = { title: requiredSiteTitle };
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        writeStoreValue(siteSettingsKey, fallback);
-        return fallback;
-      }
-      const settings = { ...parsed, title: normalizeSiteTitle(parsed.title) };
-      if (settings.title !== parsed.title) writeStoreValue(siteSettingsKey, settings);
-      return settings;
-    }
-
-    function writeSiteSettings(value) {
-      siteSettings = { ...value, title: normalizeSiteTitle(value.title) };
-      writeStoreValue(siteSettingsKey, siteSettings);
-    }
-
-    function renderSiteSettings() {
-      const title = normalizeSiteTitle(siteSettings.title);
-      siteTitleText.textContent = title;
-      document.title = title;
-      if (siteSettingsFields.title) siteSettingsFields.title.value = title;
-    }
-
     function readUsers() {
       const seedUsers = [
         {
@@ -2206,9 +2159,9 @@
           approvedAt: "2026-08-03"
         }
       ];
-      const parsed = readStoreValue(usersKey);
+      const parsed = readStoreValue(usersKey, { requireShared: canUseSharedStore() });
       if (!parsed) {
-        writeStoreValue(usersKey, seedUsers);
+        writeStoreValue(usersKey, seedUsers, { requireShared: canUseSharedStore() });
         return seedUsers;
       }
       try {
@@ -2252,16 +2205,30 @@
         if (!hasPrimaryAdmin) changed = true;
         if (changed) writeStoreValue(usersKey, result);
         return result;
-      } catch {
+      } catch (error) {
+        if (canUseSharedStore()) throw error;
         return seedUsers;
       }
     }
 
     function writeUsers(value, options = {}) {
-      writeStoreValue(usersKey, value, options);
+      writeStoreValue(usersKey, value, { requireShared: canUseSharedStore(), ...options });
     }
 
-    let users = readUsers();
+    let usersLoadError = "";
+    let users = [];
+
+    function refreshUsers() {
+      users = readUsers();
+      usersLoadError = "";
+      return users;
+    }
+
+    try {
+      refreshUsers();
+    } catch (error) {
+      usersLoadError = error.message || "공용 사용자 저장소 연결에 실패했습니다.";
+    }
 
     function cloneCatalog(value) {
       return JSON.parse(JSON.stringify(value));
@@ -2473,7 +2440,12 @@
     }
 
     function renderAuth() {
-      users = readUsers();
+      try {
+        refreshUsers();
+      } catch (error) {
+        usersLoadError = error.message || "공용 사용자 저장소 연결에 실패했습니다.";
+        users = [];
+      }
       const user = approvedSessionUser();
       const isAuthed = Boolean(user);
       shell.classList.toggle("auth-mode", !isAuthed);
@@ -2491,12 +2463,12 @@
         appShell.style.display = "none";
         adminShell.style.display = "none";
         passwordPanel.style.display = "none";
+        if (usersLoadError) authMessages.login.textContent = usersLoadError;
       }
       if (isPrimaryAdmin(user)) {
         renderPendingUsers();
         renderUserList();
         renderBlendCatalogAdmin();
-        renderSiteSettings();
       }
     }
 
@@ -2513,7 +2485,6 @@
         renderPendingUsers();
         renderUserList();
         renderBlendCatalogAdmin();
-        renderSiteSettings();
       }
     }
 
@@ -3500,6 +3471,12 @@
       event.preventDefault();
       const userId = normalizeUserId(authFields.loginUserId.value);
       const password = authFields.loginPassword.value;
+      try {
+        refreshUsers();
+      } catch (error) {
+        authMessages.login.textContent = error.message || "공용 사용자 저장소 연결에 실패했습니다.";
+        return;
+      }
       const user = users.find((item) => userMatches(item, userId));
       if (!user) {
         authMessages.login.textContent = "사용자 승인 요청을 먼저 남겨주세요.";
@@ -3531,6 +3508,12 @@
       const password = authFields.signupPassword.value;
       const name = normalizeText(authFields.signupName.value);
       const team = normalizeText(authFields.signupTeam.value);
+      try {
+        refreshUsers();
+      } catch (error) {
+        authMessages.signup.textContent = error.message || "공용 사용자 저장소 연결에 실패했습니다.";
+        return;
+      }
       if (userId.length < 3) {
         authMessages.signup.textContent = "아이디는 3자 이상으로 입력하세요.";
         return;
@@ -3578,6 +3561,12 @@
       const targetId = approveButton ? approveButton.dataset.approve : rejectButton.dataset.reject;
       const roleSelect = document.querySelector(`[data-access-role="${targetId}"]`);
       const selectedRole = normalizeRole(roleSelect?.value || "viewer");
+      try {
+        refreshUsers();
+      } catch (error) {
+        alert(error.message || "공용 사용자 저장소 연결에 실패했습니다.");
+        return;
+      }
       users = users.map((user) => {
         if (user.id !== targetId) return user;
         return {
@@ -3608,6 +3597,12 @@
       const select = event.target.closest("[data-user-role]");
       if (!select) return;
       const targetId = select.dataset.userRole;
+      try {
+        refreshUsers();
+      } catch (error) {
+        alert(error.message || "공용 사용자 저장소 연결에 실패했습니다.");
+        return;
+      }
       users = users.map((user) => {
         if (user.id !== targetId || isPrimaryAdmin(user)) return user;
         return { ...user, role: normalizeRole(select.value) };
@@ -3623,14 +3618,6 @@
       }
       renderUserList();
       render();
-    });
-
-    siteSettingsForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      if (!isPrimaryAdmin(approvedSessionUser())) return;
-      writeSiteSettings({ title: siteSettingsFields.title.value });
-      renderSiteSettings();
-      siteSettingsFields.message.textContent = "홈페이지 이름을 저장했습니다.";
     });
 
     blendCatalogForm.addEventListener("submit", (event) => {
@@ -3692,8 +3679,19 @@
 
     passwordPanel.addEventListener("submit", (event) => {
       event.preventDefault();
-      const user = approvedSessionUser();
-      if (!user) return;
+      const sessionUser = approvedSessionUser();
+      if (!sessionUser) return;
+      try {
+        refreshUsers();
+      } catch (error) {
+        passwordFields.message.textContent = error.message || "공용 사용자 저장소 연결에 실패했습니다.";
+        return;
+      }
+      const user = users.find((item) => item.id === sessionUser.id && item.status === "approved");
+      if (!user) {
+        passwordFields.message.textContent = "로그인 상태를 다시 확인해주세요.";
+        return;
+      }
       if (passwordFields.current.value !== user.password) {
         passwordFields.message.textContent = "현재 비밀번호가 맞지 않습니다.";
         return;
@@ -3791,7 +3789,6 @@
     appShell.style.display = "none";
     enforcePrimaryAdmin();
     populateProductControls();
-    renderSiteSettings();
     renderSavedId();
     render();
     renderAuth();
