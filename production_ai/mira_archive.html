@@ -429,6 +429,22 @@
       gap: 10px 12px;
     }
 
+    #quickCuppingForm {
+      grid-template-columns: 1fr;
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    #quickCuppingForm .field,
+    #quickCuppingForm .button-row {
+      grid-column: 1 / -1;
+    }
+
+    #quickCuppingForm .button-row {
+      grid-template-columns: 1fr;
+    }
+
     .side .score-section,
     .side .button-row,
     .side .field[style] {
@@ -1285,6 +1301,16 @@
 
       <aside class="panel side" id="qcInputPanel">
         <p class="side-title">커핑 코멘트 입력</p>
+        <form id="quickCuppingForm">
+          <div class="field">
+            <label for="quickCuppingInput">코멘트 빠른 입력</label>
+            <textarea id="quickCuppingInput" placeholder="예: #1~2 비터강하다 #3~6 바디약하다"></textarea>
+          </div>
+          <div class="button-row">
+            <button class="primary" type="submit" id="quickCuppingSubmitButton" title="배치별 코멘트 일괄 저장">코멘트 일괄 저장</button>
+          </div>
+          <p id="quickCuppingMessage"></p>
+        </form>
         <form id="qcForm">
           <div class="form-grid">
             <div class="field">
@@ -1323,6 +1349,10 @@
               <option value="hold">HOLD</option>
               <option value="no_ship">ISSUE</option>
             </select>
+          </div>
+          <div class="field" style="margin-top: 10px;">
+            <label for="noteInput">커핑 코멘트</label>
+            <textarea id="noteInput" required placeholder="예: #1~#6 문제없음 / #7~#8 바디감 떨어짐"></textarea>
           </div>
           <div class="score-section roast-data-section">
             <p class="score-section-title">로스팅 데이터</p>
@@ -1415,10 +1445,6 @@
                 <input id="bodyInput" type="number" min="1" max="5" step="0.5" value="4">
               </div>
             </div>
-          </div>
-          <div class="field" style="margin-top: 10px;">
-            <label for="noteInput">커핑 코멘트</label>
-            <textarea id="noteInput" required placeholder="예: #1~#6 문제없음 / #7~#8 바디감 떨어짐"></textarea>
           </div>
           <div class="field">
             <label for="tagsInput">태그</label>
@@ -1933,6 +1959,7 @@
     ];
     const seedEntryIds = new Set(seedEntries.map((entry) => entry.id));
 
+    const quickCuppingForm = document.querySelector("#quickCuppingForm");
     const form = document.querySelector("#qcForm");
     const qcSubmitButton = document.querySelector("#qcSubmitButton");
     const roastingForm = document.querySelector("#roastingForm");
@@ -2016,6 +2043,10 @@
       bitterness: document.querySelector("#bitternessInput"),
       note: document.querySelector("#noteInput"),
       tags: document.querySelector("#tagsInput")
+    };
+    const quickCuppingFields = {
+      input: document.querySelector("#quickCuppingInput"),
+      message: document.querySelector("#quickCuppingMessage")
     };
     const filters = {
       search: document.querySelector("#searchInput"),
@@ -2659,6 +2690,56 @@
       return text;
     }
 
+    function parseQuickCuppingComments(value) {
+      const text = normalizeText(value);
+      if (!text) return [];
+      const matches = Array.from(text.matchAll(/#?\d+(?:\s*(?:~|-)\s*#?\d+)?/g));
+      return matches.map((match, index) => {
+        const nextStart = matches[index + 1]?.index ?? text.length;
+        const batchText = match[0];
+        const note = normalizeText(text.slice((match.index || 0) + batchText.length, nextStart));
+        return { batch: normalizeBatchRange(batchText), note };
+      }).filter((item) => item.batch && item.note);
+    }
+
+    function cuppingEntryFromFields(overrides = {}) {
+      return {
+        id: overrides.id || editingCuppingId || makeId(),
+        blend: overrides.blend || fields.blend.value,
+        roastDate: overrides.roastDate || fields.roastDate.value || today(),
+        batch: normalizeBatchRange(overrides.batch || fields.batch.value),
+        roastLevel: overrides.roastLevel || fields.roastLevel.value,
+        verdict: normalizeVerdict(overrides.verdict || fields.verdict.value),
+        roastData: {
+          roaster: fields.roaster.value,
+          operator: "",
+          pressure: fields.pressure.value.trim(),
+          drumSpeed: fields.drumSpeed.value.trim(),
+          exhaust: fields.exhaust.value.trim(),
+          heat: fields.heat.value.trim(),
+          dropTemp: fields.dropTemp.value.trim(),
+          roastTime: fields.roastTime.value.trim(),
+          wholeColor: fields.wholeColor.value.trim(),
+          groundColor: fields.groundColor.value.trim()
+        },
+        scores: {
+          aroma: Number(fields.aroma.value || 0),
+          flavor: Number(fields.flavor.value || 0),
+          balance: Number(fields.balance.value || 0),
+          after: Number(fields.after.value || 0)
+        },
+        intensity: {
+          acidity: Number(fields.acidity.value || 0),
+          sweetness: Number(fields.sweetness.value || 0),
+          bitterness: Number(fields.bitterness.value || 0),
+          body: Number(fields.body.value || 0)
+        },
+        note: normalizeText(overrides.note || fields.note.value),
+        tags: normalizeTags(overrides.tags ?? fields.tags.value),
+        createdAt: today()
+      };
+    }
+
     function parseKoreanDate(value) {
       const text = String(value || "").trim();
       const year = new Date().getFullYear();
@@ -3281,44 +3362,31 @@
         : `<div class="empty">아직 저장된 추출 평가가 없습니다.</div>`;
     }
 
+    quickCuppingForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!canInputCupping(approvedSessionUser())) return;
+      const parsed = parseQuickCuppingComments(quickCuppingFields.input.value);
+      if (!parsed.length) {
+        quickCuppingFields.message.textContent = "예: #1~2 비터강하다 #3~6 바디약하다 형식으로 입력해주세요.";
+        return;
+      }
+      const newEntries = parsed.map((item) => cuppingEntryFromFields({
+        id: makeId(),
+        batch: item.batch,
+        note: item.note,
+        tags: fields.tags.value || "빠른입력"
+      }));
+      entries = [...newEntries, ...entries];
+      writeEntries(entries);
+      quickCuppingFields.input.value = "";
+      quickCuppingFields.message.textContent = `${newEntries.length}개 커핑 코멘트를 저장했습니다.`;
+      render();
+    });
+
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       if (!canInputCupping(approvedSessionUser())) return;
-      const entry = {
-        id: editingCuppingId || makeId(),
-        blend: fields.blend.value,
-        roastDate: fields.roastDate.value || today(),
-        batch: normalizeBatchRange(fields.batch.value),
-        roastLevel: fields.roastLevel.value,
-        verdict: normalizeVerdict(fields.verdict.value),
-        roastData: {
-          roaster: fields.roaster.value,
-          operator: "",
-          pressure: fields.pressure.value.trim(),
-          drumSpeed: fields.drumSpeed.value.trim(),
-          exhaust: fields.exhaust.value.trim(),
-          heat: fields.heat.value.trim(),
-          dropTemp: fields.dropTemp.value.trim(),
-          roastTime: fields.roastTime.value.trim(),
-          wholeColor: fields.wholeColor.value.trim(),
-          groundColor: fields.groundColor.value.trim()
-        },
-        scores: {
-          aroma: Number(fields.aroma.value || 0),
-          flavor: Number(fields.flavor.value || 0),
-          balance: Number(fields.balance.value || 0),
-          after: Number(fields.after.value || 0)
-        },
-        intensity: {
-          acidity: Number(fields.acidity.value || 0),
-          sweetness: Number(fields.sweetness.value || 0),
-          bitterness: Number(fields.bitterness.value || 0),
-          body: Number(fields.body.value || 0)
-        },
-        note: fields.note.value.trim(),
-        tags: normalizeTags(fields.tags.value),
-        createdAt: today()
-      };
+      const entry = cuppingEntryFromFields();
       entries = editingCuppingId
         ? entries.map((item) => item.id === editingCuppingId ? { ...item, ...entry, createdAt: item.createdAt || entry.createdAt, updatedAt: today() } : item)
         : [entry, ...entries];
