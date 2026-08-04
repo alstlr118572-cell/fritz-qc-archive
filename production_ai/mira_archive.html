@@ -2133,19 +2133,23 @@
       }
     }
 
-    function writeStoreValue(key, value) {
+    function writeStoreValue(key, value, options = {}) {
       if (canUseSharedStore()) {
         try {
           const request = new XMLHttpRequest();
           request.open("PUT", `/api/store/${encodeURIComponent(key)}`, false);
           request.setRequestHeader("Content-Type", "application/json");
           request.send(JSON.stringify({ value }));
-          if (request.status === 200) return;
+          if (request.status === 200) return true;
         } catch {
-          // Fall through to local browser storage if the shared server is unavailable.
+          // Non-critical archive data can still fall back to this browser.
+        }
+        if (options.requireShared) {
+          throw new Error("공용 저장소 연결에 실패했습니다. 잠시 후 다시 시도해주세요.");
         }
       }
       localStorage.setItem(key, JSON.stringify(value));
+      return false;
     }
 
     function readLocalStoreValue(key) {
@@ -2209,8 +2213,7 @@
       }
       try {
         if (!Array.isArray(parsed)) return seedUsers;
-        const localUsers = canUseSharedStore() ? readLocalStoreValue(usersKey) : null;
-        const sourceUsers = Array.isArray(localUsers) ? [...parsed, ...localUsers] : parsed;
+        const sourceUsers = parsed;
         let changed = false;
         const uniqueUsers = [];
         sourceUsers.forEach((user) => {
@@ -2232,7 +2235,6 @@
           };
           changed = true;
         });
-        if (Array.isArray(localUsers) && localUsers.length) changed = true;
         const merged = uniqueUsers.map((user) => {
           const next = {
             ...user,
@@ -2255,8 +2257,8 @@
       }
     }
 
-    function writeUsers(value) {
-      writeStoreValue(usersKey, value);
+    function writeUsers(value, options = {}) {
+      writeStoreValue(usersKey, value, options);
     }
 
     let users = readUsers();
@@ -3544,7 +3546,7 @@
           : "이미 같은 아이디로 승인 대기 중입니다.";
         return;
       }
-      users = [
+      const nextUsers = [
         {
           id: "user-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7),
           userId,
@@ -3557,7 +3559,13 @@
         },
         ...users
       ];
-      writeUsers(users);
+      try {
+        writeUsers(nextUsers, { requireShared: true });
+      } catch (error) {
+        authMessages.signup.textContent = error.message || "사용자 승인 요청 저장에 실패했습니다.";
+        return;
+      }
+      users = nextUsers;
       authViews.signup.reset();
       authMessages.signup.textContent = "사용자 승인 요청이 저장되었습니다. 관리자 승인 후 로그인할 수 있습니다.";
       renderPendingUsers();
@@ -3580,7 +3588,15 @@
           rejectedAt: rejectButton ? today() : user.rejectedAt
         };
       });
-      writeUsers(users);
+      try {
+        writeUsers(users, { requireShared: true });
+      } catch (error) {
+        alert(error.message || "사용자 승인 상태 저장에 실패했습니다.");
+        users = readUsers();
+        renderPendingUsers();
+        renderUserList();
+        return;
+      }
       renderPendingUsers();
       renderUserList();
     }
@@ -3596,7 +3612,15 @@
         if (user.id !== targetId || isPrimaryAdmin(user)) return user;
         return { ...user, role: normalizeRole(select.value) };
       });
-      writeUsers(users);
+      try {
+        writeUsers(users, { requireShared: true });
+      } catch (error) {
+        alert(error.message || "사용자 권한 저장에 실패했습니다.");
+        users = readUsers();
+        renderUserList();
+        render();
+        return;
+      }
       renderUserList();
       render();
     });
@@ -3682,8 +3706,14 @@
         passwordFields.message.textContent = "새 비밀번호 확인이 일치하지 않습니다.";
         return;
       }
-      users = users.map((item) => item.id === user.id ? { ...item, password: passwordFields.next.value } : item);
-      writeUsers(users);
+      const nextUsers = users.map((item) => item.id === user.id ? { ...item, password: passwordFields.next.value } : item);
+      try {
+        writeUsers(nextUsers, { requireShared: true });
+      } catch (error) {
+        passwordFields.message.textContent = error.message || "비밀번호 변경 저장에 실패했습니다.";
+        return;
+      }
+      users = nextUsers;
       passwordPanel.reset();
       passwordFields.message.textContent = "비밀번호가 변경되었습니다.";
     });
