@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: fritz-qc-archive
+    env: docker
+    rootDir: production_ai
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/ping
+    envVars:
+      - key: MIRA_STORE_PROVIDER
+        value: supabase
+      - key: MIRA_SUPABASE_TABLE
+        value: mira_archive_store
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
