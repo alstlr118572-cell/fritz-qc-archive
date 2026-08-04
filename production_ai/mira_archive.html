@@ -1711,6 +1711,14 @@
               <input id="espressoTdsInput" inputmode="decimal" placeholder="예: 8.5%">
             </div>
             <div class="field">
+              <label for="espressoDoseInput">도징량</label>
+              <input id="espressoDoseInput" inputmode="decimal" placeholder="예: 18g">
+            </div>
+            <div class="field">
+              <label for="espressoBasketInput">바스켓 종류</label>
+              <input id="espressoBasketInput" placeholder="예: VST 18g / IMS">
+            </div>
+            <div class="field">
               <label for="espressoGrindInput">분쇄도</label>
               <input id="espressoGrindInput" placeholder="예: 기준 / 미세 조정">
             </div>
@@ -2107,6 +2115,8 @@
       time: document.querySelector("#espressoTimeInput"),
       yield: document.querySelector("#espressoYieldInput"),
       tds: document.querySelector("#espressoTdsInput"),
+      dose: document.querySelector("#espressoDoseInput"),
+      basket: document.querySelector("#espressoBasketInput"),
       grind: document.querySelector("#espressoGrindInput"),
       verdict: document.querySelector("#espressoVerdictInput"),
       note: document.querySelector("#espressoNoteInput")
@@ -2984,6 +2994,8 @@
         espressoFields.time.value = espressoData.time;
         espressoFields.yield.value = espressoData.yield;
         espressoFields.tds.value = espressoData.tds;
+        espressoFields.dose.value = espressoData.dose;
+        espressoFields.basket.value = espressoData.basket;
         espressoFields.grind.value = espressoData.grind;
         espressoFields.verdict.value = normalizeVerdict(entry.verdict || "pass");
         espressoFields.note.value = entry.note || "";
@@ -3064,6 +3076,8 @@
         time: espressoData.time || "",
         yield: espressoData.yield || "",
         tds: espressoData.tds || "",
+        dose: espressoData.dose || "",
+        basket: espressoData.basket || "",
         grind: espressoData.grind || ""
       };
     }
@@ -3267,6 +3281,8 @@
                   <span class="tag">추출시간 ${escapeHtml(espressoData.time || "-")}</span>
                   <span class="tag">추출량 ${escapeHtml(espressoData.yield || "-")}</span>
                   <span class="tag amber">TDS ${escapeHtml(espressoData.tds || "-")}</span>
+                  <span class="tag">도징 ${escapeHtml(espressoData.dose || "-")}</span>
+                  <span class="tag">바스켓 ${escapeHtml(espressoData.basket || "-")}</span>
                   <span class="tag amber">분쇄도 ${escapeHtml(espressoData.grind || "-")}</span>`
                 : isRoasting
                 ? `<span class="tag">로스터기 ${escapeHtml(roastData.roaster || "-")}</span>
@@ -3635,6 +3651,8 @@
           time: espressoFields.time.value.trim(),
           yield: espressoFields.yield.value.trim(),
           tds: espressoFields.tds.value.trim(),
+          dose: espressoFields.dose.value.trim(),
+          basket: espressoFields.basket.value.trim(),
           grind: espressoFields.grind.value.trim()
         },
         scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
