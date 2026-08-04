@@ -1,0 +1,3770 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>프릳츠 QC 아카이브</title>
+  <style>
+    :root {
+      --bg: #f5f2ec;
+      --surface: #fffdf8;
+      --surface-2: #eee8dd;
+      --ink: #252422;
+      --muted: #706a61;
+      --line: #d9d0c2;
+      --teal: #1f6f78;
+      --rust: #98543a;
+      --green: #2f7753;
+      --amber: #a46b16;
+      --red: #b8463c;
+      --blue: #3b5f8f;
+      --shadow: 0 14px 34px rgba(41, 35, 25, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(90deg, rgba(31, 111, 120, 0.08) 1px, transparent 1px),
+        linear-gradient(rgba(31, 111, 120, 0.06) 1px, transparent 1px),
+        var(--bg);
+      background-size: 44px 44px;
+      color: var(--ink);
+      font-family: Inter, "Apple SD Gothic Neo", "Noto Sans KR", system-ui, sans-serif;
+      line-height: 1.5;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    button:hover {
+      border-color: rgba(31, 111, 120, 0.45);
+      background: #f7f2e9;
+    }
+
+    .primary {
+      border-color: var(--teal);
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .primary:hover {
+      background: #185c64;
+    }
+
+    .danger {
+      border-color: rgba(184, 70, 60, 0.35);
+      color: var(--red);
+    }
+
+    .shell {
+      width: min(1460px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 24px 0 42px;
+    }
+
+    .shell.auth-mode {
+      min-height: 100vh;
+      display: grid;
+      align-content: center;
+      padding-top: 42px;
+      padding-bottom: 42px;
+    }
+
+    .masthead {
+      display: grid;
+      justify-items: center;
+      gap: 0;
+      padding: 0;
+      border-bottom: 0;
+      text-align: center;
+    }
+
+    .top-utility {
+      display: grid;
+      justify-content: end;
+      min-height: 26px;
+      margin-bottom: 8px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 5vw, 68px);
+      line-height: 0.96;
+      letter-spacing: 0;
+    }
+
+    .app-shell-title {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 18px 0 20px;
+      border-bottom: 1px solid rgba(37, 36, 34, 0.16);
+      text-align: left;
+    }
+
+    .subtitle {
+      max-width: 860px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .mode {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      min-height: 38px;
+      padding: 7px 12px;
+      border: 1px solid rgba(31, 111, 120, 0.28);
+      border-radius: 999px;
+      background: rgba(31, 111, 120, 0.08);
+      color: var(--teal);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .mode-mark {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .layout.viewer-mode {
+      grid-template-columns: 1fr;
+    }
+
+    .app-nav {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 10px;
+    }
+
+    .app-nav button {
+      min-height: 34px;
+      padding: 0 12px;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    .app-nav button.active {
+      border-color: var(--teal);
+      background: rgba(31, 111, 120, 0.1);
+      color: var(--teal);
+    }
+
+    .app-panel[hidden] {
+      display: none;
+    }
+
+    .auth-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 430px);
+      justify-content: center;
+      gap: 18px;
+      margin-top: 22px;
+    }
+
+    .auth-copy {
+      padding: 18px;
+    }
+
+    .auth-hero {
+      display: grid;
+      gap: 14px;
+    }
+
+    .auth-kicker {
+      margin: 0;
+      color: var(--rust);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .auth-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .auth-step {
+      min-height: 120px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .auth-step span {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      margin-bottom: 10px;
+      border-radius: 50%;
+      background: rgba(31, 111, 120, 0.12);
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .auth-step strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .auth-step p {
+      margin-top: 6px;
+      font-size: 13px;
+    }
+
+    .auth-copy h2,
+    .auth-panel h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 0;
+    }
+
+    .auth-copy p,
+    .auth-panel p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .auth-panel {
+      padding: 14px;
+    }
+
+    .auth-tabs {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+
+    .auth-switch {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+
+    .auth-tabs button,
+    .auth-switch button {
+      min-height: 30px;
+      padding: 0 2px;
+      border-color: transparent;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .auth-view {
+      display: none;
+    }
+
+    .auth-view.active {
+      display: block;
+    }
+
+    .pending-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .pending-item {
+      display: grid;
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .pending-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .access-row {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .access-row label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .access-row select,
+    .role-select {
+      width: 100%;
+      min-height: 34px;
+      padding: 0 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fffefa;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .userbar {
+      display: none;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 6px;
+      align-items: center;
+      justify-self: end;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .userbar strong {
+      display: block;
+      font-size: 11px;
+      line-height: 1.1;
+    }
+
+    .userbar span {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .userbar > div:first-child {
+      text-align: right;
+    }
+
+    .page-switch {
+      display: flex;
+      gap: 4px;
+    }
+
+    .page-switch button,
+    #passwordPanelButton,
+    #logoutButton {
+      min-height: 24px;
+      padding: 0 7px;
+      font-size: 11px;
+    }
+
+    .password-panel {
+      display: none;
+      justify-self: end;
+      width: min(360px, 100%);
+      margin-top: 8px;
+      padding: 12px;
+    }
+
+    .password-panel h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .page-switch button.active {
+      border-color: var(--teal);
+      background: rgba(31, 111, 120, 0.1);
+      color: var(--teal);
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 253, 248, 0.95);
+      box-shadow: var(--shadow);
+    }
+
+    .side {
+      align-self: start;
+      padding: 14px;
+    }
+
+    .side[hidden] {
+      display: none;
+    }
+
+    .side form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 12px;
+    }
+
+    .side .score-section,
+    .side .button-row,
+    .side .field[style] {
+      grid-column: 1 / -1;
+    }
+
+    .side .field {
+      margin-bottom: 0;
+    }
+
+    .side-title,
+    .field label {
+      margin: 0 0 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+      margin-bottom: 10px;
+    }
+
+    .field input,
+    .field select,
+    .field textarea,
+    .toolbar input,
+    .toolbar select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fffefa;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .field input,
+    .field select,
+    .toolbar input,
+    .toolbar select {
+      min-height: 40px;
+      padding: 0 10px;
+    }
+
+    .field textarea {
+      min-height: 76px;
+      resize: vertical;
+      padding: 10px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .score-grid .field {
+      margin-bottom: 0;
+    }
+
+    .score-section {
+      margin-top: 10px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .roast-data-section {
+      display: none;
+    }
+
+    .score-section-title {
+      margin: 0 0 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 42px 42px;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .icon-button {
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      font-size: 18px;
+    }
+
+    .main {
+      display: grid;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .blend-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .category-group {
+      display: grid;
+      gap: 10px;
+    }
+
+    .category-group h3 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--muted);
+    }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .blend-card {
+      min-height: 156px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .blend-card.empty-category {
+      min-height: 108px;
+      display: grid;
+      align-content: center;
+      color: var(--muted);
+      background: #f8f4ec;
+      box-shadow: none;
+    }
+
+    .blend-card h2 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.25;
+      letter-spacing: 0;
+    }
+
+    .blend-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .mini-stat {
+      padding: 8px;
+      border-radius: 6px;
+      background: var(--surface-2);
+    }
+
+    .mini-stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .mini-stat strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 150px 160px 150px 150px;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .sheet-panel {
+      overflow: hidden;
+    }
+
+    .sheet-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: end;
+      padding: 12px 12px 0;
+    }
+
+    .sheet-tabs {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 12px 12px 0;
+    }
+
+    .sheet-tabs button {
+      min-height: 34px;
+      padding: 0 12px;
+      border-bottom-color: transparent;
+      border-radius: 8px 8px 0 0;
+      background: #ede7db;
+      white-space: nowrap;
+    }
+
+    .sheet-tabs button.active {
+      border-color: var(--teal);
+      background: var(--surface);
+      color: var(--teal);
+    }
+
+    .sheet-wrap {
+      overflow-x: auto;
+      padding: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .sheet-table {
+      width: 100%;
+      min-width: 1120px;
+      border-collapse: collapse;
+      background: var(--surface);
+      font-size: 12px;
+    }
+
+    .sheet-table th,
+    .sheet-table td {
+      padding: 8px 9px;
+      border: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .sheet-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--header);
+      color: var(--ink);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .sheet-table td {
+      color: var(--muted);
+    }
+
+    .sheet-table .sheet-note {
+      min-width: 220px;
+      color: var(--ink);
+    }
+
+    .notice-panel {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .notice-form {
+      display: grid;
+      grid-template-columns: 150px 150px 1fr 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .notice-form[hidden] {
+      display: none;
+    }
+
+    .notice-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .notice-item {
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 12px;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .notice-item p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .cupping-panel {
+      padding: 14px;
+    }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .hint {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      overflow: hidden;
+    }
+
+    .lane {
+      min-height: 250px;
+      padding: 13px;
+      border-right: 1px solid var(--line);
+    }
+
+    .lane:last-child {
+      border-right: 0;
+    }
+
+    .lane h4 {
+      margin: 0 0 10px;
+      font-size: 15px;
+    }
+
+    .qc-card {
+      margin-bottom: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .qc-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .qc-title {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    .qc-body {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #ede7db;
+      color: #554e44;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tag.green {
+      background: rgba(47, 119, 83, 0.12);
+      color: var(--green);
+    }
+
+    .tag.amber {
+      background: rgba(164, 107, 22, 0.12);
+      color: var(--amber);
+    }
+
+    .tag.red {
+      background: rgba(184, 70, 60, 0.12);
+      color: var(--red);
+    }
+
+    .tag.blue {
+      background: rgba(59, 95, 143, 0.12);
+      color: var(--blue);
+    }
+
+    .record-list {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .scrollable-record-list {
+      max-height: min(64vh, 720px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .list-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 2px 2px 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .record-item {
+      display: grid;
+      grid-template-columns: 130px 1fr auto;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .date {
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .delete {
+      min-width: 32px;
+      min-height: 32px;
+      color: var(--red);
+    }
+
+    .entry-actions {
+      display: grid;
+      gap: 6px;
+      justify-items: end;
+    }
+
+    .entry-actions button {
+      min-width: 48px;
+      min-height: 32px;
+      padding: 0 9px;
+      font-size: 12px;
+    }
+
+    .empty {
+      padding: 20px;
+      color: var(--muted);
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .roadmap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .user-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .roadmap article {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .roadmap h4 {
+      margin: 0 0 6px;
+      font-size: 15px;
+    }
+
+    .roadmap p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .footer {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(37, 36, 34, 0.16);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 1180px) {
+      .layout,
+      .auth-shell,
+      .masthead {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        position: static;
+      }
+
+      .blend-grid,
+      .category-grid,
+      .toolbar,
+      .notice-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .shell {
+        width: min(100vw - 16px, 1460px);
+        padding-top: 14px;
+        padding-bottom: 28px;
+      }
+
+      .shell.auth-mode {
+        align-content: start;
+        min-height: 100svh;
+        padding-top: 28px;
+      }
+
+      .top-utility {
+        justify-content: stretch;
+      }
+
+      .masthead,
+      .app-shell-title {
+        padding-bottom: 14px;
+      }
+
+      .blend-grid,
+      .category-grid,
+      .toolbar,
+      .board,
+      .record-item,
+      .notice-form,
+      .notice-item,
+      .roadmap,
+      .admin-grid,
+      .form-grid,
+      .side form,
+      .auth-tabs {
+        grid-template-columns: 1fr;
+      }
+
+      .app-nav {
+        display: grid;
+        grid-template-columns: 1fr;
+        padding: 8px;
+      }
+
+      .app-nav button {
+        width: 100%;
+        min-height: 40px;
+      }
+
+      .userbar {
+        width: 100%;
+        grid-template-columns: 1fr;
+        justify-self: stretch;
+        justify-items: stretch;
+        gap: 8px;
+      }
+
+      .userbar > div:first-child {
+        text-align: left;
+      }
+
+      .page-switch {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .page-switch button,
+      #passwordPanelButton,
+      #logoutButton {
+        width: 100%;
+        min-height: 34px;
+      }
+
+      .password-panel {
+        justify-self: stretch;
+        width: 100%;
+      }
+
+      .auth-switch {
+        justify-self: end;
+      }
+
+      .score-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .button-row {
+        grid-template-columns: 1fr 40px 40px;
+      }
+
+      .section-title,
+      .sheet-head,
+      .qc-head {
+        display: grid;
+        align-items: start;
+      }
+
+      .sheet-tabs {
+        padding-top: 10px;
+      }
+
+      .sheet-tabs button {
+        min-height: 38px;
+      }
+
+      .sheet-wrap {
+        padding: 10px 8px 12px;
+      }
+
+      .sheet-table {
+        min-width: 920px;
+        font-size: 11px;
+      }
+
+      .sheet-table th,
+      .sheet-table td {
+        padding: 7px;
+      }
+
+      .record-list,
+      .notice-panel,
+      .cupping-panel,
+      .roadmap,
+      .admin-grid {
+        padding: 10px;
+      }
+
+      .record-item {
+        gap: 8px;
+      }
+
+      .record-item .delete {
+        justify-self: end;
+      }
+
+      .notice-item .delete {
+        justify-self: end;
+      }
+
+      .blend-card {
+        min-height: auto;
+      }
+
+      .auth-steps {
+        grid-template-columns: 1fr;
+      }
+
+      .lane {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .lane:last-child {
+        border-bottom: 0;
+      }
+
+      h1 {
+        font-size: 34px;
+        line-height: 1.02;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .shell {
+        width: min(100vw - 12px, 1460px);
+      }
+
+      .score-grid,
+      .blend-meta {
+        grid-template-columns: 1fr;
+      }
+
+      .button-row {
+        grid-template-columns: 1fr;
+      }
+
+      .icon-button {
+        min-height: 38px;
+      }
+
+      .pending-actions,
+      .access-row {
+        grid-template-columns: 1fr;
+      }
+
+      .tag {
+        white-space: normal;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="top-utility">
+      <div class="userbar" id="userbar">
+        <div>
+          <strong id="currentUserName">-</strong>
+          <span id="currentUserTeam">-</span>
+        </div>
+        <div class="page-switch" id="pageSwitch">
+          <button type="button" class="active" data-page="qc">QC</button>
+          <button type="button" data-page="admin" id="adminPageButton">관리자</button>
+        </div>
+        <button type="button" id="passwordPanelButton">비밀번호 변경</button>
+        <button type="button" id="logoutButton">로그아웃</button>
+      </div>
+      <form class="panel password-panel" id="passwordPanel">
+        <h2>비밀번호 변경</h2>
+        <div class="field">
+          <label for="currentPasswordInput">현재 비밀번호</label>
+          <input id="currentPasswordInput" type="password" required autocomplete="current-password">
+        </div>
+        <div class="field">
+          <label for="newPasswordInput">새 비밀번호</label>
+          <input id="newPasswordInput" type="password" required autocomplete="new-password" placeholder="4자 이상 입력">
+        </div>
+        <div class="field">
+          <label for="confirmPasswordInput">새 비밀번호 확인</label>
+          <input id="confirmPasswordInput" type="password" required autocomplete="new-password">
+        </div>
+        <div class="button-row">
+          <button class="primary" type="submit">변경</button>
+          <button type="button" id="closePasswordPanelButton">닫기</button>
+        </div>
+        <p id="passwordMessage"></p>
+      </form>
+    </div>
+
+    <header class="masthead" id="masthead">
+      <div>
+        <h1 id="siteTitleText">프릳츠 QC 아카이브</h1>
+      </div>
+    </header>
+
+    <section class="auth-shell" id="authShell">
+      <div class="panel auth-panel">
+        <form class="auth-view active" id="loginView">
+          <h2>로그인</h2>
+          <div class="field" style="margin-top: 12px;">
+            <label for="loginUserIdInput">아이디</label>
+            <input id="loginUserIdInput" required autocomplete="username">
+          </div>
+          <div class="field">
+            <label for="loginPasswordInput">비밀번호</label>
+            <input id="loginPasswordInput" type="password" required autocomplete="current-password" placeholder="비밀번호 입력">
+          </div>
+          <label class="tag" style="width: fit-content; margin-bottom: 12px;">
+            <input id="rememberIdInput" type="checkbox" style="width: auto; min-height: 0; margin-right: 6px;">
+            아이디 저장
+          </label>
+          <div class="meta" id="rememberedIdBox" style="display: none; margin: 0 0 12px;">
+            <span class="tag blue">저장된 아이디</span>
+            <button type="button" id="clearSavedIdButton" class="danger" style="min-height: 30px;">삭제</button>
+          </div>
+          <button class="primary" type="submit">로그인</button>
+          <p id="loginMessage"></p>
+          <div class="auth-switch">
+            <button type="button" data-auth-tab="signup">사용자 가입요청</button>
+          </div>
+        </form>
+
+        <form class="auth-view" id="signupView">
+          <h2>사용자 가입</h2>
+          <div class="field" style="margin-top: 12px;">
+            <label for="signupUserIdInput">아이디</label>
+            <input id="signupUserIdInput" required autocomplete="username">
+          </div>
+          <div class="field">
+            <label for="signupPasswordInput">비밀번호</label>
+            <input id="signupPasswordInput" type="password" required autocomplete="new-password" placeholder="4자 이상 입력">
+          </div>
+          <div class="field">
+            <label for="signupNameInput">이름</label>
+            <input id="signupNameInput" required placeholder="예: 홍길동">
+          </div>
+          <div class="field">
+            <label for="signupTeamInput">소속팀</label>
+            <select id="signupTeamInput" required>
+              <option value="도매팀">도매팀</option>
+              <option value="카페팀 (장충)">카페팀 (장충)</option>
+              <option value="카페팀 (도화)">카페팀 (도화)</option>
+              <option value="카페팀 (양재)">카페팀 (양재)</option>
+              <option value="카페팀 (원서)">카페팀 (원서)</option>
+              <option value="카페팀 (용산)">카페팀 (용산)</option>
+              <option value="거래처 관리팀">거래처 관리팀</option>
+            </select>
+          </div>
+          <button class="primary" type="submit">승인 요청</button>
+          <p id="signupMessage"></p>
+          <div class="auth-switch">
+            <button type="button" data-auth-tab="login">로그인으로 돌아가기</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <div class="layout" id="appShell">
+      <nav class="panel app-nav" aria-label="QC 페이지">
+        <button type="button" class="active" data-app-view="dashboard">QC 종합 현황판</button>
+        <button type="button" data-app-view="search">검색</button>
+        <button type="button" data-app-view="roasting" id="roastingPageButton">로스팅 입력</button>
+        <button type="button" data-app-view="cupping" id="cuppingPageButton">커핑 입력</button>
+        <button type="button" data-app-view="espresso" id="espressoPageButton">추출 평가</button>
+        <button type="button" data-app-view="nonship" id="nonShipPageButton">ISSUE 결과</button>
+      </nav>
+
+      <aside class="panel side" id="qcInputPanel">
+        <p class="side-title">커핑 코멘트 입력</p>
+        <form id="qcForm">
+          <div class="form-grid">
+            <div class="field">
+              <label for="blendInput">블렌드</label>
+              <select id="blendInput">
+                <option value="올드독">올드독</option>
+                <option value="잘되어 가시나">잘되어 가시나</option>
+                <option value="서울시네마">서울시네마</option>
+                <option value="디카페인">디카페인</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="roastDateInput">로스팅일</label>
+              <input id="roastDateInput" type="date" required>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="batchInput">평가 배치 범위</label>
+              <input id="batchInput" required placeholder="예: #1~#6">
+            </div>
+            <div class="field">
+              <label for="roastLevelInput">로스팅 포인트</label>
+              <select id="roastLevelInput">
+                <option value="기준">기준</option>
+                <option value="밝음">밝음</option>
+                <option value="진함">진함</option>
+                <option value="재확인">재확인</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="verdictInput">판정</label>
+            <select id="verdictInput">
+              <option value="pass">PASS</option>
+              <option value="hold">HOLD</option>
+              <option value="no_ship">ISSUE</option>
+            </select>
+          </div>
+          <div class="score-section roast-data-section">
+            <p class="score-section-title">로스팅 데이터</p>
+            <div class="form-grid">
+              <div class="field">
+                <label for="roasterInput">로스터</label>
+                <select id="roasterInput">
+                  <option value="검댕이">검댕이</option>
+                  <option value="노랭이">노랭이</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="pressureInput">압력</label>
+                <input id="pressureInput" placeholder="예: 105pa">
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="drumSpeedInput">드럼 스피드</label>
+                <input id="drumSpeedInput" placeholder="예: 56hz">
+              </div>
+              <div class="field">
+                <label for="exhaustInput">배기값</label>
+                <input id="exhaustInput" inputmode="decimal">
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="heatInput">화력값</label>
+                <input id="heatInput" inputmode="decimal">
+              </div>
+              <div class="field">
+                <label for="dropTempInput">배출온도</label>
+                <input id="dropTempInput" inputmode="decimal">
+              </div>
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label for="roastTimeInput">로스팅 시간</label>
+                <input id="roastTimeInput" placeholder="예: 10:35">
+              </div>
+              <div class="field">
+                <label for="wholeColorInput">홀빈 색도</label>
+                <input id="wholeColorInput" inputmode="decimal">
+              </div>
+            </div>
+            <div class="field">
+              <label for="groundColorInput">그라운드빈 색도</label>
+              <input id="groundColorInput" inputmode="decimal">
+            </div>
+          </div>
+          <div class="score-section">
+            <p class="score-section-title">향미 평가</p>
+            <div class="score-grid" aria-label="향미 평가 입력">
+              <div class="field">
+                <label for="aromaInput">향</label>
+                <input id="aromaInput" type="number" min="1" max="5" step="0.5" value="4">
+              </div>
+              <div class="field">
+                <label for="flavorInput">향미</label>
+                <input id="flavorInput" type="number" min="1" max="5" step="0.5" value="4">
+              </div>
+              <div class="field">
+                <label for="balanceInput">밸런스</label>
+                <input id="balanceInput" type="number" min="1" max="5" step="0.5" value="4">
+              </div>
+              <div class="field">
+                <label for="afterInput">후미</label>
+                <input id="afterInput" type="number" min="1" max="5" step="0.5" value="4">
+              </div>
+            </div>
+          </div>
+          <div class="score-section">
+            <p class="score-section-title">맛의 강도</p>
+            <div class="score-grid" aria-label="맛의 강도 입력">
+              <div class="field">
+                <label for="acidityInput">산미</label>
+                <input id="acidityInput" type="number" min="1" max="5" step="0.5" value="3">
+              </div>
+              <div class="field">
+                <label for="sweetnessInput">단맛</label>
+                <input id="sweetnessInput" type="number" min="1" max="5" step="0.5" value="4">
+              </div>
+              <div class="field">
+                <label for="bitternessInput">쓴맛</label>
+                <input id="bitternessInput" type="number" min="1" max="5" step="0.5" value="2">
+              </div>
+              <div class="field">
+                <label for="bodyInput">바디</label>
+                <input id="bodyInput" type="number" min="1" max="5" step="0.5" value="4">
+              </div>
+            </div>
+          </div>
+          <div class="field" style="margin-top: 10px;">
+            <label for="noteInput">커핑 코멘트</label>
+            <textarea id="noteInput" required placeholder="예: #1~#6 문제없음 / #7~#8 바디감 떨어짐"></textarea>
+          </div>
+          <div class="field">
+            <label for="tagsInput">태그</label>
+            <input id="tagsInput" placeholder="쉼표로 구분: 산미, 단맛, 후미">
+          </div>
+          <div class="button-row">
+            <button class="primary" type="submit" id="qcSubmitButton" title="커핑 기록 저장">저장</button>
+            <button class="icon-button" type="button" id="exportButton" title="JSON 내보내기">↓</button>
+            <button class="icon-button danger" type="button" id="resetButton" title="모든 QC 기록 초기화">×</button>
+          </div>
+        </form>
+      </aside>
+
+      <main class="main">
+        <section class="blend-grid app-panel" id="blendSummary" data-app-panel="dashboard" aria-label="블렌드별 QC 요약"></section>
+
+        <section class="panel toolbar app-panel" data-app-panel="search">
+          <input id="searchInput" type="search" placeholder="검색: 블렌드, #배치범위, 코멘트, 태그">
+          <select id="categoryFilter">
+            <option value="all">전체 카테고리</option>
+            <option value="기본 블렌드">기본 블렌드</option>
+            <option value="디카페인">디카페인</option>
+          </select>
+          <select id="blendFilter">
+            <option value="all">전체 블렌드</option>
+            <option value="올드독">올드독</option>
+            <option value="잘되어 가시나">잘되어 가시나</option>
+            <option value="서울시네마">서울시네마</option>
+            <option value="디카페인">디카페인</option>
+          </select>
+          <select id="verdictFilter">
+            <option value="all">전체 판정</option>
+            <option value="pass">PASS</option>
+            <option value="hold">HOLD</option>
+            <option value="no_ship">ISSUE</option>
+          </select>
+          <select id="levelFilter">
+            <option value="all">전체 포인트</option>
+            <option value="기준">기준</option>
+            <option value="밝음">밝음</option>
+            <option value="진함">진함</option>
+            <option value="재확인">재확인</option>
+          </select>
+        </section>
+
+        <section class="panel notice-panel app-panel" data-app-panel="dashboard">
+          <div class="section-title" style="margin-bottom: 0;">
+            <div>
+              <h3>생두 비율 변경공지</h3>
+              <p class="hint">블렌드별 생두 배합 변경과 적용일을 따로 확인합니다.</p>
+            </div>
+          </div>
+          <form class="notice-form" id="ratioNoticeForm">
+            <div class="field">
+              <label for="noticeBlendInput">블렌드</label>
+              <select id="noticeBlendInput">
+                <option value="올드독">올드독</option>
+                <option value="잘되어 가시나">잘되어 가시나</option>
+                <option value="서울시네마">서울시네마</option>
+                <option value="디카페인">디카페인</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="noticeDateInput">적용일</label>
+              <input id="noticeDateInput" type="date" required>
+            </div>
+            <div class="field">
+              <label for="noticeBeforeInput">기존 비율</label>
+              <input id="noticeBeforeInput" placeholder="예: A 40 / B 60">
+            </div>
+            <div class="field">
+              <label for="noticeAfterInput">변경 비율</label>
+              <input id="noticeAfterInput" required placeholder="예: A 35 / B 65">
+            </div>
+            <button class="primary" type="submit">공지 등록</button>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="noticeReasonInput">변경 사유 / 메모</label>
+              <textarea id="noticeReasonInput" placeholder="생두 수급, 컵 밸런스, 거래처 안내 사항 등을 남깁니다."></textarea>
+            </div>
+          </form>
+          <div class="notice-list" id="ratioNoticeList"></div>
+        </section>
+
+        <section class="panel sheet-panel app-panel" data-app-panel="search">
+          <div class="sheet-head">
+            <div>
+              <h3>블렌드 시트</h3>
+              <p class="hint">블렌드별 로스팅 수치와 배치 범위 커핑 결과를 표로 비교합니다.</p>
+            </div>
+          </div>
+          <div class="sheet-tabs" id="blendSheetTabs" aria-label="블렌드 시트 선택"></div>
+          <div class="sheet-wrap" id="blendSheet"></div>
+        </section>
+
+        <section class="app-panel" data-app-panel="dashboard">
+          <div class="section-title">
+            <div>
+              <h3>QC 보드</h3>
+              <p class="hint">판정별로 로스팅 QC를 빠르게 확인합니다.</p>
+            </div>
+          </div>
+          <div class="panel board">
+            <div class="lane">
+              <h4>PASS</h4>
+              <div id="passLane"></div>
+            </div>
+            <div class="lane">
+              <h4>HOLD</h4>
+              <div id="holdLane"></div>
+            </div>
+            <div class="lane">
+              <h4>ISSUE</h4>
+              <div id="noShipLane"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="app-panel" data-app-panel="search">
+          <div class="section-title">
+            <div>
+              <h3>전체 커핑 코멘트</h3>
+              <p class="hint">localStorage 키: <code>mira_blend_qc_entries_v1</code></p>
+            </div>
+          </div>
+          <div class="panel record-list" id="recordList"></div>
+        </section>
+
+        <section class="panel cupping-panel app-panel" data-app-panel="cupping">
+          <div class="section-title">
+            <div>
+              <h3>커핑 코멘트 입력</h3>
+              <p class="hint">왼쪽 입력란에서 배치 범위별 커핑 코멘트를 저장합니다.</p>
+            </div>
+          </div>
+          <div class="panel record-list" id="cuppingRecentList"></div>
+        </section>
+
+        <section class="panel cupping-panel app-panel" data-app-panel="roasting">
+          <div class="section-title">
+            <div>
+              <h3>로스팅 데이터 입력</h3>
+              <p class="hint">컬러트랙방 형식의 배치별 로스팅 수치를 저장합니다.</p>
+            </div>
+          </div>
+          <form class="notice-form" id="roastingForm">
+            <div class="field">
+              <label for="roastBlendInput">블렌드</label>
+              <select id="roastBlendInput">
+                <option value="올드독">올드독</option>
+                <option value="잘되어 가시나">잘되어 가시나</option>
+                <option value="서울시네마">서울시네마</option>
+                <option value="디카페인">디카페인</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="roastDateOnlyInput">로스팅일</label>
+              <input id="roastDateOnlyInput" type="date" required>
+            </div>
+            <div class="field">
+              <label for="roastBatchOnlyInput">배치</label>
+              <input id="roastBatchOnlyInput" required placeholder="예: #1">
+            </div>
+            <div class="field">
+              <label for="roastMachineInput">로스터</label>
+              <select id="roastMachineInput">
+                <option value="검댕이">검댕이</option>
+                <option value="노랭이">노랭이</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="roastPressureInput">압력</label>
+              <input id="roastPressureInput" placeholder="예: 105pa">
+            </div>
+            <div class="field">
+              <label for="roastDrumSpeedInput">드럼 스피드</label>
+              <input id="roastDrumSpeedInput" placeholder="예: 56hz">
+            </div>
+            <div class="field">
+              <label for="roastExhaustInput">배기값</label>
+              <input id="roastExhaustInput" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="roastHeatInput">화력값</label>
+              <input id="roastHeatInput" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="roastDropTempOnlyInput">배출온도</label>
+              <input id="roastDropTempOnlyInput" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="roastTimeOnlyInput">로스팅 시간</label>
+              <input id="roastTimeOnlyInput" placeholder="예: 10:35">
+            </div>
+            <div class="field">
+              <label for="roastWholeColorInput">홀빈 색도</label>
+              <input id="roastWholeColorInput" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="roastGroundColorInput">그라운드빈 색도</label>
+              <input id="roastGroundColorInput" inputmode="decimal">
+            </div>
+            <button class="primary" type="submit" id="roastingSubmitButton">로스팅 데이터 저장</button>
+          </form>
+          <form class="panel notice-panel" id="roastingBulkForm" style="margin-top: 12px;">
+            <div class="section-title" style="margin-bottom: 0;">
+              <div>
+                <h3>컬러트랙 텍스트 붙여넣기</h3>
+                <p class="hint">날짜/로스터/압력/드럼 스피드와 여러 배치 수치를 한 번에 저장합니다.</p>
+              </div>
+            </div>
+            <div class="field">
+              <label for="roastingBulkInput">로스팅 데이터 원문</label>
+              <textarea id="roastingBulkInput" placeholder="8/3 검댕이 110pa 53hz&#10;올1 236/62/174.5/14:55/50/54.8&#10;올2 236/55/174/14:12/45.6/55.9"></textarea>
+            </div>
+            <button class="primary" type="submit">일괄 저장</button>
+            <p id="roastingBulkMessage"></p>
+          </form>
+          <div class="panel record-list scrollable-record-list" id="roastingRecentList"></div>
+        </section>
+
+        <section class="panel cupping-panel app-panel" data-app-panel="espresso">
+          <div class="section-title">
+            <div>
+              <h3>에스프레소 추출 평가</h3>
+              <p class="hint">거래처 사용 배치의 추출 상태와 코멘트를 저장합니다.</p>
+            </div>
+          </div>
+          <form class="notice-form" id="espressoForm">
+            <div class="field">
+              <label for="espressoBlendInput">블렌드</label>
+              <select id="espressoBlendInput">
+                <option value="올드독">올드독</option>
+                <option value="잘되어 가시나">잘되어 가시나</option>
+                <option value="서울시네마">서울시네마</option>
+                <option value="디카페인">디카페인</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="espressoDateInput">평가일</label>
+              <input id="espressoDateInput" type="date" required>
+            </div>
+            <div class="field">
+              <label for="espressoBatchInput">로스팅 배치</label>
+              <input id="espressoBatchInput" required placeholder="예: #1">
+            </div>
+            <div class="field">
+              <label for="espressoAccountInput">거래처</label>
+              <input id="espressoAccountInput" placeholder="예: 거래처명">
+            </div>
+            <div class="field">
+              <label for="espressoTimeInput">추출 시간</label>
+              <input id="espressoTimeInput" placeholder="예: 27초">
+            </div>
+            <div class="field">
+              <label for="espressoYieldInput">추출량</label>
+              <input id="espressoYieldInput" placeholder="예: 38g">
+            </div>
+            <div class="field">
+              <label for="espressoGrindInput">분쇄도</label>
+              <input id="espressoGrindInput" placeholder="예: 기준 / 미세 조정">
+            </div>
+            <div class="field">
+              <label for="espressoVerdictInput">판정</label>
+              <select id="espressoVerdictInput">
+                <option value="pass">PASS</option>
+                <option value="hold">HOLD</option>
+                <option value="no_ship">ISSUE</option>
+              </select>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="espressoNoteInput">추출 코멘트</label>
+              <textarea id="espressoNoteInput" required placeholder="거래처 추출 상태, 조정 필요사항, 전달 메모를 남깁니다."></textarea>
+            </div>
+            <button class="primary" type="submit" id="espressoSubmitButton">추출 평가 저장</button>
+          </form>
+          <div class="panel record-list" id="espressoRecentList"></div>
+        </section>
+
+        <section class="panel cupping-panel app-panel" data-app-panel="nonship">
+          <div class="section-title">
+            <div>
+              <h3>ISSUE 소진 결과</h3>
+              <p class="hint">ISSUE 배치가 내부 사용, 폐기, 재작업 등으로 어떻게 처리되었는지 기록합니다.</p>
+            </div>
+          </div>
+          <form class="notice-form" id="nonShipResultForm">
+            <div class="field">
+              <label for="nonShipBlendInput">블렌드</label>
+              <select id="nonShipBlendInput"></select>
+            </div>
+            <div class="field">
+              <label for="nonShipDateInput">처리일</label>
+              <input id="nonShipDateInput" type="date" required>
+            </div>
+            <div class="field">
+              <label for="nonShipBatchInput">배치</label>
+              <input id="nonShipBatchInput" required placeholder="예: #7~#8">
+            </div>
+            <div class="field">
+              <label for="nonShipMethodInput">처리 방식</label>
+              <select id="nonShipMethodInput">
+                <option value="내부 소진">내부 소진</option>
+                <option value="재작업">재작업</option>
+                <option value="폐기">폐기</option>
+                <option value="샘플 사용">샘플 사용</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="nonShipNoteInput">처리 결과</label>
+              <textarea id="nonShipNoteInput" required placeholder="예: 교육용으로 소진 / 재블렌딩 테스트 사용 / 폐기 사유 기록"></textarea>
+            </div>
+            <button class="primary" type="submit">결과 저장</button>
+          </form>
+          <div class="panel record-list scrollable-record-list" id="nonShipResultList"></div>
+        </section>
+
+        <section class="panel roadmap app-panel" data-app-panel="dashboard">
+          <article>
+            <h4>현재 범위</h4>
+            <p>메인, OEM, 특수성 블렌드의 로스팅 QC 기록, 판정, 점수, 메모, JSON 내보내기를 운영합니다.</p>
+          </article>
+          <article>
+            <h4>다음 단계</h4>
+            <p>싱글오리진은 산지, 가공, 입고일, 샘플 정보가 모인 뒤 별도 탭으로 확장합니다.</p>
+          </article>
+        </section>
+
+        <p class="footer app-panel" data-app-panel="dashboard">초기 구조: 프릳츠 블렌드 QC 독립 운영 → JSON 내보내기 → operation_ai 중앙 통제 수집/승인. 데이터 영속화가 필요해지면 localStorage 저장소만 API로 교체하면 됩니다.</p>
+      </main>
+    </div>
+
+    <main class="main" id="adminShell">
+      <section class="section-title">
+        <div>
+          <h3>관리자 페이지</h3>
+          <p class="hint">사용자 승인과 현재 사용자 상태를 분리해서 관리합니다.</p>
+        </div>
+      </section>
+      <section class="panel cupping-panel">
+        <div class="section-title">
+          <div>
+            <h3>홈페이지 이름 관리</h3>
+            <p class="hint">모든 기기에서 보이는 홈페이지 이름을 변경합니다. 이름에는 프릳츠 QC 아카이브가 포함됩니다.</p>
+          </div>
+        </div>
+        <form class="notice-form" id="siteSettingsForm">
+          <div class="field" style="grid-column: span 3;">
+            <label for="siteTitleInput">홈페이지 이름</label>
+            <input id="siteTitleInput" required placeholder="예: 프릳츠 QC 아카이브">
+          </div>
+          <button class="primary" type="submit">저장</button>
+          <p id="siteSettingsMessage"></p>
+        </form>
+      </section>
+      <section class="panel admin-grid">
+        <div>
+          <h3>사용자 승인 대기</h3>
+          <div class="pending-list" id="appPendingList"></div>
+        </div>
+        <div>
+          <h3>사용자 목록</h3>
+          <div class="user-list" id="userList"></div>
+        </div>
+      </section>
+      <section class="panel cupping-panel">
+        <div class="section-title">
+          <div>
+            <h3>블렌드 종류 관리</h3>
+            <p class="hint">관리자가 입력·검색·시트에 표시되는 제품 종류를 추가하거나 삭제합니다.</p>
+          </div>
+        </div>
+        <form class="notice-form" id="blendCatalogForm">
+          <div class="field">
+            <label for="blendCategoryInput">분류</label>
+            <select id="blendCategoryInput"></select>
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <label for="blendNameInput">제품명</label>
+            <input id="blendNameInput" required placeholder="예: 신규 OEM 블렌드">
+          </div>
+          <button class="primary" type="submit">추가</button>
+          <p id="blendCatalogMessage"></p>
+        </form>
+        <div class="notice-list" id="blendCatalogList"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const storageKey = "mira_blend_qc_entries_v1";
+    const ratioNoticesKey = "mira_blend_qc_ratio_notices_v1";
+    const nonShipResultsKey = "mira_blend_qc_non_ship_results_v1";
+    const usersKey = "mira_blend_qc_users_v1";
+    const sessionKey = "mira_blend_qc_session_v1";
+    const savedIdKey = "mira_blend_qc_saved_user_id_v1";
+    const blendCatalogKey = "mira_blend_qc_catalog_v1";
+    const siteSettingsKey = "mira_blend_qc_site_settings_v1";
+    const adminKey = "MIRA-ADMIN";
+    const primaryAdminUserId = "eomms0110";
+    const primaryAdminPassword = "Fritz0110!";
+    const requiredSiteTitle = "프릳츠 QC 아카이브";
+    const defaultBlendCategories = {
+      "메인 블렌드": ["올드독", "잘되어 가시나", "서울시네마", "디카페인"],
+      "OEM 블렌드": ["행복마루", "문지리", "너티트리니티", "아르켓", "위드센"],
+      "특수성 블렌드": ["사는낙", "신커피", "영차영차 블렌드", "크리스마스 블렌드"],
+      "싱글오리진": []
+    };
+    const blendNameAliases = {
+      "행복마루(행복)": "행복마루",
+      "행복": "행복마루",
+      "너티 트리니티": "너티트리니티",
+      "너티트리니티(너티)": "너티트리니티",
+      "너티": "너티트리니티"
+    };
+    const verdicts = [
+      ["pass", "PASS"],
+      ["hold", "HOLD"],
+      ["no_ship", "ISSUE"]
+    ];
+    let blendCategories = readBlendCatalog();
+    let blends = Object.values(blendCategories).flat();
+    const seedEntries = [
+      {
+        id: "blend-qc-seed-001",
+        blend: "올드독",
+        roastDate: "2026-08-03",
+        batch: "#1",
+        roastLevel: "기준",
+        verdict: "pass",
+        roastData: {
+          roaster: "검댕이",
+          pressure: "105pa",
+          drumSpeed: "56hz",
+          exhaust: "",
+          heat: "",
+          dropTemp: "",
+          roastTime: "10:35",
+          wholeColor: "",
+          groundColor: ""
+        },
+        scores: { aroma: 4.0, flavor: 4.5, balance: 4.5, after: 4.0 },
+        intensity: { acidity: 2.5, sweetness: 4.0, bitterness: 2.0, body: 4.0 },
+        note: "초기 기준 배치. 단맛과 바디 강도는 좋고, 쓴맛은 낮게 유지한다.",
+        tags: ["#1", "기준", "단맛"],
+        createdAt: "2026-08-03"
+      },
+      {
+        id: "blend-qc-seed-002",
+        blend: "잘되어 가시나",
+        roastDate: "2026-08-03",
+        batch: "#1",
+        roastLevel: "재확인",
+        verdict: "watch",
+        roastData: {
+          roaster: "검댕이",
+          pressure: "105pa",
+          drumSpeed: "56hz",
+          exhaust: "",
+          heat: "",
+          dropTemp: "",
+          roastTime: "",
+          wholeColor: "",
+          groundColor: ""
+        },
+        scores: { aroma: 3.5, flavor: 4.0, balance: 3.5, after: 3.5 },
+        intensity: { acidity: 3.5, sweetness: 3.5, bitterness: 2.5, body: 3.5 },
+        note: "향은 좋지만 후미가 짧게 느껴진다. 다음 배치에서 열량 반응을 재확인한다.",
+        tags: ["#1", "후미", "재확인"],
+        createdAt: "2026-08-03"
+      },
+      {
+        id: "blend-qc-seed-003",
+        blend: "서울시네마",
+        roastDate: "2026-08-03",
+        batch: "#1",
+        roastLevel: "기준",
+        verdict: "pass",
+        roastData: {
+          roaster: "노랭이",
+          pressure: "105pa",
+          drumSpeed: "56hz",
+          exhaust: "",
+          heat: "",
+          dropTemp: "",
+          roastTime: "",
+          wholeColor: "",
+          groundColor: ""
+        },
+        scores: { aroma: 4.0, flavor: 4.0, balance: 4.0, after: 4.0 },
+        intensity: { acidity: 3.0, sweetness: 4.0, bitterness: 2.0, body: 3.5 },
+        note: "밸런스 기준 확인용. 산미와 단맛의 균형을 중심으로 본다.",
+        tags: ["#1", "밸런스", "기준"],
+        createdAt: "2026-08-03"
+      },
+      {
+        id: "blend-qc-seed-004",
+        blend: "디카페인",
+        roastDate: "2026-08-03",
+        batch: "#1",
+        roastLevel: "밝음",
+        verdict: "watch",
+        roastData: {
+          roaster: "검댕이",
+          pressure: "105pa",
+          drumSpeed: "56hz",
+          exhaust: "",
+          heat: "",
+          dropTemp: "",
+          roastTime: "",
+          wholeColor: "",
+          groundColor: ""
+        },
+        scores: { aroma: 3.5, flavor: 3.5, balance: 3.5, after: 3.0 },
+        intensity: { acidity: 3.0, sweetness: 3.0, bitterness: 2.5, body: 3.0 },
+        note: "디카페인 특유의 얇은 바디를 보완할 로스팅 포인트를 찾는 중.",
+        tags: ["#1", "바디", "디카페인"],
+        createdAt: "2026-08-03"
+      }
+    ];
+    const seedEntryIds = new Set(seedEntries.map((entry) => entry.id));
+
+    const form = document.querySelector("#qcForm");
+    const qcSubmitButton = document.querySelector("#qcSubmitButton");
+    const roastingForm = document.querySelector("#roastingForm");
+    const roastingSubmitButton = document.querySelector("#roastingSubmitButton");
+    const roastingBulkForm = document.querySelector("#roastingBulkForm");
+    const espressoForm = document.querySelector("#espressoForm");
+    const espressoSubmitButton = document.querySelector("#espressoSubmitButton");
+    const nonShipResultForm = document.querySelector("#nonShipResultForm");
+    const ratioNoticeForm = document.querySelector("#ratioNoticeForm");
+    const shell = document.querySelector(".shell");
+    const masthead = document.querySelector("#masthead");
+    const authShell = document.querySelector("#authShell");
+    const appShell = document.querySelector("#appShell");
+    const qcInputPanel = document.querySelector("#qcInputPanel");
+    const adminShell = document.querySelector("#adminShell");
+    const userbar = document.querySelector("#userbar");
+    const currentUserName = document.querySelector("#currentUserName");
+    const currentUserTeam = document.querySelector("#currentUserTeam");
+    const pageButtons = document.querySelectorAll("[data-page]");
+    const adminPageButton = document.querySelector("#adminPageButton");
+    const appViewButtons = document.querySelectorAll("[data-app-view]");
+    const appPanels = document.querySelectorAll("[data-app-panel]");
+    const roastingPageButton = document.querySelector("#roastingPageButton");
+    const cuppingPageButton = document.querySelector("#cuppingPageButton");
+    const espressoPageButton = document.querySelector("#espressoPageButton");
+    const nonShipPageButton = document.querySelector("#nonShipPageButton");
+    const authTabs = document.querySelectorAll("[data-auth-tab]");
+    const authViews = {
+      login: document.querySelector("#loginView"),
+      signup: document.querySelector("#signupView")
+    };
+    const authFields = {
+      loginUserId: document.querySelector("#loginUserIdInput"),
+      loginPassword: document.querySelector("#loginPasswordInput"),
+      rememberId: document.querySelector("#rememberIdInput"),
+      signupUserId: document.querySelector("#signupUserIdInput"),
+      signupPassword: document.querySelector("#signupPasswordInput"),
+      signupName: document.querySelector("#signupNameInput"),
+      signupTeam: document.querySelector("#signupTeamInput")
+    };
+    const authMessages = {
+      login: document.querySelector("#loginMessage"),
+      signup: document.querySelector("#signupMessage")
+    };
+    const pendingList = document.querySelector("#pendingList");
+    const appPendingList = document.querySelector("#appPendingList");
+    const userList = document.querySelector("#userList");
+    const rememberedIdBox = document.querySelector("#rememberedIdBox");
+    const clearSavedIdButton = document.querySelector("#clearSavedIdButton");
+    const passwordPanel = document.querySelector("#passwordPanel");
+    const passwordPanelButton = document.querySelector("#passwordPanelButton");
+    const closePasswordPanelButton = document.querySelector("#closePasswordPanelButton");
+    const siteTitleText = document.querySelector("#siteTitleText");
+    const passwordFields = {
+      current: document.querySelector("#currentPasswordInput"),
+      next: document.querySelector("#newPasswordInput"),
+      confirm: document.querySelector("#confirmPasswordInput"),
+      message: document.querySelector("#passwordMessage")
+    };
+    const fields = {
+      blend: document.querySelector("#blendInput"),
+      roastDate: document.querySelector("#roastDateInput"),
+      batch: document.querySelector("#batchInput"),
+      roastLevel: document.querySelector("#roastLevelInput"),
+      verdict: document.querySelector("#verdictInput"),
+      roaster: document.querySelector("#roasterInput"),
+      pressure: document.querySelector("#pressureInput"),
+      drumSpeed: document.querySelector("#drumSpeedInput"),
+      exhaust: document.querySelector("#exhaustInput"),
+      heat: document.querySelector("#heatInput"),
+      dropTemp: document.querySelector("#dropTempInput"),
+      roastTime: document.querySelector("#roastTimeInput"),
+      wholeColor: document.querySelector("#wholeColorInput"),
+      groundColor: document.querySelector("#groundColorInput"),
+      aroma: document.querySelector("#aromaInput"),
+      flavor: document.querySelector("#flavorInput"),
+      body: document.querySelector("#bodyInput"),
+      balance: document.querySelector("#balanceInput"),
+      after: document.querySelector("#afterInput"),
+      acidity: document.querySelector("#acidityInput"),
+      sweetness: document.querySelector("#sweetnessInput"),
+      bitterness: document.querySelector("#bitternessInput"),
+      note: document.querySelector("#noteInput"),
+      tags: document.querySelector("#tagsInput")
+    };
+    const filters = {
+      search: document.querySelector("#searchInput"),
+      category: document.querySelector("#categoryFilter"),
+      blend: document.querySelector("#blendFilter"),
+      verdict: document.querySelector("#verdictFilter"),
+      roastLevel: document.querySelector("#levelFilter")
+    };
+    const lanes = {
+      pass: document.querySelector("#passLane"),
+      hold: document.querySelector("#holdLane"),
+      no_ship: document.querySelector("#noShipLane")
+    };
+    const blendSummary = document.querySelector("#blendSummary");
+    const recordList = document.querySelector("#recordList");
+    const cuppingRecentList = document.querySelector("#cuppingRecentList");
+    const roastingRecentList = document.querySelector("#roastingRecentList");
+    const espressoRecentList = document.querySelector("#espressoRecentList");
+    const nonShipResultList = document.querySelector("#nonShipResultList");
+    const blendSheetTabs = document.querySelector("#blendSheetTabs");
+    const blendSheet = document.querySelector("#blendSheet");
+    const ratioNoticeList = document.querySelector("#ratioNoticeList");
+    const noticeFields = {
+      blend: document.querySelector("#noticeBlendInput"),
+      date: document.querySelector("#noticeDateInput"),
+      before: document.querySelector("#noticeBeforeInput"),
+      after: document.querySelector("#noticeAfterInput"),
+      reason: document.querySelector("#noticeReasonInput")
+    };
+    const roastingFields = {
+      blend: document.querySelector("#roastBlendInput"),
+      date: document.querySelector("#roastDateOnlyInput"),
+      batch: document.querySelector("#roastBatchOnlyInput"),
+      roaster: document.querySelector("#roastMachineInput"),
+      pressure: document.querySelector("#roastPressureInput"),
+      drumSpeed: document.querySelector("#roastDrumSpeedInput"),
+      exhaust: document.querySelector("#roastExhaustInput"),
+      heat: document.querySelector("#roastHeatInput"),
+      dropTemp: document.querySelector("#roastDropTempOnlyInput"),
+      roastTime: document.querySelector("#roastTimeOnlyInput"),
+      wholeColor: document.querySelector("#roastWholeColorInput"),
+      groundColor: document.querySelector("#roastGroundColorInput")
+    };
+    const roastingBulkFields = {
+      input: document.querySelector("#roastingBulkInput"),
+      message: document.querySelector("#roastingBulkMessage")
+    };
+    const espressoFields = {
+      blend: document.querySelector("#espressoBlendInput"),
+      date: document.querySelector("#espressoDateInput"),
+      batch: document.querySelector("#espressoBatchInput"),
+      account: document.querySelector("#espressoAccountInput"),
+      time: document.querySelector("#espressoTimeInput"),
+      yield: document.querySelector("#espressoYieldInput"),
+      grind: document.querySelector("#espressoGrindInput"),
+      verdict: document.querySelector("#espressoVerdictInput"),
+      note: document.querySelector("#espressoNoteInput")
+    };
+    const nonShipFields = {
+      blend: document.querySelector("#nonShipBlendInput"),
+      date: document.querySelector("#nonShipDateInput"),
+      batch: document.querySelector("#nonShipBatchInput"),
+      method: document.querySelector("#nonShipMethodInput"),
+      note: document.querySelector("#nonShipNoteInput")
+    };
+    const blendCatalogForm = document.querySelector("#blendCatalogForm");
+    const blendCatalogFields = {
+      category: document.querySelector("#blendCategoryInput"),
+      name: document.querySelector("#blendNameInput"),
+      message: document.querySelector("#blendCatalogMessage"),
+      list: document.querySelector("#blendCatalogList")
+    };
+    const siteSettingsForm = document.querySelector("#siteSettingsForm");
+    const siteSettingsFields = {
+      title: document.querySelector("#siteTitleInput"),
+      message: document.querySelector("#siteSettingsMessage")
+    };
+    let siteSettings = readSiteSettings();
+    let activeBlendSheet = "올드독";
+    let activeAppView = "dashboard";
+    let editingCuppingId = "";
+    let editingRoastingId = "";
+    let editingEspressoId = "";
+
+    function canUseSharedStore() {
+      return location.protocol === "http:" || location.protocol === "https:";
+    }
+
+    function readStoreValue(key) {
+      if (canUseSharedStore()) {
+        try {
+          const request = new XMLHttpRequest();
+          request.open("GET", `/api/store/${encodeURIComponent(key)}`, false);
+          request.send();
+          if (request.status === 200) return JSON.parse(request.responseText).value;
+        } catch {
+          return undefined;
+        }
+      }
+      const raw = localStorage.getItem(key);
+      if (!raw) return undefined;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return undefined;
+      }
+    }
+
+    function writeStoreValue(key, value) {
+      if (canUseSharedStore()) {
+        try {
+          const request = new XMLHttpRequest();
+          request.open("PUT", `/api/store/${encodeURIComponent(key)}`, false);
+          request.setRequestHeader("Content-Type", "application/json");
+          request.send(JSON.stringify({ value }));
+          if (request.status === 200) return;
+        } catch {
+          // Fall through to local browser storage if the shared server is unavailable.
+        }
+      }
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function readLocalStoreValue(key) {
+      const raw = localStorage.getItem(key);
+      if (!raw) return undefined;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return undefined;
+      }
+    }
+
+    function normalizeSiteTitle(value) {
+      const text = normalizeText(value);
+      if (!text) return requiredSiteTitle;
+      return text.includes(requiredSiteTitle) ? text : `${requiredSiteTitle} ${text}`;
+    }
+
+    function readSiteSettings() {
+      const parsed = readStoreValue(siteSettingsKey);
+      const fallback = { title: requiredSiteTitle };
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        writeStoreValue(siteSettingsKey, fallback);
+        return fallback;
+      }
+      const settings = { ...parsed, title: normalizeSiteTitle(parsed.title) };
+      if (settings.title !== parsed.title) writeStoreValue(siteSettingsKey, settings);
+      return settings;
+    }
+
+    function writeSiteSettings(value) {
+      siteSettings = { ...value, title: normalizeSiteTitle(value.title) };
+      writeStoreValue(siteSettingsKey, siteSettings);
+    }
+
+    function renderSiteSettings() {
+      const title = normalizeSiteTitle(siteSettings.title);
+      siteTitleText.textContent = title;
+      document.title = title;
+      if (siteSettingsFields.title) siteSettingsFields.title.value = title;
+    }
+
+    function readUsers() {
+      const seedUsers = [
+        {
+          id: "admin-eomms0110",
+          userId: primaryAdminUserId,
+          password: primaryAdminPassword,
+          name: "엄민식",
+          team: "관리자",
+          status: "approved",
+          role: "admin",
+          requestedAt: "2026-08-03",
+          approvedAt: "2026-08-03"
+        }
+      ];
+      const parsed = readStoreValue(usersKey);
+      if (!parsed) {
+        writeStoreValue(usersKey, seedUsers);
+        return seedUsers;
+      }
+      try {
+        if (!Array.isArray(parsed)) return seedUsers;
+        const localUsers = canUseSharedStore() ? readLocalStoreValue(usersKey) : null;
+        const sourceUsers = Array.isArray(localUsers) ? [...parsed, ...localUsers] : parsed;
+        let changed = false;
+        const uniqueUsers = [];
+        sourceUsers.forEach((user) => {
+          const userId = normalizeUserId(user?.userId);
+          if (!userId) return;
+          const existingIndex = uniqueUsers.findIndex((item) => normalizeUserId(item.userId) === userId);
+          if (existingIndex === -1) {
+            uniqueUsers.push(user);
+            return;
+          }
+          const existing = uniqueUsers[existingIndex];
+          const preferLocalPassword = user.password && user.password !== adminKey && (!existing.password || existing.password === adminKey || user.status === "approved");
+          uniqueUsers[existingIndex] = {
+            ...existing,
+            ...user,
+            password: preferLocalPassword ? user.password : existing.password,
+            status: existing.status === "approved" || user.status === "approved" ? "approved" : (user.status || existing.status),
+            role: normalizeRole(existing.role) === "viewer" ? normalizeRole(user.role) : normalizeRole(existing.role)
+          };
+          changed = true;
+        });
+        if (Array.isArray(localUsers) && localUsers.length) changed = true;
+        const merged = uniqueUsers.map((user) => {
+          const next = {
+            ...user,
+            userId: user.userId || (user.role === "admin" ? "admin" : ""),
+            password: normalizeUserId(user.userId) === primaryAdminUserId
+              ? (!user.password || user.password === adminKey ? primaryAdminPassword : user.password)
+              : user.password || (user.role === "admin" ? adminKey : ""),
+            role: normalizeRole(user.role)
+          };
+          if (next.userId !== user.userId || next.password !== user.password || next.role !== user.role) changed = true;
+          return next;
+        });
+        const hasPrimaryAdmin = merged.some((user) => normalizeUserId(user.userId) === primaryAdminUserId);
+        const result = hasPrimaryAdmin ? merged : [...seedUsers, ...merged];
+        if (!hasPrimaryAdmin) changed = true;
+        if (changed) writeStoreValue(usersKey, result);
+        return result;
+      } catch {
+        return seedUsers;
+      }
+    }
+
+    function writeUsers(value) {
+      writeStoreValue(usersKey, value);
+    }
+
+    let users = readUsers();
+
+    function cloneCatalog(value) {
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function normalizeBlendCatalog(value) {
+      const base = Object.fromEntries(Object.keys(defaultBlendCategories).map((category) => [category, []]));
+      if (!value || typeof value !== "object" || Array.isArray(value)) return cloneCatalog(defaultBlendCategories);
+      return Object.entries({ ...base, ...value }).reduce((catalog, [category, list]) => {
+        const cleanList = Array.isArray(list)
+          ? Array.from(new Set(list.map((blend) => canonicalBlendName(blend)).filter(Boolean)))
+          : [];
+        catalog[category] = cleanList;
+        return catalog;
+      }, {});
+    }
+
+    function readBlendCatalog() {
+      const parsed = readStoreValue(blendCatalogKey);
+      if (!parsed) {
+        const defaults = cloneCatalog(defaultBlendCategories);
+        writeStoreValue(blendCatalogKey, defaults);
+        return defaults;
+      }
+      try {
+        const catalog = normalizeBlendCatalog(parsed);
+        if (JSON.stringify(catalog) !== JSON.stringify(parsed)) writeStoreValue(blendCatalogKey, catalog);
+        return catalog;
+      } catch {
+        return cloneCatalog(defaultBlendCategories);
+      }
+    }
+
+    function writeBlendCatalog(value) {
+      blendCategories = normalizeBlendCatalog(value);
+      blends = Object.values(blendCategories).flat();
+      writeStoreValue(blendCatalogKey, blendCategories);
+      const sheetBlends = allEntryBlends();
+      if (!sheetBlends.includes(activeBlendSheet)) activeBlendSheet = sheetBlends[0] || "";
+    }
+
+    function enforcePrimaryAdmin() {
+      const hasPrimaryAdmin = users.some((user) => normalizeUserId(user.userId) === primaryAdminUserId);
+      if (!hasPrimaryAdmin) return;
+      users = users.map((user) => {
+        if (normalizeUserId(user.userId) === primaryAdminUserId) {
+          return {
+            ...user,
+            status: "approved",
+            role: "admin",
+            approvedAt: today(),
+            approvedBy: "admin",
+          };
+        }
+        return {
+          ...user,
+          role: user.role === "admin" ? "viewer" : normalizeRole(user.role),
+        };
+      });
+      writeUsers(users);
+    }
+
+    function normalizeText(value) {
+      return String(value).trim().replace(/\s+/g, " ");
+    }
+
+    function canonicalBlendName(value) {
+      const text = normalizeText(value);
+      const compact = text.replace(/\s+/g, "");
+      return blendNameAliases[text] || blendNameAliases[compact] || text;
+    }
+
+    function normalizeUserId(value) {
+      return String(value).trim().toLowerCase();
+    }
+
+    function normalizeRole(value) {
+      if (value === "admin") return "admin";
+      if (value === "editor" || value === "cupper") return "cupper";
+      if (value === "roaster") return "roaster";
+      if (value === "green_manager") return "green_manager";
+      if (value === "account_manager") return "account_manager";
+      return "viewer";
+    }
+
+    function roleLabel(role) {
+      const normalized = normalizeRole(role);
+      if (normalized === "admin") return "관리자";
+      if (normalized === "cupper") return "커핑 평가자";
+      if (normalized === "roaster") return "로스터";
+      if (normalized === "green_manager") return "생두 관리자";
+      if (normalized === "account_manager") return "거래처관리자";
+      return "사용자";
+    }
+
+    function roleOptionsMarkup(role) {
+      const normalized = normalizeRole(role);
+      const roles = [
+        ["viewer", "사용자"],
+        ["cupper", "커핑 평가자"],
+        ["roaster", "로스터"],
+        ["green_manager", "생두 관리자"],
+        ["account_manager", "거래처관리자"]
+      ];
+      return roles.map(([value, label]) => `<option value="${value}" ${normalized === value ? "selected" : ""}>${label}</option>`).join("");
+    }
+
+    function userMatches(user, userId) {
+      return normalizeUserId(user.userId) === normalizeUserId(userId);
+    }
+
+    function renderSavedId() {
+      const saved = localStorage.getItem(savedIdKey) || "";
+      authFields.loginUserId.value = saved;
+      authFields.rememberId.checked = Boolean(saved);
+      rememberedIdBox.style.display = saved ? "flex" : "none";
+    }
+
+    function currentSession() {
+      const raw = localStorage.getItem(sessionKey);
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+
+    function approvedSessionUser() {
+      const session = currentSession();
+      if (!session) return null;
+      return users.find((user) => user.id === session.userId && user.status === "approved") || null;
+    }
+
+    function isPrimaryAdmin(user) {
+      return Boolean(user) && normalizeUserId(user.userId) === primaryAdminUserId;
+    }
+
+    function canInputCupping(user) {
+      return isPrimaryAdmin(user) || normalizeRole(user?.role) === "cupper";
+    }
+
+    function canInputRoasting(user) {
+      const role = normalizeRole(user?.role);
+      return isPrimaryAdmin(user) || role === "cupper" || role === "roaster" || role === "green_manager";
+    }
+
+    function canInputEspresso(user) {
+      return isPrimaryAdmin(user) || normalizeRole(user?.role) === "account_manager";
+    }
+
+    function canManageRatioNotices(user) {
+      const role = normalizeRole(user?.role);
+      return isPrimaryAdmin(user) || role === "cupper" || role === "green_manager";
+    }
+
+    function canManageNonShipResults(user) {
+      return Boolean(user) && normalizeRole(user.role) !== "viewer";
+    }
+
+    function canManageData(user) {
+      return isPrimaryAdmin(user);
+    }
+
+    function canEditEntry(entry, user) {
+      if (!entry || !user) return false;
+      if (isPrimaryAdmin(user)) return true;
+      if (entry.entryType === "roasting") return canInputRoasting(user);
+      if (entry.entryType === "espresso") return canInputEspresso(user);
+      return canInputCupping(user);
+    }
+
+    function canOpenAppView(name, user) {
+      if (name === "cupping") return canInputCupping(user);
+      if (name === "roasting") return canInputRoasting(user);
+      if (name === "espresso") return canInputEspresso(user);
+      if (name === "nonship") return canManageNonShipResults(user);
+      return true;
+    }
+
+    function applyQcPermission(user) {
+      const showInputPanel = canInputCupping(user) && activeAppView === "cupping";
+      qcInputPanel.hidden = !showInputPanel;
+      ratioNoticeForm.hidden = !canManageRatioNotices(user);
+      roastingPageButton.hidden = !canInputRoasting(user);
+      cuppingPageButton.hidden = !canInputCupping(user);
+      espressoPageButton.hidden = !canInputEspresso(user);
+      nonShipPageButton.hidden = !canManageNonShipResults(user);
+      appShell.classList.add("viewer-mode");
+    }
+
+    function setAppView(name) {
+      const user = approvedSessionUser();
+      const target = canOpenAppView(name, user) ? name : "dashboard";
+      activeAppView = target;
+      appViewButtons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.appView === target);
+      });
+      appPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.appPanel !== target;
+      });
+      applyQcPermission(user);
+      render();
+    }
+
+    function setAuthTab(name) {
+      authTabs.forEach((button) => button.classList.toggle("active", button.dataset.authTab === name));
+      Object.entries(authViews).forEach(([key, view]) => view.classList.toggle("active", key === name));
+    }
+
+    function renderAuth() {
+      users = readUsers();
+      const user = approvedSessionUser();
+      const isAuthed = Boolean(user);
+      shell.classList.toggle("auth-mode", !isAuthed);
+      masthead.classList.toggle("app-shell-title", isAuthed);
+      authShell.style.display = isAuthed ? "none" : "grid";
+      userbar.style.display = isAuthed ? "grid" : "none";
+      if (user) {
+        currentUserName.textContent = isPrimaryAdmin(user) ? `${user.name} 관리자` : user.name;
+        currentUserTeam.textContent = user.team;
+      }
+      adminPageButton.style.display = isPrimaryAdmin(user) ? "" : "none";
+      if (isAuthed) {
+        setPage("qc");
+      } else {
+        appShell.style.display = "none";
+        adminShell.style.display = "none";
+        passwordPanel.style.display = "none";
+      }
+      if (isPrimaryAdmin(user)) {
+        renderPendingUsers();
+        renderUserList();
+        renderBlendCatalogAdmin();
+        renderSiteSettings();
+      }
+    }
+
+    function setPage(pageName) {
+      const user = approvedSessionUser();
+      const canAdmin = isPrimaryAdmin(user);
+      const target = pageName === "admin" && canAdmin ? "admin" : "qc";
+      appShell.style.display = target === "qc" ? "grid" : "none";
+      adminShell.style.display = target === "admin" ? "grid" : "none";
+      applyQcPermission(user);
+      pageButtons.forEach((button) => button.classList.toggle("active", button.dataset.page === target));
+      if (target === "qc") setAppView("dashboard");
+      if (target === "admin") {
+        renderPendingUsers();
+        renderUserList();
+        renderBlendCatalogAdmin();
+        renderSiteSettings();
+      }
+    }
+
+    function renderPendingUsers() {
+      const pending = users.filter((user) => user.status === "pending");
+      const html = pending.length
+        ? pending.map((user) => `
+          <article class="pending-item">
+            <span class="tag blue">${escapeHtml(user.userId || "-")}</span>
+            <strong>${escapeHtml(user.name)}</strong>
+            <span class="tag">${escapeHtml(user.team)}</span>
+            <span class="tag">${escapeHtml(user.requestedAt)}</span>
+            <div class="access-row">
+              <label for="access-${escapeHtml(user.id)}">권한</label>
+              <select id="access-${escapeHtml(user.id)}" data-access-role="${escapeHtml(user.id)}">
+                ${roleOptionsMarkup(user.role)}
+              </select>
+            </div>
+            <div class="pending-actions">
+              <button type="button" class="primary" data-approve="${user.id}">승인</button>
+              <button type="button" class="danger" data-reject="${user.id}">거절</button>
+            </div>
+          </article>
+        `).join("")
+        : `<div class="empty">승인 대기자가 없습니다.</div>`;
+      if (pendingList) pendingList.innerHTML = html;
+      appPendingList.innerHTML = html;
+    }
+
+    function renderUserList() {
+      userList.innerHTML = users.length
+        ? users.map((user) => `
+          <article class="pending-item">
+            <span class="tag blue">${escapeHtml(user.userId || "-")}</span>
+            <strong>${escapeHtml(user.name || "-")}</strong>
+            <span class="tag">${escapeHtml(user.team || "-")}</span>
+            ${isPrimaryAdmin(user)
+              ? `<span class="tag red">${roleLabel(user.role)}</span>`
+              : `<select class="role-select" data-user-role="${escapeHtml(user.id)}" ${user.status !== "approved" ? "disabled" : ""}>
+                  ${roleOptionsMarkup(user.role)}
+                </select>`}
+            <span class="tag ${user.status === "approved" ? "green" : user.status === "pending" ? "amber" : "red"}">${escapeHtml(user.status || "-")}</span>
+          </article>
+        `).join("")
+        : `<div class="empty">사용자가 없습니다.</div>`;
+    }
+
+    function renderBlendCatalogAdmin() {
+      blendCatalogFields.category.innerHTML = Object.keys(blendCategories)
+        .map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+        .join("");
+      blendCatalogFields.list.innerHTML = Object.entries(blendCategories).map(([category, categoryBlends]) => {
+        const items = categoryBlends.length
+          ? categoryBlends.map((blend) => {
+            const recordCount = entries.filter((entry) => entry.blend === blend).length;
+            return `
+              <article class="notice-item">
+                <div>
+                  <strong>${escapeHtml(blend)}</strong>
+                  <div class="meta"><span class="tag blue">${escapeHtml(category)}</span><span class="tag">기록 ${recordCount}</span></div>
+                </div>
+                <p>${recordCount ? "카탈로그에서만 삭제되며 기존 QC 기록은 보존됩니다." : "아직 연결된 QC 기록이 없습니다."}</p>
+                <button class="delete" type="button" data-delete-blend="${escapeHtml(blend)}" data-delete-category="${escapeHtml(category)}" title="블렌드 종류 삭제">×</button>
+              </article>
+            `;
+          }).join("")
+          : `<div class="empty">${escapeHtml(category)}에 등록된 제품이 없습니다.</div>`;
+        return `
+          <div class="category-group">
+            <h3>${escapeHtml(category)}</h3>
+            <div class="notice-list">${items}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function readEntries() {
+      const parsed = readStoreValue(storageKey);
+      if (!parsed) {
+        writeStoreValue(storageKey, []);
+        return [];
+      }
+      try {
+        if (!Array.isArray(parsed)) return [];
+        let changed = false;
+        const withoutSeedEntries = parsed.filter((entry) => !seedEntryIds.has(entry.id)).map((entry) => {
+          const blend = canonicalBlendName(entry.blend);
+          const verdict = normalizeVerdict(entry.verdict);
+          if (blend !== entry.blend || verdict !== entry.verdict) changed = true;
+          return { ...entry, blend, verdict };
+        });
+        if (withoutSeedEntries.length !== parsed.length) changed = true;
+        if (changed) writeEntries(withoutSeedEntries);
+        return withoutSeedEntries;
+      } catch {
+        return [];
+      }
+    }
+
+    function writeEntries(value) {
+      writeStoreValue(storageKey, value);
+    }
+
+    let entries = readEntries();
+
+    function readNonShipResults() {
+      const parsed = readStoreValue(nonShipResultsKey);
+      if (!parsed) return [];
+      try {
+        return Array.isArray(parsed) ? parsed.map((item) => ({ ...item, blend: canonicalBlendName(item.blend) })) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeNonShipResults(value) {
+      writeStoreValue(nonShipResultsKey, value);
+    }
+
+    let nonShipResults = readNonShipResults();
+
+    function readRatioNotices() {
+      const parsed = readStoreValue(ratioNoticesKey);
+      if (!parsed) return [];
+      try {
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeRatioNotices(value) {
+      writeStoreValue(ratioNoticesKey, value);
+    }
+
+    let ratioNotices = readRatioNotices();
+
+    function today() {
+      const date = new Date();
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function makeId() {
+      return "mira-qc-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+    }
+
+    function normalizeTags(value) {
+      return value.split(",").map((tag) => tag.trim()).filter(Boolean);
+    }
+
+    function normalizeBatchRange(value) {
+      const text = normalizeText(value);
+      if (!text) return "";
+      const compact = text.replace(/\s+/g, "").replace(/-/g, "~");
+      const match = compact.match(/^#?(\d+)~#?(\d+)$/);
+      if (match) return `#${match[1]}~#${match[2]}`;
+      const single = compact.match(/^#?(\d+)$/);
+      if (single) return `#${single[1]}`;
+      return text;
+    }
+
+    function parseKoreanDate(value) {
+      const text = String(value || "").trim();
+      const year = new Date().getFullYear();
+      const slash = text.match(/^(\d{1,2})\/(\d{1,2})$/);
+      const korean = text.match(/^(\d{1,2})월\s*(\d{1,2})일?$/);
+      const match = slash || korean;
+      if (!match) return "";
+      return `${year}-${String(match[1]).padStart(2, "0")}-${String(match[2]).padStart(2, "0")}`;
+    }
+
+    function parseBatchBlend(label, fallbackBlend) {
+      const compact = String(label || "").trim();
+      const match = compact.match(/^([^\d#]+)#?(\d+)$/);
+      if (!match) return { blend: fallbackBlend, batch: compact };
+      const prefix = match[1];
+      const number = match[2];
+      if (prefix.startsWith("올")) return { blend: "올드독", batch: `#${number}` };
+      if (prefix.startsWith("잘")) return { blend: "잘되어 가시나", batch: `#${number}` };
+      if (prefix.startsWith("서")) return { blend: "서울시네마", batch: `#${number}` };
+      if (prefix.startsWith("디") || prefix.startsWith("다카")) return { blend: "디카페인", batch: `#${number}` };
+      if (prefix.startsWith("행복")) return { blend: "행복마루", batch: `#${number}` };
+      if (prefix.startsWith("너티")) return { blend: "너티트리니티", batch: `#${number}` };
+      return { blend: fallbackBlend, batch: compact };
+    }
+
+    function createRoastingEntry({ blend, roastDate, batch, roaster, pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor, note = "로스팅 데이터 입력" }) {
+      return {
+        id: makeId(),
+        entryType: "roasting",
+        blend,
+        roastDate: roastDate || today(),
+        batch,
+        roastLevel: "기준",
+        verdict: "pass",
+        roastData: { roaster, pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor },
+        scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
+        intensity: { acidity: 0, sweetness: 0, bitterness: 0, body: 0 },
+        note,
+        tags: normalizeTags(`로스팅데이터, ${batch}`),
+        createdAt: today()
+      };
+    }
+
+    function parseBulkRoastingText(value, fallbackBlend) {
+      const lines = String(value || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+      const parsed = [];
+      const defaults = {
+        roastDate: today(),
+        roaster: "검댕이",
+        pressure: "",
+        drumSpeed: ""
+      };
+      let pendingNote = "";
+      lines.forEach((line) => {
+        const header = line.match(/^(\d{1,2}(?:\/\d{1,2}|월\s*\d{1,2}일?))\s+(\S+)\s+(\S*pa)\s+(\S*hz)$/i);
+        if (header) {
+          defaults.roastDate = parseKoreanDate(header[1]) || defaults.roastDate;
+          defaults.roaster = header[2];
+          defaults.pressure = header[3];
+          defaults.drumSpeed = header[4];
+          return;
+        }
+        if (line.startsWith("-") && line.endsWith("-")) {
+          pendingNote = line.replace(/^-+|-+$/g, "").trim();
+          return;
+        }
+        const row = line.match(/^(\S+)\s+(.+)$/);
+        if (!row) {
+          pendingNote = [pendingNote, line.replace(/^-+|-+$/g, "").trim()].filter(Boolean).join(" / ");
+          return;
+        }
+        const values = row[2].split("/").map((item) => item.trim());
+        if (values.length < 6) {
+          pendingNote = [pendingNote, line.replace(/^-+|-+$/g, "").trim()].filter(Boolean).join(" / ");
+          return;
+        }
+        const batchInfo = parseBatchBlend(row[1], fallbackBlend);
+        parsed.push(createRoastingEntry({
+          blend: batchInfo.blend,
+          roastDate: defaults.roastDate,
+          batch: batchInfo.batch,
+          roaster: defaults.roaster,
+          pressure: defaults.pressure,
+          drumSpeed: defaults.drumSpeed,
+          exhaust: values[0] || "",
+          heat: values[1] || "",
+          dropTemp: values[2] || "",
+          roastTime: values[3] || "",
+          wholeColor: values[4] || "",
+          groundColor: values[5] || "",
+          note: pendingNote ? `로스팅 데이터 입력 - ${pendingNote}` : "로스팅 데이터 입력"
+        }));
+        pendingNote = "";
+      });
+      if (pendingNote && parsed.length) {
+        const last = parsed[parsed.length - 1];
+        last.note = `${last.note} - ${pendingNote}`;
+      }
+      return parsed;
+    }
+
+    function resetEditingState(type) {
+      if (!type || type === "cupping") {
+        editingCuppingId = "";
+        qcSubmitButton.textContent = "저장";
+      }
+      if (!type || type === "roasting") {
+        editingRoastingId = "";
+        roastingSubmitButton.textContent = "로스팅 데이터 저장";
+      }
+      if (!type || type === "espresso") {
+        editingEspressoId = "";
+        espressoSubmitButton.textContent = "추출 평가 저장";
+      }
+    }
+
+    function loadEntryForEdit(entry) {
+      if (!canEditEntry(entry, approvedSessionUser())) return;
+      if (entry.entryType === "roasting") {
+        const roastData = normalizedRoastData(entry);
+        editingRoastingId = entry.id;
+        roastingFields.blend.value = entry.blend;
+        roastingFields.date.value = entry.roastDate || today();
+        roastingFields.batch.value = entry.batch || "";
+        roastingFields.roaster.value = roastData.roaster || "검댕이";
+        roastingFields.pressure.value = roastData.pressure;
+        roastingFields.drumSpeed.value = roastData.drumSpeed;
+        roastingFields.exhaust.value = roastData.exhaust;
+        roastingFields.heat.value = roastData.heat;
+        roastingFields.dropTemp.value = roastData.dropTemp;
+        roastingFields.roastTime.value = roastData.roastTime;
+        roastingFields.wholeColor.value = roastData.wholeColor;
+        roastingFields.groundColor.value = roastData.groundColor;
+        roastingSubmitButton.textContent = "로스팅 데이터 수정";
+        setAppView("roasting");
+        return;
+      }
+      if (entry.entryType === "espresso") {
+        const espressoData = normalizedEspressoData(entry);
+        editingEspressoId = entry.id;
+        espressoFields.blend.value = entry.blend;
+        espressoFields.date.value = entry.roastDate || today();
+        espressoFields.batch.value = entry.batch || "";
+        espressoFields.account.value = espressoData.account;
+        espressoFields.time.value = espressoData.time;
+        espressoFields.yield.value = espressoData.yield;
+        espressoFields.grind.value = espressoData.grind;
+        espressoFields.verdict.value = normalizeVerdict(entry.verdict || "pass");
+        espressoFields.note.value = entry.note || "";
+        espressoSubmitButton.textContent = "추출 평가 수정";
+        setAppView("espresso");
+        return;
+      }
+      const scores = normalizedScores(entry);
+      const intensity = normalizedIntensity(entry);
+      editingCuppingId = entry.id;
+      fields.blend.value = entry.blend;
+      fields.roastDate.value = entry.roastDate || today();
+      fields.batch.value = entry.batch || "";
+      fields.roastLevel.value = entry.roastLevel || "기준";
+      fields.verdict.value = normalizeVerdict(entry.verdict || "pass");
+      fields.aroma.value = scores.aroma || 4;
+      fields.flavor.value = scores.flavor || 4;
+      fields.balance.value = scores.balance || 4;
+      fields.after.value = scores.after || 4;
+      fields.acidity.value = intensity.acidity || 3;
+      fields.sweetness.value = intensity.sweetness || 4;
+      fields.bitterness.value = intensity.bitterness || 2;
+      fields.body.value = intensity.body || 4;
+      fields.note.value = entry.note || "";
+      fields.tags.value = (entry.tags || []).join(", ");
+      qcSubmitButton.textContent = "커핑 코멘트 수정";
+      setAppView("cupping");
+    }
+
+    function scoreAverage(entry) {
+      const scores = normalizedScores(entry);
+      const values = Object.values(scores).map(Number);
+      const total = values.reduce((sum, value) => sum + value, 0);
+      return values.length ? total / values.length : 0;
+    }
+
+    function normalizedScores(entry) {
+      const scores = entry.scores || {};
+      return {
+        aroma: Number(scores.aroma || 0),
+        flavor: Number(scores.flavor || 0),
+        balance: Number(scores.balance || 0),
+        after: Number(scores.after || 0)
+      };
+    }
+
+    function normalizedIntensity(entry) {
+      const intensity = entry.intensity || {};
+      const scores = entry.scores || {};
+      return {
+        acidity: Number(intensity.acidity || 0),
+        sweetness: Number(intensity.sweetness || 0),
+        bitterness: Number(intensity.bitterness || 0),
+        body: Number(intensity.body || scores.body || 0)
+      };
+    }
+
+    function normalizedRoastData(entry) {
+      const roastData = entry.roastData || {};
+      return {
+        roaster: roastData.roaster || "",
+        pressure: roastData.pressure || "",
+        drumSpeed: roastData.drumSpeed || roastData.frequency || "",
+        exhaust: roastData.exhaust || "",
+        heat: roastData.heat || "",
+        dropTemp: roastData.dropTemp || "",
+        roastTime: roastData.roastTime || "",
+        wholeColor: roastData.wholeColor || "",
+        groundColor: roastData.groundColor || ""
+      };
+    }
+
+    function normalizedEspressoData(entry) {
+      const espressoData = entry.espressoData || {};
+      return {
+        account: espressoData.account || "",
+        time: espressoData.time || "",
+        yield: espressoData.yield || "",
+        grind: espressoData.grind || ""
+      };
+    }
+
+    function displayCell(value) {
+      return value || value === 0 ? escapeHtml(value) : "-";
+    }
+
+    function isCuppingEntry(entry) {
+      return entry.entryType !== "roasting" && entry.entryType !== "espresso";
+    }
+
+    function normalizeVerdict(value) {
+      if (value === "pass") return "pass";
+      if (value === "watch") return "hold";
+      if (value === "hold") return "no_ship";
+      if (value === "no_ship") return "no_ship";
+      return "hold";
+    }
+
+    function verdictLabel(verdict) {
+      const normalized = normalizeVerdict(verdict);
+      const match = verdicts.find(([value]) => value === normalized);
+      return match ? match[1] : "HOLD";
+    }
+
+    function verdictClass(verdict) {
+      const normalized = normalizeVerdict(verdict);
+      if (normalized === "pass") return "green";
+      if (normalized === "hold") return "amber";
+      return "red";
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function selectHasValue(select, value) {
+      return Array.from(select.options).some((option) => option.value === value);
+    }
+
+    function allEntryBlends() {
+      return Array.from(new Set([
+        ...blends,
+        ...entries.map((entry) => entry.blend),
+        ...ratioNotices.map((notice) => notice.blend)
+      ].filter(Boolean)));
+    }
+
+    function categorizedBlendMap() {
+      const known = new Set(blends);
+      const result = Object.fromEntries(Object.entries(blendCategories).map(([category, list]) => [category, [...list]]));
+      const unknownBlends = allEntryBlends().filter((blend) => !known.has(blend));
+      if (unknownBlends.length) result["기타"] = unknownBlends;
+      return result;
+    }
+
+    function blendOptionMarkup(includeAll = false) {
+      const allOption = includeAll ? `<option value="all">전체 블렌드</option>` : "";
+      const groups = Object.entries(categorizedBlendMap()).map(([category, categoryBlends]) => {
+        if (!categoryBlends.length) return "";
+        return `
+          <optgroup label="${escapeHtml(category)}">
+            ${categoryBlends.map((blend) => `<option value="${escapeHtml(blend)}">${escapeHtml(blend)}</option>`).join("")}
+          </optgroup>
+        `;
+      }).join("");
+      return `${allOption}${groups}`;
+    }
+
+    function categoryOptionMarkup() {
+      return `<option value="all">전체 카테고리</option>${Object.keys(categorizedBlendMap()).map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}`;
+    }
+
+    function populateProductControls() {
+      const blendSelects = [fields.blend, filters.blend, noticeFields.blend, roastingFields.blend, espressoFields.blend, nonShipFields.blend];
+      blendSelects.forEach((select) => {
+        const current = select.value;
+        select.innerHTML = blendOptionMarkup(select === filters.blend);
+        if (current && selectHasValue(select, current)) select.value = current;
+      });
+      const currentCategory = filters.category.value;
+      filters.category.innerHTML = categoryOptionMarkup();
+      if (currentCategory && selectHasValue(filters.category, currentCategory)) filters.category.value = currentCategory;
+    }
+
+    function matchesFilters(entry) {
+      const query = filters.search.value.trim().toLowerCase();
+      const category = getBlendCategory(entry.blend);
+      const verdict = normalizeVerdict(entry.verdict);
+      const haystack = [
+        category,
+        entry.blend,
+        entry.batch,
+        entry.roastLevel,
+        verdict,
+        verdictLabel(verdict),
+        ...Object.values(normalizedRoastData(entry)),
+        ...Object.values(normalizedEspressoData(entry)),
+        entry.note,
+        entry.tags.join(" ")
+      ].join(" ").toLowerCase();
+      return (!query || haystack.includes(query))
+        && (filters.category.value === "all" || category === filters.category.value)
+        && (filters.blend.value === "all" || entry.blend === filters.blend.value)
+        && (filters.verdict.value === "all" || verdict === filters.verdict.value)
+        && (filters.roastLevel.value === "all" || entry.roastLevel === filters.roastLevel.value);
+    }
+
+    function matchesRatioNotice(notice) {
+      const query = filters.search.value.trim().toLowerCase();
+      const category = getBlendCategory(notice.blend);
+      const haystack = [
+        category,
+        notice.blend,
+        notice.effectiveDate,
+        notice.beforeRatio,
+        notice.afterRatio,
+        notice.reason
+      ].join(" ").toLowerCase();
+      return (!query || haystack.includes(query))
+        && (filters.category.value === "all" || category === filters.category.value)
+        && (filters.blend.value === "all" || notice.blend === filters.blend.value);
+    }
+
+    function getBlendCategory(blend) {
+      const match = Object.entries(blendCategories).find(([, blendList]) => blendList.includes(blend));
+      if (match) return match[0];
+      if (/디카|decaf/i.test(blend)) return "디카페인";
+      if (/싱글|single|origin|오리진/i.test(blend)) return "싱글오리진";
+      return "기타";
+    }
+
+    function cardMarkup(entry, compact = false) {
+      const tags = entry.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
+      const avg = scoreAverage(entry).toFixed(1);
+      const scores = normalizedScores(entry);
+      const intensity = normalizedIntensity(entry);
+      const roastData = normalizedRoastData(entry);
+      const espressoData = normalizedEspressoData(entry);
+      const isRoasting = entry.entryType === "roasting";
+      const isEspresso = entry.entryType === "espresso";
+      const user = approvedSessionUser();
+      const editType = isRoasting ? "roasting" : isEspresso ? "espresso" : "cupping";
+      const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${entry.id}" data-edit-type="${editType}">수정</button>`;
+      const deleteButton = compact || !canManageData(user) ? "" : `<button class="delete" data-delete="${entry.id}" title="QC 기록 삭제">×</button>`;
+      const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
+      return `
+        <article class="${compact ? "qc-card" : "record-item"}">
+          ${compact ? "" : `<div class="date">${entry.roastDate}<br>${escapeHtml(entry.batch || "범위 미기록")}</div>`}
+          <div>
+            <div class="qc-head">
+              <h4 class="qc-title">${escapeHtml(entry.blend)} ${compact ? escapeHtml(entry.batch || "") : ""}</h4>
+              <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
+            </div>
+            <p class="qc-body">${escapeHtml(entry.note)}</p>
+            <div class="meta">
+              <span class="tag blue">${entry.roastLevel}</span>
+              ${isEspresso
+                ? `<span class="tag">거래처 ${escapeHtml(espressoData.account || "-")}</span>
+                  <span class="tag">추출시간 ${escapeHtml(espressoData.time || "-")}</span>
+                  <span class="tag">추출량 ${escapeHtml(espressoData.yield || "-")}</span>
+                  <span class="tag amber">분쇄도 ${escapeHtml(espressoData.grind || "-")}</span>`
+                : isRoasting
+                ? `<span class="tag">로스터 ${escapeHtml(roastData.roaster || "-")}</span>
+                  <span class="tag">압력 ${escapeHtml(roastData.pressure || "-")}</span>
+                  <span class="tag">드럼 ${escapeHtml(roastData.drumSpeed || "-")}</span>
+                  <span class="tag amber">배출온도 ${escapeHtml(roastData.dropTemp || "-")}</span>
+                  <span class="tag amber">홀빈 ${escapeHtml(roastData.wholeColor || "-")}</span>
+                  <span class="tag amber">그라운드 ${escapeHtml(roastData.groundColor || "-")}</span>`
+                : `<span class="tag">향미평균 ${avg}</span>
+                  <span class="tag">향 ${scores.aroma}</span>
+                  <span class="tag">향미 ${scores.flavor}</span>
+                  <span class="tag">밸런스 ${scores.balance}</span>
+                  <span class="tag">후미 ${scores.after}</span>
+                  <span class="tag amber">산미강도 ${intensity.acidity}</span>
+                  <span class="tag amber">단맛강도 ${intensity.sweetness}</span>
+                  <span class="tag amber">쓴맛강도 ${intensity.bitterness}</span>
+                  <span class="tag amber">바디강도 ${intensity.body}</span>`}
+              ${tags}
+            </div>
+          </div>
+          ${actions}
+        </article>
+      `;
+    }
+
+    function renderSummary() {
+      blendSummary.innerHTML = Object.entries(categorizedBlendMap()).map(([category, categoryBlends]) => {
+        const cards = categoryBlends.length ? categoryBlends.map((blend) => {
+          const blendEntries = entries.filter((entry) => entry.blend === blend);
+          const cuppingEntries = blendEntries.filter(isCuppingEntry);
+          const latest = blendEntries[0];
+          const avg = cuppingEntries.length
+            ? (cuppingEntries.reduce((sum, entry) => sum + scoreAverage(entry), 0) / cuppingEntries.length).toFixed(1)
+            : "-";
+          const watchCount = blendEntries.filter((entry) => normalizeVerdict(entry.verdict) !== "pass").length;
+          return `
+            <article class="blend-card">
+              <h2>${escapeHtml(blend)}</h2>
+              <div class="meta">
+                <span class="tag blue">${escapeHtml(category)}</span>
+                <span class="tag ${latest ? verdictClass(latest.verdict) : ""}">${latest ? verdictLabel(latest.verdict) : "대기"}</span>
+                <span class="tag">${latest ? latest.roastDate : "기록 대기"}</span>
+              </div>
+              <div class="blend-meta">
+                <div class="mini-stat"><span>기록</span><strong>${blendEntries.length}</strong></div>
+                <div class="mini-stat"><span>평균</span><strong>${avg}</strong></div>
+                <div class="mini-stat"><span>확인</span><strong>${watchCount}</strong></div>
+              </div>
+            </article>
+          `;
+        }).join("") : `
+          <article class="blend-card empty-category">
+            <h2>등록 대기</h2>
+            <p class="hint">${escapeHtml(category)} 제품명과 기본 정보가 모이면 이 영역에 시트가 생성됩니다.</p>
+          </article>
+        `;
+        return `
+          <div class="category-group">
+            <h3>${escapeHtml(category)}</h3>
+            <div class="category-grid">${cards}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderRatioNotices() {
+      const editable = canManageRatioNotices(approvedSessionUser());
+      const notices = activeAppView === "search" ? ratioNotices.filter(matchesRatioNotice) : ratioNotices;
+      ratioNoticeList.innerHTML = notices.length
+        ? notices.map((notice) => `
+          <article class="notice-item">
+            <div>
+              <strong>${escapeHtml(notice.effectiveDate || "-")}</strong>
+              <div class="meta"><span class="tag blue">${escapeHtml(notice.blend)}</span></div>
+            </div>
+            <div>
+              <strong>${escapeHtml(notice.beforeRatio || "기존 비율 미기록")} → ${escapeHtml(notice.afterRatio || "-")}</strong>
+              <p>${escapeHtml(notice.reason || "변경 사유 미기록")}</p>
+            </div>
+            ${editable ? `<button class="delete" type="button" data-delete-notice="${escapeHtml(notice.id)}" title="공지 삭제">×</button>` : ""}
+          </article>
+        `).join("")
+        : `<div class="empty">표시할 생두 비율 변경공지가 없습니다.</div>`;
+    }
+
+    function renderBlendSheetTabs() {
+      blendSheetTabs.innerHTML = allEntryBlends().map((blend) => {
+        const count = entries.filter((entry) => entry.blend === blend).length;
+        return `<button type="button" class="${activeBlendSheet === blend ? "active" : ""}" data-sheet-blend="${escapeHtml(blend)}">${escapeHtml(blend)} (${count})</button>`;
+      }).join("");
+    }
+
+    function renderBlendSheet() {
+      const rows = entries.filter((entry) => entry.blend === activeBlendSheet && matchesFilters(entry));
+      if (!rows.length) {
+        blendSheet.innerHTML = `<div class="empty">이 블렌드 시트에 표시할 기록이 없습니다.</div>`;
+        return;
+      }
+      blendSheet.innerHTML = `
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th>로스팅일</th>
+              <th>평가 범위</th>
+              <th>로스터</th>
+              <th>압력</th>
+              <th>드럼 스피드</th>
+              <th>배기값</th>
+              <th>화력값</th>
+              <th>배출온도</th>
+              <th>로스팅시간</th>
+              <th>홀빈색도</th>
+              <th>그라운드색도</th>
+              <th>판정</th>
+              <th>향미평균</th>
+              <th>강도 요약</th>
+              <th>커핑 메모</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((entry) => {
+              const roastData = normalizedRoastData(entry);
+              const intensity = normalizedIntensity(entry);
+              return `
+                <tr>
+                  <td>${displayCell(entry.roastDate)}</td>
+                  <td>${displayCell(entry.batch)}</td>
+                  <td>${displayCell(roastData.roaster)}</td>
+                  <td>${displayCell(roastData.pressure)}</td>
+                  <td>${displayCell(roastData.drumSpeed)}</td>
+                  <td>${displayCell(roastData.exhaust)}</td>
+                  <td>${displayCell(roastData.heat)}</td>
+                  <td>${displayCell(roastData.dropTemp)}</td>
+                  <td>${displayCell(roastData.roastTime)}</td>
+                  <td>${displayCell(roastData.wholeColor)}</td>
+                  <td>${displayCell(roastData.groundColor)}</td>
+                  <td><span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span></td>
+                  <td>${scoreAverage(entry).toFixed(1)}</td>
+                  <td>산 ${intensity.acidity} / 단 ${intensity.sweetness} / 쓴 ${intensity.bitterness} / 바디 ${intensity.body}</td>
+                  <td class="sheet-note">${escapeHtml(entry.note)}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function nonShipResultMarkup(result) {
+      const editable = canManageNonShipResults(approvedSessionUser());
+      return `
+        <article class="record-item">
+          <div class="date">${escapeHtml(result.resultDate || "-")}<br>${escapeHtml(result.batch || "배치 미기록")}</div>
+          <div>
+            <div class="qc-head">
+              <h4 class="qc-title">${escapeHtml(result.blend || "-")}</h4>
+              <span class="tag red">${escapeHtml(result.method || "처리 방식 미기록")}</span>
+            </div>
+            <p class="qc-body">${escapeHtml(result.note || "처리 결과 미기록")}</p>
+            <div class="meta">
+              <span class="tag blue">ISSUE</span>
+              <span class="tag">${escapeHtml(result.createdBy || "-")}</span>
+            </div>
+          </div>
+          ${editable ? `<div class="entry-actions"><button class="delete" type="button" data-delete-nonship="${escapeHtml(result.id)}" title="소진 결과 삭제">×</button></div>` : ""}
+        </article>
+      `;
+    }
+
+    function renderNonShipResults() {
+      if (!canManageNonShipResults(approvedSessionUser())) {
+        nonShipResultList.innerHTML = "";
+        return;
+      }
+      const noShipEntries = entries.filter((entry) => normalizeVerdict(entry.verdict) === "no_ship");
+      const entryHints = noShipEntries.length
+        ? `<div class="list-summary"><span>ISSUE 판정 ${noShipEntries.length}개</span><span>소진 결과 ${nonShipResults.length}개</span></div>`
+        : `<div class="list-summary"><span>ISSUE 판정 0개</span><span>소진 결과 ${nonShipResults.length}개</span></div>`;
+      nonShipResultList.innerHTML = nonShipResults.length
+        ? `${entryHints}${nonShipResults.map((result) => nonShipResultMarkup(result)).join("")}`
+        : `${entryHints}<div class="empty">아직 저장된 ISSUE 소진 결과가 없습니다.</div>`;
+    }
+
+    function render() {
+      const visible = activeAppView === "search" ? entries.filter(matchesFilters) : entries;
+      const visibleCupping = visible.filter(isCuppingEntry);
+      renderSummary();
+      renderRatioNotices();
+      renderBlendSheetTabs();
+      renderBlendSheet();
+      renderNonShipResults();
+      Object.keys(lanes).forEach((verdict) => {
+        const laneEntries = visibleCupping.filter((entry) => normalizeVerdict(entry.verdict) === verdict);
+        lanes[verdict].innerHTML = laneEntries.length
+          ? laneEntries.map((entry) => cardMarkup(entry, true)).join("")
+          : `<div class="empty">표시할 QC가 없습니다.</div>`;
+      });
+      recordList.innerHTML = visible.length
+        ? visible.map((entry) => cardMarkup(entry)).join("")
+        : `<div class="empty">검색 조건에 맞는 QC 기록이 없습니다.</div>`;
+      const cuppingEntries = entries.filter(isCuppingEntry);
+      cuppingRecentList.innerHTML = cuppingEntries.length
+        ? cuppingEntries.slice(0, 6).map((entry) => cardMarkup(entry)).join("")
+        : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
+      const roastingEntries = entries.filter((entry) => entry.entryType === "roasting");
+      roastingRecentList.innerHTML = roastingEntries.length
+        ? `<div class="list-summary"><span>저장된 로스팅 데이터 ${roastingEntries.length}개</span><span>전체 표시</span></div>${roastingEntries.map((entry) => cardMarkup(entry)).join("")}`
+        : `<div class="empty">아직 저장된 로스팅 데이터가 없습니다.</div>`;
+      const espressoEntries = entries.filter((entry) => entry.entryType === "espresso");
+      espressoRecentList.innerHTML = espressoEntries.length
+        ? espressoEntries.slice(0, 6).map((entry) => cardMarkup(entry)).join("")
+        : `<div class="empty">아직 저장된 추출 평가가 없습니다.</div>`;
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!canInputCupping(approvedSessionUser())) return;
+      const entry = {
+        id: editingCuppingId || makeId(),
+        blend: fields.blend.value,
+        roastDate: fields.roastDate.value || today(),
+        batch: normalizeBatchRange(fields.batch.value),
+        roastLevel: fields.roastLevel.value,
+        verdict: normalizeVerdict(fields.verdict.value),
+        roastData: {
+          roaster: fields.roaster.value,
+          pressure: fields.pressure.value.trim(),
+          drumSpeed: fields.drumSpeed.value.trim(),
+          exhaust: fields.exhaust.value.trim(),
+          heat: fields.heat.value.trim(),
+          dropTemp: fields.dropTemp.value.trim(),
+          roastTime: fields.roastTime.value.trim(),
+          wholeColor: fields.wholeColor.value.trim(),
+          groundColor: fields.groundColor.value.trim()
+        },
+        scores: {
+          aroma: Number(fields.aroma.value || 0),
+          flavor: Number(fields.flavor.value || 0),
+          balance: Number(fields.balance.value || 0),
+          after: Number(fields.after.value || 0)
+        },
+        intensity: {
+          acidity: Number(fields.acidity.value || 0),
+          sweetness: Number(fields.sweetness.value || 0),
+          bitterness: Number(fields.bitterness.value || 0),
+          body: Number(fields.body.value || 0)
+        },
+        note: fields.note.value.trim(),
+        tags: normalizeTags(fields.tags.value),
+        createdAt: today()
+      };
+      entries = editingCuppingId
+        ? entries.map((item) => item.id === editingCuppingId ? { ...item, ...entry, createdAt: item.createdAt || entry.createdAt, updatedAt: today() } : item)
+        : [entry, ...entries];
+      writeEntries(entries);
+      form.reset();
+      resetEditingState("cupping");
+      fields.blend.value = "올드독";
+      fields.roastDate.value = today();
+      fields.roastLevel.value = "기준";
+      fields.verdict.value = "pass";
+      fields.roaster.value = "검댕이";
+      fields.pressure.value = "";
+      fields.drumSpeed.value = "";
+      fields.exhaust.value = "";
+      fields.heat.value = "";
+      fields.dropTemp.value = "";
+      fields.roastTime.value = "";
+      fields.wholeColor.value = "";
+      fields.groundColor.value = "";
+      fields.aroma.value = 4;
+      fields.flavor.value = 4;
+      fields.body.value = 4;
+      fields.balance.value = 4;
+      fields.after.value = 4;
+      fields.acidity.value = 3;
+      fields.sweetness.value = 4;
+      fields.bitterness.value = 2;
+      render();
+    });
+
+    ratioNoticeForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = approvedSessionUser();
+      if (!canManageRatioNotices(user)) return;
+      const notice = {
+        id: makeId(),
+        blend: noticeFields.blend.value,
+        effectiveDate: noticeFields.date.value || today(),
+        beforeRatio: noticeFields.before.value.trim(),
+        afterRatio: noticeFields.after.value.trim(),
+        reason: noticeFields.reason.value.trim(),
+        createdAt: today(),
+        createdBy: user?.userId || ""
+      };
+      ratioNotices = [notice, ...ratioNotices];
+      writeRatioNotices(ratioNotices);
+      ratioNoticeForm.reset();
+      noticeFields.blend.value = "올드독";
+      noticeFields.date.value = today();
+      render();
+    });
+
+    roastingForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!canInputRoasting(approvedSessionUser())) return;
+      const batch = normalizeBatchRange(roastingFields.batch.value);
+      const entry = createRoastingEntry({
+        blend: roastingFields.blend.value,
+        roastDate: roastingFields.date.value || today(),
+        batch,
+        roaster: roastingFields.roaster.value,
+        pressure: roastingFields.pressure.value.trim(),
+        drumSpeed: roastingFields.drumSpeed.value.trim(),
+        exhaust: roastingFields.exhaust.value.trim(),
+        heat: roastingFields.heat.value.trim(),
+        dropTemp: roastingFields.dropTemp.value.trim(),
+        roastTime: roastingFields.roastTime.value.trim(),
+        wholeColor: roastingFields.wholeColor.value.trim(),
+        groundColor: roastingFields.groundColor.value.trim()
+      });
+      const savedEntry = editingRoastingId ? { ...entry, id: editingRoastingId, updatedAt: today() } : entry;
+      entries = editingRoastingId
+        ? entries.map((item) => item.id === editingRoastingId ? { ...item, ...savedEntry, createdAt: item.createdAt || savedEntry.createdAt } : item)
+        : [savedEntry, ...entries];
+      writeEntries(entries);
+      roastingForm.reset();
+      resetEditingState("roasting");
+      roastingFields.blend.value = "올드독";
+      roastingFields.date.value = today();
+      roastingFields.roaster.value = "검댕이";
+      render();
+    });
+
+    roastingBulkForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!canInputRoasting(approvedSessionUser())) return;
+      const parsedEntries = parseBulkRoastingText(roastingBulkFields.input.value, roastingFields.blend.value);
+      if (!parsedEntries.length) {
+        roastingBulkFields.message.textContent = "저장할 수 있는 로스팅 데이터 줄을 찾지 못했습니다.";
+        return;
+      }
+      entries = [...parsedEntries, ...entries];
+      writeEntries(entries);
+      resetEditingState("roasting");
+      roastingBulkForm.reset();
+      roastingBulkFields.message.textContent = `${parsedEntries.length}개 로스팅 배치를 저장했습니다.`;
+      render();
+    });
+
+    espressoForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!canInputEspresso(approvedSessionUser())) return;
+      const batch = normalizeBatchRange(espressoFields.batch.value);
+      const entry = {
+        id: editingEspressoId || makeId(),
+        entryType: "espresso",
+        blend: espressoFields.blend.value,
+        roastDate: espressoFields.date.value || today(),
+        batch,
+        roastLevel: "추출 평가",
+        verdict: normalizeVerdict(espressoFields.verdict.value),
+        espressoData: {
+          account: espressoFields.account.value.trim(),
+          time: espressoFields.time.value.trim(),
+          yield: espressoFields.yield.value.trim(),
+          grind: espressoFields.grind.value.trim()
+        },
+        scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
+        intensity: { acidity: 0, sweetness: 0, bitterness: 0, body: 0 },
+        note: espressoFields.note.value.trim(),
+        tags: normalizeTags(`추출평가, ${batch}, ${espressoFields.account.value.trim()}`),
+        createdAt: today()
+      };
+      entries = editingEspressoId
+        ? entries.map((item) => item.id === editingEspressoId ? { ...item, ...entry, createdAt: item.createdAt || entry.createdAt, updatedAt: today() } : item)
+        : [entry, ...entries];
+      writeEntries(entries);
+      espressoForm.reset();
+      resetEditingState("espresso");
+      espressoFields.blend.value = "올드독";
+      espressoFields.date.value = today();
+      espressoFields.verdict.value = "pass";
+      render();
+    });
+
+    nonShipResultForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = approvedSessionUser();
+      if (!canManageNonShipResults(user)) return;
+      const result = {
+        id: makeId(),
+        blend: nonShipFields.blend.value,
+        resultDate: nonShipFields.date.value || today(),
+        batch: normalizeBatchRange(nonShipFields.batch.value),
+        method: nonShipFields.method.value,
+        note: nonShipFields.note.value.trim(),
+        createdAt: today(),
+        createdBy: user?.userId || ""
+      };
+      nonShipResults = [result, ...nonShipResults];
+      writeNonShipResults(nonShipResults);
+      nonShipResultForm.reset();
+      nonShipFields.blend.value = "올드독";
+      nonShipFields.date.value = today();
+      render();
+    });
+
+    authTabs.forEach((button) => {
+      button.addEventListener("click", () => setAuthTab(button.dataset.authTab));
+    });
+
+    pageButtons.forEach((button) => {
+      button.addEventListener("click", () => setPage(button.dataset.page));
+    });
+
+    appViewButtons.forEach((button) => {
+      button.addEventListener("click", () => setAppView(button.dataset.appView));
+    });
+
+    blendSheetTabs.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-sheet-blend]");
+      if (!button) return;
+      activeBlendSheet = button.dataset.sheetBlend;
+      filters.blend.value = activeBlendSheet;
+      render();
+    });
+
+    authViews.login.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const userId = normalizeUserId(authFields.loginUserId.value);
+      const password = authFields.loginPassword.value;
+      const user = users.find((item) => userMatches(item, userId));
+      if (!user) {
+        authMessages.login.textContent = "사용자 승인 요청을 먼저 남겨주세요.";
+        return;
+      }
+      if (user.status !== "approved") {
+        authMessages.login.textContent = user.status === "pending" ? "아직 관리자 승인 대기 중입니다." : "승인이 거절된 사용자입니다.";
+        return;
+      }
+      if (user.password !== password) {
+        authMessages.login.textContent = "비밀번호가 맞지 않습니다.";
+        return;
+      }
+      if (authFields.rememberId.checked) {
+        localStorage.setItem(savedIdKey, user.userId);
+      } else {
+        localStorage.removeItem(savedIdKey);
+      }
+      localStorage.setItem(sessionKey, JSON.stringify({ userId: user.id, loginAt: today() }));
+      authMessages.login.textContent = "";
+      authFields.loginPassword.value = "";
+      renderSavedId();
+      renderAuth();
+    });
+
+    authViews.signup.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const userId = normalizeUserId(authFields.signupUserId.value);
+      const password = authFields.signupPassword.value;
+      const name = normalizeText(authFields.signupName.value);
+      const team = normalizeText(authFields.signupTeam.value);
+      if (userId.length < 3) {
+        authMessages.signup.textContent = "아이디는 3자 이상으로 입력하세요.";
+        return;
+      }
+      if (password.length < 4) {
+        authMessages.signup.textContent = "비밀번호는 4자 이상으로 입력하세요.";
+        return;
+      }
+      const existing = users.find((item) => userMatches(item, userId));
+      if (existing) {
+        authMessages.signup.textContent = existing.status === "approved"
+          ? "이미 승인된 사용자입니다. 로그인 화면에서 로그인하세요."
+          : "이미 같은 아이디로 승인 대기 중입니다.";
+        return;
+      }
+      users = [
+        {
+          id: "user-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7),
+          userId,
+          password,
+          name,
+          team,
+          status: "pending",
+          role: "viewer",
+          requestedAt: today()
+        },
+        ...users
+      ];
+      writeUsers(users);
+      authViews.signup.reset();
+      authMessages.signup.textContent = "사용자 승인 요청이 저장되었습니다. 관리자 승인 후 로그인할 수 있습니다.";
+      renderPendingUsers();
+    });
+
+    function handlePendingClick(event) {
+      const approveButton = event.target.closest("[data-approve]");
+      const rejectButton = event.target.closest("[data-reject]");
+      if (!approveButton && !rejectButton) return;
+      const targetId = approveButton ? approveButton.dataset.approve : rejectButton.dataset.reject;
+      const roleSelect = document.querySelector(`[data-access-role="${targetId}"]`);
+      const selectedRole = normalizeRole(roleSelect?.value || "viewer");
+      users = users.map((user) => {
+        if (user.id !== targetId) return user;
+        return {
+          ...user,
+          status: approveButton ? "approved" : "rejected",
+          role: approveButton ? selectedRole : normalizeRole(user.role),
+          approvedAt: approveButton ? today() : user.approvedAt,
+          rejectedAt: rejectButton ? today() : user.rejectedAt
+        };
+      });
+      writeUsers(users);
+      renderPendingUsers();
+      renderUserList();
+    }
+
+    if (pendingList) pendingList.addEventListener("click", handlePendingClick);
+    appPendingList.addEventListener("click", handlePendingClick);
+
+    userList.addEventListener("change", (event) => {
+      const select = event.target.closest("[data-user-role]");
+      if (!select) return;
+      const targetId = select.dataset.userRole;
+      users = users.map((user) => {
+        if (user.id !== targetId || isPrimaryAdmin(user)) return user;
+        return { ...user, role: normalizeRole(select.value) };
+      });
+      writeUsers(users);
+      renderUserList();
+      render();
+    });
+
+    siteSettingsForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!isPrimaryAdmin(approvedSessionUser())) return;
+      writeSiteSettings({ title: siteSettingsFields.title.value });
+      renderSiteSettings();
+      siteSettingsFields.message.textContent = "홈페이지 이름을 저장했습니다.";
+    });
+
+    blendCatalogForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!isPrimaryAdmin(approvedSessionUser())) return;
+      const category = blendCatalogFields.category.value;
+      const name = canonicalBlendName(blendCatalogFields.name.value);
+      if (!category || !name) return;
+      if (blends.includes(name)) {
+        blendCatalogFields.message.textContent = "이미 등록된 제품명입니다.";
+        return;
+      }
+      const nextCatalog = cloneCatalog(blendCategories);
+      nextCatalog[category] = [...(nextCatalog[category] || []), name];
+      writeBlendCatalog(nextCatalog);
+      blendCatalogFields.name.value = "";
+      blendCatalogFields.message.textContent = `${name} 제품을 추가했습니다.`;
+      populateProductControls();
+      renderBlendCatalogAdmin();
+      render();
+    });
+
+    blendCatalogFields.list.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-delete-blend]");
+      if (!button || !isPrimaryAdmin(approvedSessionUser())) return;
+      const category = button.dataset.deleteCategory;
+      const blend = button.dataset.deleteBlend;
+      const nextCatalog = cloneCatalog(blendCategories);
+      nextCatalog[category] = (nextCatalog[category] || []).filter((item) => item !== blend);
+      writeBlendCatalog(nextCatalog);
+      blendCatalogFields.message.textContent = `${blend} 제품을 카탈로그에서 삭제했습니다.`;
+      populateProductControls();
+      renderBlendCatalogAdmin();
+      render();
+    });
+
+    document.querySelector("#logoutButton").addEventListener("click", () => {
+      localStorage.removeItem(sessionKey);
+      renderAuth();
+      renderSavedId();
+      setAuthTab("login");
+    });
+
+    clearSavedIdButton.addEventListener("click", () => {
+      localStorage.removeItem(savedIdKey);
+      renderSavedId();
+    });
+
+    passwordPanelButton.addEventListener("click", () => {
+      passwordPanel.style.display = passwordPanel.style.display === "block" ? "none" : "block";
+      passwordFields.message.textContent = "";
+    });
+
+    closePasswordPanelButton.addEventListener("click", () => {
+      passwordPanel.reset();
+      passwordFields.message.textContent = "";
+      passwordPanel.style.display = "none";
+    });
+
+    passwordPanel.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = approvedSessionUser();
+      if (!user) return;
+      if (passwordFields.current.value !== user.password) {
+        passwordFields.message.textContent = "현재 비밀번호가 맞지 않습니다.";
+        return;
+      }
+      if (passwordFields.next.value.length < 4) {
+        passwordFields.message.textContent = "새 비밀번호는 4자 이상으로 입력하세요.";
+        return;
+      }
+      if (passwordFields.next.value !== passwordFields.confirm.value) {
+        passwordFields.message.textContent = "새 비밀번호 확인이 일치하지 않습니다.";
+        return;
+      }
+      users = users.map((item) => item.id === user.id ? { ...item, password: passwordFields.next.value } : item);
+      writeUsers(users);
+      passwordPanel.reset();
+      passwordFields.message.textContent = "비밀번호가 변경되었습니다.";
+    });
+
+    function handleEntryAction(event) {
+      const editButton = event.target.closest("[data-edit-entry]");
+      if (editButton) {
+        const entry = entries.find((item) => item.id === editButton.dataset.editEntry);
+        if (entry) loadEntryForEdit(entry);
+        return;
+      }
+      const button = event.target.closest("[data-delete]");
+      if (!button) return;
+      if (!canManageData(approvedSessionUser())) return;
+      entries = entries.filter((entry) => entry.id !== button.dataset.delete);
+      writeEntries(entries);
+      render();
+    }
+
+    recordList.addEventListener("click", handleEntryAction);
+    cuppingRecentList.addEventListener("click", handleEntryAction);
+    roastingRecentList.addEventListener("click", handleEntryAction);
+    espressoRecentList.addEventListener("click", handleEntryAction);
+
+    ratioNoticeList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-delete-notice]");
+      if (!button) return;
+      if (!canManageRatioNotices(approvedSessionUser())) return;
+      ratioNotices = ratioNotices.filter((notice) => notice.id !== button.dataset.deleteNotice);
+      writeRatioNotices(ratioNotices);
+      render();
+    });
+
+    nonShipResultList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-delete-nonship]");
+      if (!button) return;
+      if (!canManageNonShipResults(approvedSessionUser())) return;
+      nonShipResults = nonShipResults.filter((result) => result.id !== button.dataset.deleteNonship);
+      writeNonShipResults(nonShipResults);
+      render();
+    });
+
+    Object.values(filters).forEach((filter) => {
+      filter.addEventListener("input", () => {
+        if (filter === filters.blend && filter.value !== "all") activeBlendSheet = filter.value;
+        render();
+      });
+      filter.addEventListener("change", () => {
+        if (filter === filters.blend && filter.value !== "all") activeBlendSheet = filter.value;
+        render();
+      });
+    });
+
+    document.querySelector("#exportButton").addEventListener("click", () => {
+      const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "mira-blend-qc-export.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.querySelector("#resetButton").addEventListener("click", () => {
+      entries = [];
+      writeEntries(entries);
+      render();
+    });
+
+    fields.roastDate.value = today();
+    roastingFields.date.value = today();
+    espressoFields.date.value = today();
+    nonShipFields.date.value = today();
+    noticeFields.date.value = today();
+    appShell.style.display = "none";
+    enforcePrimaryAdmin();
+    populateProductControls();
+    renderSiteSettings();
+    renderSavedId();
+    render();
+    renderAuth();
+  </script>
+</body>
+</html>
