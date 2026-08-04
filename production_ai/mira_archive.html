@@ -1582,11 +1582,15 @@
               <input id="roastBatchOnlyInput" required placeholder="예: #1">
             </div>
             <div class="field">
-              <label for="roastMachineInput">로스터</label>
+              <label for="roastMachineInput">로스터기</label>
               <select id="roastMachineInput">
                 <option value="검댕이">검댕이</option>
                 <option value="노랭이">노랭이</option>
               </select>
+            </div>
+            <div class="field">
+              <label for="roastOperatorInput">로스팅 담당자</label>
+              <input id="roastOperatorInput" placeholder="예: 홍길동">
             </div>
             <div class="field">
               <label for="roastPressureInput">압력</label>
@@ -1626,12 +1630,12 @@
             <div class="section-title" style="margin-bottom: 0;">
               <div>
                 <h3>컬러트랙 텍스트 붙여넣기</h3>
-                <p class="hint">날짜/로스터/압력/드럼 스피드와 여러 배치 수치를 한 번에 저장합니다.</p>
+                <p class="hint">날짜/로스터기/압력/드럼 스피드와 여러 배치 수치를 한 번에 저장합니다.</p>
               </div>
             </div>
             <div class="field">
               <label for="roastingBulkInput">로스팅 데이터 원문</label>
-              <textarea id="roastingBulkInput" placeholder="8/3 검댕이 110pa 53hz&#10;올1 236/62/174.5/14:55/50/54.8&#10;올2 236/55/174/14:12/45.6/55.9"></textarea>
+              <textarea id="roastingBulkInput" placeholder="8/3 검댕이 110pa 53hz 홍길동&#10;올1 236/62/174.5/14:55/50/54.8&#10;올(강)2 236/55/174/14:12/45.6/55.9"></textarea>
             </div>
             <button class="primary" type="submit">일괄 저장</button>
             <p id="roastingBulkMessage"></p>
@@ -2046,6 +2050,7 @@
       date: document.querySelector("#roastDateOnlyInput"),
       batch: document.querySelector("#roastBatchOnlyInput"),
       roaster: document.querySelector("#roastMachineInput"),
+      operator: document.querySelector("#roastOperatorInput"),
       pressure: document.querySelector("#roastPressureInput"),
       drumSpeed: document.querySelector("#roastDrumSpeedInput"),
       exhaust: document.querySelector("#roastExhaustInput"),
@@ -2680,7 +2685,7 @@
       return { blend: fallbackBlend, batch: compact };
     }
 
-    function createRoastingEntry({ blend, roastDate, batch, roaster, pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor, note = "로스팅 데이터 입력" }) {
+    function createRoastingEntry({ blend, roastDate, batch, roaster, operator = "", pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor, note = "로스팅 데이터 입력" }) {
       return {
         id: makeId(),
         entryType: "roasting",
@@ -2689,7 +2694,7 @@
         batch,
         roastLevel: "기준",
         verdict: "pass",
-        roastData: { roaster, pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor },
+        roastData: { roaster, operator, pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor },
         scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
         intensity: { acidity: 0, sweetness: 0, bitterness: 0, body: 0 },
         note,
@@ -2704,17 +2709,19 @@
       const defaults = {
         roastDate: today(),
         roaster: "검댕이",
+        operator: "",
         pressure: "",
         drumSpeed: ""
       };
       let pendingNote = "";
       lines.forEach((line) => {
-        const header = line.match(/^(\d{1,2}(?:\/\d{1,2}|월\s*\d{1,2}일?))\s+(\S+)\s+(\S*pa)\s+(\S*hz)$/i);
+        const header = line.match(/^(\d{1,2}(?:\/\d{1,2}|월\s*\d{1,2}일?))\s+(\S+)\s+(\S*pa)\s+(\S*hz)(?:\s+(.+))?$/i);
         if (header) {
           defaults.roastDate = parseKoreanDate(header[1]) || defaults.roastDate;
           defaults.roaster = header[2];
           defaults.pressure = header[3];
           defaults.drumSpeed = header[4];
+          defaults.operator = normalizeText(header[5] || defaults.operator);
           return;
         }
         if (line.startsWith("-") && line.endsWith("-")) {
@@ -2737,6 +2744,7 @@
           roastDate: defaults.roastDate,
           batch: batchInfo.batch,
           roaster: defaults.roaster,
+          operator: defaults.operator,
           pressure: defaults.pressure,
           drumSpeed: defaults.drumSpeed,
           exhaust: values[0] || "",
@@ -2780,6 +2788,7 @@
         roastingFields.date.value = entry.roastDate || today();
         roastingFields.batch.value = entry.batch || "";
         roastingFields.roaster.value = roastData.roaster || "검댕이";
+        roastingFields.operator.value = roastData.operator || "";
         roastingFields.pressure.value = roastData.pressure;
         roastingFields.drumSpeed.value = roastData.drumSpeed;
         roastingFields.exhaust.value = roastData.exhaust;
@@ -2862,6 +2871,7 @@
       const roastData = entry.roastData || {};
       return {
         roaster: roastData.roaster || "",
+        operator: roastData.operator || roastData.operatorName || roastData.roastedBy || "",
         pressure: roastData.pressure || "",
         drumSpeed: roastData.drumSpeed || roastData.frequency || "",
         exhaust: roastData.exhaust || "",
@@ -3047,7 +3057,8 @@
                   <span class="tag">추출량 ${escapeHtml(espressoData.yield || "-")}</span>
                   <span class="tag amber">분쇄도 ${escapeHtml(espressoData.grind || "-")}</span>`
                 : isRoasting
-                ? `<span class="tag">로스터 ${escapeHtml(roastData.roaster || "-")}</span>
+                ? `<span class="tag">로스터기 ${escapeHtml(roastData.roaster || "-")}</span>
+                  <span class="tag blue">담당자 ${escapeHtml(roastData.operator || "-")}</span>
                   <span class="tag">압력 ${escapeHtml(roastData.pressure || "-")}</span>
                   <span class="tag">드럼 ${escapeHtml(roastData.drumSpeed || "-")}</span>
                   <span class="tag amber">배출온도 ${escapeHtml(roastData.dropTemp || "-")}</span>
@@ -3149,7 +3160,8 @@
             <tr>
               <th>로스팅일</th>
               <th>평가 범위</th>
-              <th>로스터</th>
+              <th>로스터기</th>
+              <th>담당자</th>
               <th>압력</th>
               <th>드럼 스피드</th>
               <th>배기값</th>
@@ -3173,6 +3185,7 @@
                   <td>${displayCell(entry.roastDate)}</td>
                   <td>${displayCell(entry.batch)}</td>
                   <td>${displayCell(roastData.roaster)}</td>
+                  <td>${displayCell(roastData.operator)}</td>
                   <td>${displayCell(roastData.pressure)}</td>
                   <td>${displayCell(roastData.drumSpeed)}</td>
                   <td>${displayCell(roastData.exhaust)}</td>
@@ -3271,6 +3284,7 @@
         verdict: normalizeVerdict(fields.verdict.value),
         roastData: {
           roaster: fields.roaster.value,
+          operator: "",
           pressure: fields.pressure.value.trim(),
           drumSpeed: fields.drumSpeed.value.trim(),
           exhaust: fields.exhaust.value.trim(),
@@ -3357,6 +3371,7 @@
         roastDate: roastingFields.date.value || today(),
         batch,
         roaster: roastingFields.roaster.value,
+        operator: roastingFields.operator.value.trim(),
         pressure: roastingFields.pressure.value.trim(),
         drumSpeed: roastingFields.drumSpeed.value.trim(),
         exhaust: roastingFields.exhaust.value.trim(),
@@ -3376,6 +3391,7 @@
       roastingFields.blend.value = "올드독";
       roastingFields.date.value = today();
       roastingFields.roaster.value = "검댕이";
+      roastingFields.operator.value = "";
       render();
     });
 
