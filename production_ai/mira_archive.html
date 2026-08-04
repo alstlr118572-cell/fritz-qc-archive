@@ -1323,7 +1323,7 @@
               </select>
             </div>
             <div class="field">
-              <label for="roastDateInput">로스팅일</label>
+              <label for="roastDateInput">커핑일</label>
               <input id="roastDateInput" type="date" required>
             </div>
           </div>
@@ -2671,6 +2671,40 @@
       return `${year}-${month}-${day}`;
     }
 
+    function parseDateInput(value) {
+      const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!match) return null;
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    }
+
+    function formatDateInput(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function shiftDateInput(value, days) {
+      const date = parseDateInput(value);
+      if (!date) return value || today();
+      date.setDate(date.getDate() + days);
+      return formatDateInput(date);
+    }
+
+    function roastDateFromCuppingDate(value) {
+      const cuppingDate = value || today();
+      const date = parseDateInput(cuppingDate);
+      if (!date) return cuppingDate;
+      return shiftDateInput(cuppingDate, date.getDay() === 1 ? -3 : -1);
+    }
+
+    function cuppingDateFromRoastDate(value) {
+      const roastDate = value || today();
+      const date = parseDateInput(roastDate);
+      if (!date) return roastDate;
+      return shiftDateInput(roastDate, date.getDay() === 5 ? 3 : 1);
+    }
+
     function makeId() {
       return "mira-qc-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
     }
@@ -2703,10 +2737,12 @@
     }
 
     function cuppingEntryFromFields(overrides = {}) {
+      const cuppingDate = overrides.cuppingDate || fields.roastDate.value || today();
       return {
         id: overrides.id || editingCuppingId || makeId(),
         blend: overrides.blend || fields.blend.value,
-        roastDate: overrides.roastDate || fields.roastDate.value || today(),
+        roastDate: overrides.roastDate || roastDateFromCuppingDate(cuppingDate),
+        cuppingDate,
         batch: normalizeBatchRange(overrides.batch || fields.batch.value),
         roastLevel: overrides.roastLevel || fields.roastLevel.value,
         verdict: normalizeVerdict(overrides.verdict || fields.verdict.value),
@@ -2911,7 +2947,7 @@
       const intensity = normalizedIntensity(entry);
       editingCuppingId = entry.id;
       fields.blend.value = entry.blend;
-      fields.roastDate.value = entry.roastDate || today();
+      fields.roastDate.value = entry.cuppingDate || cuppingDateFromRoastDate(entry.roastDate || today());
       fields.batch.value = entry.batch || "";
       fields.roastLevel.value = entry.roastLevel || "기준";
       fields.verdict.value = normalizeVerdict(entry.verdict || "pass");
@@ -2989,6 +3025,39 @@
 
     function isCuppingEntry(entry) {
       return entry.entryType !== "roasting" && entry.entryType !== "espresso";
+    }
+
+    function batchNumberRange(batch) {
+      const normalized = normalizeBatchRange(batch);
+      const range = normalized.match(/^#(\d+)~#(\d+)$/);
+      if (range) {
+        const start = Number(range[1]);
+        const end = Number(range[2]);
+        return [Math.min(start, end), Math.max(start, end)];
+      }
+      const single = normalized.match(/^#(\d+)$/);
+      if (single) {
+        const number = Number(single[1]);
+        return [number, number];
+      }
+      return null;
+    }
+
+    function batchesOverlap(left, right) {
+      const leftRange = batchNumberRange(left);
+      const rightRange = batchNumberRange(right);
+      if (!leftRange || !rightRange) return normalizeBatchRange(left) === normalizeBatchRange(right);
+      return leftRange[0] <= rightRange[1] && rightRange[0] <= leftRange[1];
+    }
+
+    function linkedRoastingEntries(entry) {
+      if (!isCuppingEntry(entry)) return [];
+      return entries.filter((candidate) => (
+        candidate.entryType === "roasting"
+        && candidate.blend === entry.blend
+        && candidate.roastDate === entry.roastDate
+        && batchesOverlap(entry.batch, candidate.batch)
+      ));
     }
 
     function normalizeVerdict(value) {
@@ -3077,6 +3146,7 @@
         category,
         entry.blend,
         entry.batch,
+        entry.cuppingDate,
         entry.roastLevel,
         verdict,
         verdictLabel(verdict),
@@ -3125,6 +3195,8 @@
       const espressoData = normalizedEspressoData(entry);
       const isRoasting = entry.entryType === "roasting";
       const isEspresso = entry.entryType === "espresso";
+      const isCupping = !isRoasting && !isEspresso;
+      const linkedRoastCount = isCupping ? linkedRoastingEntries(entry).length : 0;
       const user = approvedSessionUser();
       const editType = isRoasting ? "roasting" : isEspresso ? "espresso" : "cupping";
       const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${entry.id}" data-edit-type="${editType}">수정</button>`;
@@ -3132,7 +3204,7 @@
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
       return `
         <article class="${compact ? "qc-card" : "record-item"}">
-          ${compact ? "" : `<div class="date">${entry.roastDate}<br>${escapeHtml(entry.batch || "범위 미기록")}</div>`}
+          ${compact ? "" : `<div class="date">${isCupping ? `로스팅 ${escapeHtml(entry.roastDate || "-")}<br>커핑 ${escapeHtml(entry.cuppingDate || "-")}` : `${entry.roastDate}<br>${escapeHtml(entry.batch || "범위 미기록")}`}</div>`}
           <div>
             <div class="qc-head">
               <h4 class="qc-title">${escapeHtml(entry.blend)} ${compact ? escapeHtml(entry.batch || "") : ""}</h4>
@@ -3155,6 +3227,9 @@
                   <span class="tag amber">홀빈 ${escapeHtml(roastData.wholeColor || "-")}</span>
                   <span class="tag amber">그라운드 ${escapeHtml(roastData.groundColor || "-")}</span>`
                 : `<span class="tag">향미평균 ${avg}</span>
+                  <span class="tag blue">커핑일 ${escapeHtml(entry.cuppingDate || "-")}</span>
+                  <span class="tag">연결 로스팅일 ${escapeHtml(entry.roastDate || "-")}</span>
+                  <span class="tag ${linkedRoastCount ? "green" : "amber"}">로스팅 연결 ${linkedRoastCount}개</span>
                   <span class="tag">향 ${scores.aroma}</span>
                   <span class="tag">향미 ${scores.flavor}</span>
                   <span class="tag">밸런스 ${scores.balance}</span>
@@ -3249,6 +3324,7 @@
           <thead>
             <tr>
               <th>로스팅일</th>
+              <th>커핑일</th>
               <th>평가 범위</th>
               <th>로스터기</th>
               <th>로스팅한 사람</th>
@@ -3273,6 +3349,7 @@
               return `
                 <tr>
                   <td>${displayCell(entry.roastDate)}</td>
+                  <td>${displayCell(isCuppingEntry(entry) ? entry.cuppingDate : "")}</td>
                   <td>${displayCell(entry.batch)}</td>
                   <td>${displayCell(roastData.roaster)}</td>
                   <td>${displayCell(roastData.operator)}</td>
