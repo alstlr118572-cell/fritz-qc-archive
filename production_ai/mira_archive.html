@@ -1707,6 +1707,10 @@
               <input id="espressoYieldInput" placeholder="예: 38g">
             </div>
             <div class="field">
+              <label for="espressoTdsInput">TDS</label>
+              <input id="espressoTdsInput" inputmode="decimal" placeholder="예: 8.5%">
+            </div>
+            <div class="field">
               <label for="espressoGrindInput">분쇄도</label>
               <input id="espressoGrindInput" placeholder="예: 기준 / 미세 조정">
             </div>
@@ -2102,6 +2106,7 @@
       account: document.querySelector("#espressoAccountInput"),
       time: document.querySelector("#espressoTimeInput"),
       yield: document.querySelector("#espressoYieldInput"),
+      tds: document.querySelector("#espressoTdsInput"),
       grind: document.querySelector("#espressoGrindInput"),
       verdict: document.querySelector("#espressoVerdictInput"),
       note: document.querySelector("#espressoNoteInput")
@@ -2978,6 +2983,7 @@
         espressoFields.account.value = espressoData.account;
         espressoFields.time.value = espressoData.time;
         espressoFields.yield.value = espressoData.yield;
+        espressoFields.tds.value = espressoData.tds;
         espressoFields.grind.value = espressoData.grind;
         espressoFields.verdict.value = normalizeVerdict(entry.verdict || "pass");
         espressoFields.note.value = entry.note || "";
@@ -3057,6 +3063,7 @@
         account: espressoData.account || "",
         time: espressoData.time || "",
         yield: espressoData.yield || "",
+        tds: espressoData.tds || "",
         grind: espressoData.grind || ""
       };
     }
@@ -3259,6 +3266,7 @@
                 ? `<span class="tag">거래처 ${escapeHtml(espressoData.account || "-")}</span>
                   <span class="tag">추출시간 ${escapeHtml(espressoData.time || "-")}</span>
                   <span class="tag">추출량 ${escapeHtml(espressoData.yield || "-")}</span>
+                  <span class="tag amber">TDS ${escapeHtml(espressoData.tds || "-")}</span>
                   <span class="tag amber">분쇄도 ${escapeHtml(espressoData.grind || "-")}</span>`
                 : isRoasting
                 ? `<span class="tag">로스터기 ${escapeHtml(roastData.roaster || "-")}</span>
@@ -3626,6 +3634,7 @@
           account: espressoFields.account.value.trim(),
           time: espressoFields.time.value.trim(),
           yield: espressoFields.yield.value.trim(),
+          tds: espressoFields.tds.value.trim(),
           grind: espressoFields.grind.value.trim()
         },
         scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
