@@ -2724,6 +2724,15 @@
       return text;
     }
 
+    function inferVerdictFromText(value, fallback = "hold") {
+      const compact = String(value || "").toLowerCase().replace(/\s+/g, "");
+      if (!compact) return fallback;
+      if (/폐기|폐기처리|버림|폐출/.test(compact)) return "no_ship";
+      if (/보류|홀드|hold|커핑후판단|커핑후확인|커핑후결정|커핑판단|재커핑|재확인|확인필요|판단필요/.test(compact)) return "hold";
+      if (/패스|pass|통과|문제없|이상없|양호|ok|오케이/.test(compact)) return "pass";
+      return fallback;
+    }
+
     function parseQuickCuppingComments(value) {
       const text = normalizeText(value);
       if (!text) return [];
@@ -2843,6 +2852,7 @@
     }
 
     function createRoastingEntry({ blend, roastDate, batch, roaster, operator = "", pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor, note = "로스팅 데이터 입력" }) {
+      const verdict = inferVerdictFromText(note, "hold");
       return {
         id: makeId(),
         entryType: "roasting",
@@ -2850,7 +2860,7 @@
         roastDate: roastDate || today(),
         batch,
         roastLevel: "기준",
-        verdict: "pass",
+        verdict,
         roastData: { roaster, operator, pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor },
         scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
         intensity: { acidity: 0, sweetness: 0, bitterness: 0, body: 0 },
@@ -2917,6 +2927,7 @@
       if (pendingNote && parsed.length) {
         const last = parsed[parsed.length - 1];
         last.note = `${last.note} - ${pendingNote}`;
+        last.verdict = inferVerdictFromText(last.note, last.verdict || "hold");
       }
       return parsed;
     }
@@ -3483,6 +3494,7 @@
         blend: item.blend,
         roaster: item.roaster,
         batch: item.batch,
+        verdict: inferVerdictFromText(item.note, "hold"),
         note: item.note,
         tags: fields.tags.value || "빠른입력"
       }));
