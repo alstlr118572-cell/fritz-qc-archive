@@ -1805,12 +1805,17 @@
     const primaryAdminPassword = "Fritz0110!";
     const requiredSiteTitle = "프릳츠 QC 아카이브";
     const defaultBlendCategories = {
-      "메인 블렌드": ["올드독", "잘되어 가시나", "서울시네마", "디카페인"],
+      "메인 블렌드": ["올드독", "올드독 강배전", "잘되어 가시나", "서울시네마", "디카페인"],
       "OEM 블렌드": ["행복마루", "문지리", "너티트리니티", "아르켓", "위드센"],
       "특수성 블렌드": ["사는낙", "신커피", "영차영차 블렌드", "크리스마스 블렌드"],
       "싱글오리진": []
     };
     const blendNameAliases = {
+      "올드독강배전": "올드독 강배전",
+      "올드독(강배전)": "올드독 강배전",
+      "올드독(강)": "올드독 강배전",
+      "올강배전": "올드독 강배전",
+      "올강": "올드독 강배전",
       "행복마루(행복)": "행복마루",
       "행복": "행복마루",
       "너티 트리니티": "너티트리니티",
@@ -2660,11 +2665,12 @@
     }
 
     function parseBatchBlend(label, fallbackBlend) {
-      const compact = String(label || "").trim();
+      const compact = String(label || "").trim().replace(/\s+/g, "");
       const match = compact.match(/^([^\d#]+)#?(\d+)$/);
       if (!match) return { blend: fallbackBlend, batch: compact };
       const prefix = match[1];
       const number = match[2];
+      if (prefix.startsWith("올") && /강/.test(prefix)) return { blend: "올드독 강배전", batch: `#${number}` };
       if (prefix.startsWith("올")) return { blend: "올드독", batch: `#${number}` };
       if (prefix.startsWith("잘")) return { blend: "잘되어 가시나", batch: `#${number}` };
       if (prefix.startsWith("서")) return { blend: "서울시네마", batch: `#${number}` };
