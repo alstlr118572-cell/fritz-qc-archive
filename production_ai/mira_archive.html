@@ -1589,7 +1589,7 @@
               </select>
             </div>
             <div class="field">
-              <label for="roastOperatorInput">로스팅 담당자</label>
+              <label for="roastOperatorInput">실제 로스팅한 사람</label>
               <input id="roastOperatorInput" placeholder="예: 홍길동">
             </div>
             <div class="field">
@@ -1635,7 +1635,7 @@
             </div>
             <div class="field">
               <label for="roastingBulkInput">로스팅 데이터 원문</label>
-              <textarea id="roastingBulkInput" placeholder="8/3 검댕이 110pa 53hz 홍길동&#10;올1 236/62/174.5/14:55/50/54.8&#10;올(강)2 236/55/174/14:12/45.6/55.9"></textarea>
+              <textarea id="roastingBulkInput" placeholder="8/3 검댕이 110pa 53hz 홍길동&#10;올1 236/62/174.5/14:55/50/54.8&#10;올(강) 2 236/55/174/14:12/45.6/55.9&#10;노올3 236/55/174/14:12/45.6/55.9"></textarea>
             </div>
             <button class="primary" type="submit">일괄 저장</button>
             <p id="roastingBulkMessage"></p>
@@ -2673,15 +2673,24 @@
       const compact = String(label || "").trim().replace(/\s+/g, "");
       const match = compact.match(/^([^\d#]+)#?(\d+)$/);
       if (!match) return { blend: fallbackBlend, batch: compact };
-      const prefix = match[1];
+      let prefix = match[1];
       const number = match[2];
-      if (prefix.startsWith("올") && /강/.test(prefix)) return { blend: "올드독 강배전", batch: `#${number}` };
-      if (prefix.startsWith("올")) return { blend: "올드독", batch: `#${number}` };
-      if (prefix.startsWith("잘")) return { blend: "잘되어 가시나", batch: `#${number}` };
-      if (prefix.startsWith("서")) return { blend: "서울시네마", batch: `#${number}` };
-      if (prefix.startsWith("디") || prefix.startsWith("다카")) return { blend: "디카페인", batch: `#${number}` };
-      if (prefix.startsWith("행복")) return { blend: "행복마루", batch: `#${number}` };
-      if (prefix.startsWith("너티")) return { blend: "너티트리니티", batch: `#${number}` };
+      let roaster = "";
+      if (prefix.startsWith("노")) {
+        roaster = "노랭이";
+        prefix = prefix.slice(1);
+      } else if (prefix.startsWith("검")) {
+        roaster = "검댕이";
+        prefix = prefix.slice(1);
+      }
+      const result = (blend) => ({ blend, batch: `#${number}`, roaster });
+      if (prefix.startsWith("올") && /강/.test(prefix)) return result("올드독 강배전");
+      if (prefix.startsWith("올")) return result("올드독");
+      if (prefix.startsWith("잘")) return result("잘되어 가시나");
+      if (prefix.startsWith("서")) return result("서울시네마");
+      if (prefix.startsWith("디") || prefix.startsWith("다카")) return result("디카페인");
+      if (prefix.startsWith("행복")) return result("행복마루");
+      if (prefix.startsWith("너티")) return result("너티트리니티");
       return { blend: fallbackBlend, batch: compact };
     }
 
@@ -2728,7 +2737,7 @@
           pendingNote = line.replace(/^-+|-+$/g, "").trim();
           return;
         }
-        const row = line.match(/^(\S+)\s+(.+)$/);
+        const row = line.match(/^(.+?)\s+([0-9.]+\/.+)$/);
         if (!row) {
           pendingNote = [pendingNote, line.replace(/^-+|-+$/g, "").trim()].filter(Boolean).join(" / ");
           return;
@@ -2743,7 +2752,7 @@
           blend: batchInfo.blend,
           roastDate: defaults.roastDate,
           batch: batchInfo.batch,
-          roaster: defaults.roaster,
+          roaster: batchInfo.roaster || defaults.roaster,
           operator: defaults.operator,
           pressure: defaults.pressure,
           drumSpeed: defaults.drumSpeed,
@@ -3058,7 +3067,7 @@
                   <span class="tag amber">분쇄도 ${escapeHtml(espressoData.grind || "-")}</span>`
                 : isRoasting
                 ? `<span class="tag">로스터기 ${escapeHtml(roastData.roaster || "-")}</span>
-                  <span class="tag blue">담당자 ${escapeHtml(roastData.operator || "-")}</span>
+                  <span class="tag blue">로스팅한 사람 ${escapeHtml(roastData.operator || "-")}</span>
                   <span class="tag">압력 ${escapeHtml(roastData.pressure || "-")}</span>
                   <span class="tag">드럼 ${escapeHtml(roastData.drumSpeed || "-")}</span>
                   <span class="tag amber">배출온도 ${escapeHtml(roastData.dropTemp || "-")}</span>
@@ -3161,7 +3170,7 @@
               <th>로스팅일</th>
               <th>평가 범위</th>
               <th>로스터기</th>
-              <th>담당자</th>
+              <th>로스팅한 사람</th>
               <th>압력</th>
               <th>드럼 스피드</th>
               <th>배기값</th>
