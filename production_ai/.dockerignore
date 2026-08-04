@@ -1,0 +1,9 @@
+.DS_Store
+tools/
+data/*.xlsx
+data/*.inspect.ndjson
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.cloud.example
