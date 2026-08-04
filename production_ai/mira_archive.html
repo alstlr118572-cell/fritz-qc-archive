@@ -520,6 +520,37 @@
       background: #fffaf1;
     }
 
+    .legacy-score-section {
+      display: none;
+    }
+
+    .issue-type-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .issue-type-grid label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 7px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fffefa;
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .issue-type-grid input {
+      width: auto;
+      min-height: 0;
+      margin: 0;
+      accent-color: var(--teal);
+    }
+
     .roast-data-section {
       display: none;
     }
@@ -1075,6 +1106,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      .issue-type-grid {
+        grid-template-columns: 1fr;
+      }
+
       .button-row {
         grid-template-columns: 1fr 40px 40px;
       }
@@ -1157,6 +1192,7 @@
       }
 
       .score-grid,
+      .issue-type-grid,
       .blend-meta {
         grid-template-columns: 1fr;
       }
@@ -1332,15 +1368,7 @@
               <label for="batchInput">평가 배치 범위</label>
               <input id="batchInput" required placeholder="예: #1~#6">
             </div>
-            <div class="field">
-              <label for="roastLevelInput">로스팅 포인트</label>
-              <select id="roastLevelInput">
-                <option value="기준">기준</option>
-                <option value="밝음">밝음</option>
-                <option value="진함">진함</option>
-                <option value="재확인">재확인</option>
-              </select>
-            </div>
+            <input id="roastLevelInput" type="hidden" value="기준">
           </div>
           <div class="field">
             <label for="verdictInput">판정</label>
@@ -1351,8 +1379,25 @@
             </select>
           </div>
           <div class="field" style="margin-top: 10px;">
+            <label>문제 유형</label>
+            <div class="issue-type-grid" id="issueTypeGroup">
+              <label><input type="checkbox" value="향미 약함" data-issue-type>향미 약함</label>
+              <label><input type="checkbox" value="향미 이탈" data-issue-type>향미 이탈</label>
+              <label><input type="checkbox" value="비터 강함" data-issue-type>비터 강함</label>
+              <label><input type="checkbox" value="바디 약함" data-issue-type>바디 약함</label>
+              <label><input type="checkbox" value="산미 튐" data-issue-type>산미 튐</label>
+              <label><input type="checkbox" value="단맛 부족" data-issue-type>단맛 부족</label>
+              <label><input type="checkbox" value="후미 짧음" data-issue-type>후미 짧음</label>
+              <label><input type="checkbox" value="탄맛" data-issue-type>탄맛</label>
+              <label><input type="checkbox" value="언더 느낌" data-issue-type>언더 느낌</label>
+              <label><input type="checkbox" value="오버 느낌" data-issue-type>오버 느낌</label>
+              <label><input type="checkbox" value="배치 간 편차 큼" data-issue-type>배치 간 편차 큼</label>
+              <label><input type="checkbox" value="색도 대비 향미 이탈" data-issue-type>색도 대비 향미 이탈</label>
+            </div>
+          </div>
+          <div class="field" style="margin-top: 10px;">
             <label for="noteInput">커핑 코멘트</label>
-            <textarea id="noteInput" required placeholder="예: #1~#6 문제없음 / #7~#8 바디감 떨어짐"></textarea>
+            <textarea id="noteInput" required placeholder="예: #1~#6 문제없음 / #7~#8 바디 약함"></textarea>
           </div>
           <div class="score-section roast-data-section">
             <p class="score-section-title">로스팅 데이터</p>
@@ -1404,7 +1449,7 @@
               <input id="groundColorInput" inputmode="decimal">
             </div>
           </div>
-          <div class="score-section">
+          <div class="score-section legacy-score-section">
             <p class="score-section-title">향미 평가</p>
             <div class="score-grid" aria-label="향미 평가 입력">
               <div class="field">
@@ -1425,7 +1470,7 @@
               </div>
             </div>
           </div>
-          <div class="score-section">
+          <div class="score-section legacy-score-section">
             <p class="score-section-title">맛의 강도</p>
             <div class="score-grid" aria-label="맛의 강도 입력">
               <div class="field">
@@ -1446,10 +1491,7 @@
               </div>
             </div>
           </div>
-          <div class="field">
-            <label for="tagsInput">태그</label>
-            <input id="tagsInput" placeholder="쉼표로 구분: 산미, 단맛, 후미">
-          </div>
+          <input id="tagsInput" type="hidden">
           <div class="button-row">
             <button class="primary" type="submit" id="qcSubmitButton" title="커핑 기록 저장">저장</button>
             <button class="icon-button" type="button" id="exportButton" title="JSON 내보내기">↓</button>
@@ -1481,12 +1523,8 @@
             <option value="hold">HOLD</option>
             <option value="no_ship">ISSUE</option>
           </select>
-          <select id="levelFilter">
-            <option value="all">전체 포인트</option>
-            <option value="기준">기준</option>
-            <option value="밝음">밝음</option>
-            <option value="진함">진함</option>
-            <option value="재확인">재확인</option>
+          <select id="levelFilter" hidden>
+            <option value="all">전체</option>
           </select>
         </section>
 
@@ -1869,6 +1907,20 @@
       ["hold", "HOLD"],
       ["no_ship", "ISSUE"]
     ];
+    const issueTypePatterns = [
+      ["색도 대비 향미 이탈", /색도.*향미|향미.*색도/],
+      ["배치 간 편차 큼", /편차|배치간|배치 간/],
+      ["향미 약함", /향미약|향미 약|향미가약|향미가 약/],
+      ["향미 이탈", /향미이탈|향미 이탈|맛이탈|맛 이탈/],
+      ["비터 강함", /비터|쓴맛강|쓴맛 강|쓴맛이강|쓴맛이 강/],
+      ["바디 약함", /바디약|바디 약|바디감떨어|바디감 떨어|바디감약|바디감 약/],
+      ["산미 튐", /산미튐|산미 튐|산미가튐|산미가 튐|산미강|산미 강/],
+      ["단맛 부족", /단맛부족|단맛 부족|단맛약|단맛 약|단맛이약|단맛이 약/],
+      ["후미 짧음", /후미짧|후미 짧|피니시짧|피니시 짧/],
+      ["탄맛", /탄맛|스모키|그을|탄 느낌|탄느낌/],
+      ["언더 느낌", /언더|덜익|덜 익|풋내/],
+      ["오버 느낌", /오버|과배전|로스티|비터강|비터 강/]
+    ];
     let blendCategories = readBlendCatalog();
     let blends = Object.values(blendCategories).flat();
     const seedEntries = [
@@ -1901,7 +1953,7 @@
         blend: "잘되어 가시나",
         roastDate: "2026-08-03",
         batch: "#1",
-        roastLevel: "재확인",
+        roastLevel: "기준",
         verdict: "watch",
         roastData: {
           roaster: "검댕이",
@@ -1916,8 +1968,8 @@
         },
         scores: { aroma: 3.5, flavor: 4.0, balance: 3.5, after: 3.5 },
         intensity: { acidity: 3.5, sweetness: 3.5, bitterness: 2.5, body: 3.5 },
-        note: "향은 좋지만 후미가 짧게 느껴진다. 다음 배치에서 열량 반응을 재확인한다.",
-        tags: ["#1", "후미", "재확인"],
+        note: "향은 좋지만 후미가 짧게 느껴진다. 확인 필요.",
+        tags: ["#1", "후미 짧음", "확인 필요"],
         createdAt: "2026-08-03"
       },
       {
@@ -2743,9 +2795,33 @@
       const compact = String(value || "").toLowerCase().replace(/\s+/g, "");
       if (!compact) return fallback;
       if (/폐기|폐기처리|버림|폐출/.test(compact)) return "no_ship";
-      if (/보류|홀드|hold|커핑후판단|커핑후확인|커핑후결정|커핑판단|재커핑|재확인|확인필요|판단필요/.test(compact)) return "hold";
+      if (/보류|홀드|hold|커핑후판단|커핑후확인|커핑후결정|커핑판단|확인필요|판단필요/.test(compact)) return "hold";
       if (/패스|pass|통과|문제없|이상없|양호|ok|오케이/.test(compact)) return "pass";
       return fallback;
+    }
+
+    function inferIssueTypesFromText(value) {
+      const text = String(value || "").replace(/\s+/g, " ").trim();
+      const compact = text.replace(/\s+/g, "");
+      return issueTypePatterns
+        .filter(([, pattern]) => pattern.test(text) || pattern.test(compact))
+        .map(([type]) => type);
+    }
+
+    function selectedIssueTypes() {
+      return Array.from(document.querySelectorAll("[data-issue-type]:checked")).map((input) => input.value);
+    }
+
+    function setSelectedIssueTypes(values = []) {
+      const selected = new Set(values);
+      document.querySelectorAll("[data-issue-type]").forEach((input) => {
+        input.checked = selected.has(input.value);
+      });
+    }
+
+    function normalizeTagValue(value) {
+      if (Array.isArray(value)) return Array.from(new Set(value.filter(Boolean)));
+      return normalizeTags(value || "");
     }
 
     function parseQuickCuppingComments(value) {
@@ -2826,7 +2902,7 @@
           body: Number(fields.body.value || 0)
         },
         note: normalizeText(overrides.note || fields.note.value),
-        tags: normalizeTags(overrides.tags ?? fields.tags.value),
+        tags: normalizeTagValue(overrides.tags ?? [...selectedIssueTypes(), ...inferIssueTypesFromText(overrides.note || fields.note.value)]),
         createdAt: today()
       };
     }
@@ -3021,6 +3097,7 @@
       fields.body.value = intensity.body || 4;
       fields.note.value = entry.note || "";
       fields.tags.value = (entry.tags || []).join(", ");
+      setSelectedIssueTypes(entry.tags || []);
       qcSubmitButton.textContent = "커핑 코멘트 수정";
       setAppView("cupping");
     }
@@ -3292,18 +3369,9 @@
                   <span class="tag amber">배출온도 ${escapeHtml(roastData.dropTemp || "-")}</span>
                   <span class="tag amber">홀빈 ${escapeHtml(roastData.wholeColor || "-")}</span>
                   <span class="tag amber">그라운드 ${escapeHtml(roastData.groundColor || "-")}</span>`
-                : `<span class="tag">향미평균 ${avg}</span>
-                  <span class="tag blue">커핑일 ${escapeHtml(entry.cuppingDate || "-")}</span>
+                : `<span class="tag blue">커핑일 ${escapeHtml(entry.cuppingDate || "-")}</span>
                   <span class="tag">연결 로스팅일 ${escapeHtml(entry.roastDate || "-")}</span>
-                  <span class="tag ${linkedRoastCount ? "green" : "amber"}">로스팅 연결 ${linkedRoastCount}개</span>
-                  <span class="tag">향 ${scores.aroma}</span>
-                  <span class="tag">향미 ${scores.flavor}</span>
-                  <span class="tag">밸런스 ${scores.balance}</span>
-                  <span class="tag">후미 ${scores.after}</span>
-                  <span class="tag amber">산미강도 ${intensity.acidity}</span>
-                  <span class="tag amber">단맛강도 ${intensity.sweetness}</span>
-                  <span class="tag amber">쓴맛강도 ${intensity.bitterness}</span>
-                  <span class="tag amber">바디강도 ${intensity.body}</span>`}
+                  <span class="tag ${linkedRoastCount ? "green" : "amber"}">로스팅 연결 ${linkedRoastCount}개</span>`}
               ${tags}
             </div>
           </div>
@@ -3318,9 +3386,7 @@
           const blendEntries = entries.filter((entry) => entry.blend === blend);
           const cuppingEntries = blendEntries.filter(isCuppingEntry);
           const latest = blendEntries[0];
-          const avg = cuppingEntries.length
-            ? (cuppingEntries.reduce((sum, entry) => sum + scoreAverage(entry), 0) / cuppingEntries.length).toFixed(1)
-            : "-";
+          const passCount = cuppingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
           const watchCount = blendEntries.filter((entry) => normalizeVerdict(entry.verdict) !== "pass").length;
           return `
             <article class="blend-card">
@@ -3332,7 +3398,7 @@
               </div>
               <div class="blend-meta">
                 <div class="mini-stat"><span>기록</span><strong>${blendEntries.length}</strong></div>
-                <div class="mini-stat"><span>평균</span><strong>${avg}</strong></div>
+                <div class="mini-stat"><span>PASS</span><strong>${passCount}</strong></div>
                 <div class="mini-stat"><span>확인</span><strong>${watchCount}</strong></div>
               </div>
             </article>
@@ -3403,15 +3469,14 @@
               <th>홀빈색도</th>
               <th>그라운드색도</th>
               <th>판정</th>
-              <th>향미평균</th>
-              <th>강도 요약</th>
+              <th>문제 유형</th>
               <th>커핑 메모</th>
             </tr>
           </thead>
           <tbody>
             ${rows.map((entry) => {
               const roastData = normalizedRoastData(entry);
-              const intensity = normalizedIntensity(entry);
+              const issueTags = (entry.tags || []).filter((tag) => tag !== "빠른입력").join(", ");
               return `
                 <tr>
                   <td>${displayCell(entry.roastDate)}</td>
@@ -3428,8 +3493,7 @@
                   <td>${displayCell(roastData.wholeColor)}</td>
                   <td>${displayCell(roastData.groundColor)}</td>
                   <td><span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span></td>
-                  <td>${scoreAverage(entry).toFixed(1)}</td>
-                  <td>산 ${intensity.acidity} / 단 ${intensity.sweetness} / 쓴 ${intensity.bitterness} / 바디 ${intensity.body}</td>
+                  <td>${displayCell(issueTags)}</td>
                   <td class="sheet-note">${escapeHtml(entry.note)}</td>
                 </tr>
               `;
@@ -3520,7 +3584,7 @@
         batch: item.batch,
         verdict: inferVerdictFromText(item.note, "hold"),
         note: item.note,
-        tags: fields.tags.value || "빠른입력"
+        tags: ["빠른입력", ...inferIssueTypesFromText(item.note)]
       }));
       entries = [...newEntries, ...entries];
       writeEntries(entries);
@@ -3560,6 +3624,7 @@
       fields.acidity.value = 3;
       fields.sweetness.value = 4;
       fields.bitterness.value = 2;
+      setSelectedIssueTypes([]);
       render();
     });
 
