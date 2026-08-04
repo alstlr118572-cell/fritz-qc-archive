@@ -1304,7 +1304,7 @@
         <form id="quickCuppingForm">
           <div class="field">
             <label for="quickCuppingInput">코멘트 빠른 입력</label>
-            <textarea id="quickCuppingInput" placeholder="예: #1~2 비터강하다 #3~6 바디약하다"></textarea>
+            <textarea id="quickCuppingInput" placeholder="예: 검올 #1~2 비터강하다 잘 #3~6 바디약하다"></textarea>
           </div>
           <div class="button-row">
             <button class="primary" type="submit" id="quickCuppingSubmitButton" title="배치별 코멘트 일괄 저장">코멘트 일괄 저장</button>
@@ -2727,13 +2727,44 @@
     function parseQuickCuppingComments(value) {
       const text = normalizeText(value);
       if (!text) return [];
-      const matches = Array.from(text.matchAll(/#?\d+(?:\s*(?:~|-)\s*#?\d+)?/g));
-      return matches.map((match, index) => {
+      const tokenPattern = /(검\s*올(?:\s*\(?강(?:배전)?\)?)?|노\s*올(?:\s*\(?강(?:배전)?\)?)?|잘|서|디|다카|너티|행복)\s*(#?\d+(?:\s*(?:~|-)\s*#?\d+)?)/g;
+      const matches = Array.from(text.matchAll(tokenPattern));
+      const parsed = matches.map((match, index) => {
         const nextStart = matches[index + 1]?.index ?? text.length;
-        const batchText = match[0];
-        const note = normalizeText(text.slice((match.index || 0) + batchText.length, nextStart));
-        return { batch: normalizeBatchRange(batchText), note };
-      }).filter((item) => item.batch && item.note);
+        const marker = match[1];
+        const batchText = match[2];
+        const note = normalizeText(text.slice((match.index || 0) + match[0].length, nextStart));
+        return {
+          ...parseCuppingBlendMarker(marker),
+          batch: normalizeBatchRange(batchText),
+          note
+        };
+      }).filter((item) => item.blend && item.batch && item.note);
+      const hasOrphanBatch = parsed.some((item) => /(^|\s)#?\d+\s*(?:~|-)\s*#?\d+/.test(item.note) || /(^|\s)#\d+\b/.test(item.note));
+      if (hasOrphanBatch) return [];
+      const orphanText = parsed.reduce((remaining, item) => remaining.replace(item.note, ""), text);
+      if (/#?\d+(?:\s*(?:~|-)\s*#?\d+)?/.test(orphanText.replace(tokenPattern, ""))) return [];
+      return parsed;
+    }
+
+    function parseCuppingBlendMarker(value) {
+      let marker = String(value || "").replace(/\s+/g, "");
+      let roaster = "";
+      if (marker.startsWith("노")) {
+        roaster = "노랭이";
+        marker = marker.slice(1);
+      } else if (marker.startsWith("검")) {
+        roaster = "검댕이";
+        marker = marker.slice(1);
+      }
+      if (marker.startsWith("올") && /강/.test(marker)) return { blend: "올드독 강배전", roaster };
+      if (marker.startsWith("올")) return { blend: "올드독", roaster };
+      if (marker.startsWith("잘")) return { blend: "잘되어 가시나", roaster };
+      if (marker.startsWith("서")) return { blend: "서울시네마", roaster };
+      if (marker.startsWith("디") || marker.startsWith("다카")) return { blend: "디카페인", roaster };
+      if (marker.startsWith("행복")) return { blend: "행복마루", roaster };
+      if (marker.startsWith("너티")) return { blend: "너티트리니티", roaster };
+      return { blend: "", roaster };
     }
 
     function cuppingEntryFromFields(overrides = {}) {
@@ -2747,7 +2778,7 @@
         roastLevel: overrides.roastLevel || fields.roastLevel.value,
         verdict: normalizeVerdict(overrides.verdict || fields.verdict.value),
         roastData: {
-          roaster: fields.roaster.value,
+          roaster: overrides.roaster || fields.roaster.value,
           operator: "",
           pressure: fields.pressure.value.trim(),
           drumSpeed: fields.drumSpeed.value.trim(),
@@ -3444,11 +3475,13 @@
       if (!canInputCupping(approvedSessionUser())) return;
       const parsed = parseQuickCuppingComments(quickCuppingFields.input.value);
       if (!parsed.length) {
-        quickCuppingFields.message.textContent = "예: #1~2 비터강하다 #3~6 바디약하다 형식으로 입력해주세요.";
+        quickCuppingFields.message.textContent = "블렌드 식별어가 필요합니다. 예: 검올 #1~2 비터강하다 잘 #3~6 바디약하다";
         return;
       }
       const newEntries = parsed.map((item) => cuppingEntryFromFields({
         id: makeId(),
+        blend: item.blend,
+        roaster: item.roaster,
         batch: item.batch,
         note: item.note,
         tags: fields.tags.value || "빠른입력"
