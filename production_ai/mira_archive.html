@@ -2917,28 +2917,75 @@
       return `${year}-${String(match[1]).padStart(2, "0")}-${String(match[2]).padStart(2, "0")}`;
     }
 
+    function splitRoasterMarker(value) {
+      let marker = String(value || "").trim().replace(/\s+/g, "");
+      let roaster = "";
+      if (marker.startsWith("노") && marker.length > 1) {
+        roaster = "노랭이";
+        marker = marker.slice(1);
+      } else if (marker.startsWith("검") && marker.length > 1) {
+        roaster = "검댕이";
+        marker = marker.slice(1);
+      }
+      return { marker, roaster };
+    }
+
+    function blendFromRoastMarker(value) {
+      const compact = String(value || "").trim().replace(/\s+/g, "");
+      const aliases = [
+        ["올드독강배전", "올드독 강배전"],
+        ["올드독(강배전)", "올드독 강배전"],
+        ["올드독(강)", "올드독 강배전"],
+        ["올강배전", "올드독 강배전"],
+        ["올강", "올드독 강배전"],
+        ["올(강배전)", "올드독 강배전"],
+        ["올(강)", "올드독 강배전"],
+        ["올드독", "올드독"],
+        ["올", "올드독"],
+        ["잘되어가시나", "잘되어 가시나"],
+        ["잘", "잘되어 가시나"],
+        ["서울시네마", "서울시네마"],
+        ["서울", "서울시네마"],
+        ["서", "서울시네마"],
+        ["디카페인", "디카페인"],
+        ["디카", "디카페인"],
+        ["다카", "디카페인"],
+        ["디", "디카페인"],
+        ["행복마루", "행복마루"],
+        ["행복", "행복마루"],
+        ["문지리", "문지리"],
+        ["너티트리니티", "너티트리니티"],
+        ["너티", "너티트리니티"],
+        ["아르켓", "아르켓"],
+        ["위드센", "위드센"],
+        ["사는낙", "사는낙"],
+        ["신커피", "신커피"],
+        ["영차영차블렌드", "영차영차 블렌드"],
+        ["영차영차", "영차영차 블렌드"],
+        ["영차", "영차영차 블렌드"],
+        ["크리스마스블렌드", "크리스마스 블렌드"],
+        ["크리스마스", "크리스마스 블렌드"]
+      ];
+      const match = aliases.find(([alias]) => compact === alias || compact.startsWith(alias));
+      if (match) return match[1];
+      const catalogBlend = allEntryBlends().find((blend) => compact === blend.replace(/\s+/g, ""));
+      return catalogBlend || "";
+    }
+
     function parseBatchBlend(label, fallbackBlend) {
       const compact = String(label || "").trim().replace(/\s+/g, "");
       const match = compact.match(/^([^\d#]+)#?(\d+)$/);
-      if (!match) return { blend: fallbackBlend, batch: compact };
-      let prefix = match[1];
-      const number = match[2];
-      let roaster = "";
-      if (prefix.startsWith("노")) {
-        roaster = "노랭이";
-        prefix = prefix.slice(1);
-      } else if (prefix.startsWith("검")) {
-        roaster = "검댕이";
-        prefix = prefix.slice(1);
+      if (!match) {
+        const markerInfo = splitRoasterMarker(compact);
+        const blend = blendFromRoastMarker(markerInfo.marker);
+        return { blend: blend || fallbackBlend, batch: compact, roaster: markerInfo.roaster };
       }
-      const result = (blend) => ({ blend, batch: `#${number}`, roaster });
-      if (prefix.startsWith("올") && /강/.test(prefix)) return result("올드독 강배전");
-      if (prefix.startsWith("올")) return result("올드독");
-      if (prefix.startsWith("잘")) return result("잘되어 가시나");
-      if (prefix.startsWith("서")) return result("서울시네마");
-      if (prefix.startsWith("디") || prefix.startsWith("다카")) return result("디카페인");
-      if (prefix.startsWith("행복")) return result("행복마루");
-      if (prefix.startsWith("너티")) return result("너티트리니티");
+      const markerInfo = splitRoasterMarker(match[1]);
+      const prefix = markerInfo.marker;
+      const number = match[2];
+      const roaster = markerInfo.roaster;
+      const blend = blendFromRoastMarker(prefix);
+      if (blend) return { blend, batch: `#${number}`, roaster };
       return { blend: fallbackBlend, batch: compact };
     }
 
