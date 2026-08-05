@@ -924,6 +924,64 @@
       background: var(--surface);
     }
 
+    .comment-list {
+      display: grid;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    .comment-summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .comment-stat {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .comment-stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .comment-stat strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 20px;
+    }
+
+    .comment-item {
+      display: grid;
+      grid-template-columns: 120px 1fr auto;
+      gap: 12px;
+      align-items: start;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .comment-date {
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.45;
+      white-space: nowrap;
+    }
+
+    .comment-body {
+      margin: 8px 0 0;
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
     .date {
       color: var(--teal);
       font-size: 13px;
@@ -1048,6 +1106,7 @@
       .toolbar,
       .board,
       .record-item,
+      .comment-item,
       .notice-form,
       .notice-item,
       .roadmap,
@@ -1110,6 +1169,10 @@
         grid-template-columns: 1fr;
       }
 
+      .comment-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
       .button-row {
         grid-template-columns: 1fr 40px 40px;
       }
@@ -1155,6 +1218,10 @@
         gap: 8px;
       }
 
+      .comment-item {
+        gap: 8px;
+      }
+
       .record-item .delete {
         justify-self: end;
       }
@@ -1193,6 +1260,7 @@
 
       .score-grid,
       .issue-type-grid,
+      .comment-summary,
       .blend-meta {
         grid-template-columns: 1fr;
       }
@@ -1329,6 +1397,7 @@
       <nav class="panel app-nav" aria-label="QC 페이지">
         <button type="button" class="active" data-app-view="dashboard">QC 종합 현황판</button>
         <button type="button" data-app-view="search">검색</button>
+        <button type="button" data-app-view="comments">커핑 코멘트</button>
         <button type="button" data-app-view="roasting" id="roastingPageButton">로스팅 입력</button>
         <button type="button" data-app-view="cupping" id="cuppingPageButton">커핑 입력</button>
         <button type="button" data-app-view="espresso" id="espressoPageButton">추출 평가</button>
@@ -1603,11 +1672,21 @@
         <section class="app-panel" data-app-panel="search">
           <div class="section-title">
             <div>
-              <h3>전체 커핑 코멘트</h3>
+              <h3>전체 기록</h3>
               <p class="hint">localStorage 키: <code>mira_blend_qc_entries_v1</code></p>
             </div>
           </div>
           <div class="panel record-list" id="recordList"></div>
+        </section>
+
+        <section class="panel cupping-panel app-panel" data-app-panel="comments">
+          <div class="section-title">
+            <div>
+              <h3>커핑 코멘트 모아보기</h3>
+              <p class="hint">커핑 평가만 분리해서 날짜, 배치, 문제 유형, 코멘트를 확인합니다.</p>
+            </div>
+          </div>
+          <div class="comment-list" id="cuppingCommentList"></div>
         </section>
 
         <section class="panel cupping-panel app-panel" data-app-panel="cupping">
@@ -2126,6 +2205,7 @@
     };
     const blendSummary = document.querySelector("#blendSummary");
     const recordList = document.querySelector("#recordList");
+    const cuppingCommentList = document.querySelector("#cuppingCommentList");
     const cuppingRecentList = document.querySelector("#cuppingRecentList");
     const roastingRecentList = document.querySelector("#roastingRecentList");
     const espressoRecentList = document.querySelector("#espressoRecentList");
@@ -3427,6 +3507,48 @@
       `;
     }
 
+    function cuppingCommentMarkup(entry) {
+      const user = approvedSessionUser();
+      const issueTags = (entry.tags || []).filter((tag) => tag !== "빠른입력");
+      const tags = issueTags.length
+        ? issueTags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")
+        : `<span class="tag">문제 유형 없음</span>`;
+      const editButton = canEditEntry(entry, user) ? `<button type="button" data-edit-entry="${escapeHtml(entry.id)}" data-edit-type="cupping">수정</button>` : "";
+      const deleteButton = canManageData(user) ? `<button class="delete" data-delete="${escapeHtml(entry.id)}" title="커핑 코멘트 삭제">×</button>` : "";
+      const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
+      return `
+        <article class="comment-item">
+          <div class="comment-date">
+            커핑 ${escapeHtml(entry.cuppingDate || "-")}<br>
+            로스팅 ${escapeHtml(entry.roastDate || "-")}
+          </div>
+          <div>
+            <div class="qc-head">
+              <h4 class="qc-title">${escapeHtml(entry.blend || "-")} ${escapeHtml(entry.batch || "")}</h4>
+              <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
+            </div>
+            <p class="comment-body">${escapeHtml(entry.note || "코멘트 없음")}</p>
+            <div class="meta">${tags}</div>
+          </div>
+          ${actions}
+        </article>
+      `;
+    }
+
+    function cuppingCommentSummaryMarkup(cuppingEntries) {
+      const passCount = cuppingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
+      const holdCount = cuppingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "hold").length;
+      const issueCount = cuppingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "no_ship").length;
+      return `
+        <div class="comment-summary">
+          <div class="comment-stat"><span>전체</span><strong>${cuppingEntries.length}</strong></div>
+          <div class="comment-stat"><span>PASS</span><strong>${passCount}</strong></div>
+          <div class="comment-stat"><span>HOLD</span><strong>${holdCount}</strong></div>
+          <div class="comment-stat"><span>ISSUE</span><strong>${issueCount}</strong></div>
+        </div>
+      `;
+    }
+
     function renderSummary() {
       blendSummary.innerHTML = Object.entries(categorizedBlendMap()).map(([category, categoryBlends]) => {
         const cards = categoryBlends.length ? categoryBlends.map((blend) => {
@@ -3603,6 +3725,9 @@
         ? visible.map((entry) => cardMarkup(entry)).join("")
         : `<div class="empty">검색 조건에 맞는 QC 기록이 없습니다.</div>`;
       const cuppingEntries = entries.filter(isCuppingEntry);
+      cuppingCommentList.innerHTML = cuppingEntries.length
+        ? `${cuppingCommentSummaryMarkup(cuppingEntries)}${cuppingEntries.map((entry) => cuppingCommentMarkup(entry)).join("")}`
+        : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
       cuppingRecentList.innerHTML = cuppingEntries.length
         ? cuppingEntries.slice(0, 6).map((entry) => cardMarkup(entry)).join("")
         : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
@@ -4092,6 +4217,7 @@
     }
 
     recordList.addEventListener("click", handleEntryAction);
+    cuppingCommentList.addEventListener("click", handleEntryAction);
     cuppingRecentList.addEventListener("click", handleEntryAction);
     roastingRecentList.addEventListener("click", handleEntryAction);
     espressoRecentList.addEventListener("click", handleEntryAction);
