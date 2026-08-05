@@ -777,6 +777,33 @@
       font-size: 13px;
     }
 
+    .dashboard-recent-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .dashboard-recent-box {
+      display: grid;
+      align-content: start;
+      gap: 8px;
+      min-height: 180px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .dashboard-recent-box h4 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .dashboard-recent-box .record-item,
+    .dashboard-recent-box .comment-item {
+      background: var(--surface);
+    }
+
     .cupping-panel {
       padding: 14px;
     }
@@ -1103,6 +1130,7 @@
 
       .blend-grid,
       .category-grid,
+      .dashboard-recent-grid,
       .toolbar,
       .board,
       .record-item,
@@ -1570,7 +1598,24 @@
       </aside>
 
       <main class="main">
-        <section class="blend-grid app-panel" id="blendSummary" data-app-panel="dashboard" aria-label="블렌드별 QC 요약"></section>
+        <section class="panel cupping-panel app-panel" data-app-panel="dashboard">
+          <div class="section-title">
+            <div>
+              <h3>최근 3일 QC 흐름</h3>
+              <p class="hint">최근 3일의 로스팅 데이터와 커핑 코멘트를 먼저 확인합니다.</p>
+            </div>
+          </div>
+          <div class="dashboard-recent-grid">
+            <div class="dashboard-recent-box">
+              <h4>로스팅 데이터</h4>
+              <div id="dashboardRoastingRecent"></div>
+            </div>
+            <div class="dashboard-recent-box">
+              <h4>커핑 코멘트</h4>
+              <div id="dashboardCuppingRecent"></div>
+            </div>
+          </div>
+        </section>
 
         <section class="panel toolbar app-panel" data-app-panel="search">
           <input id="searchInput" type="search" placeholder="검색: 블렌드, #배치범위, 코멘트, 태그">
@@ -1633,6 +1678,16 @@
             </div>
           </form>
           <div class="notice-list" id="ratioNoticeList"></div>
+        </section>
+
+        <section class="app-panel" data-app-panel="dashboard">
+          <div class="section-title">
+            <div>
+              <h3>이번 달 로스팅 현황판</h3>
+              <p class="hint" id="monthDashboardHint">해당 월의 로스팅과 커핑 기록만 표시합니다.</p>
+            </div>
+          </div>
+          <section class="blend-grid" id="blendSummary" aria-label="블렌드별 QC 요약"></section>
         </section>
 
         <section class="panel sheet-panel app-panel" data-app-panel="search">
@@ -2204,6 +2259,9 @@
       no_ship: document.querySelector("#noShipLane")
     };
     const blendSummary = document.querySelector("#blendSummary");
+    const dashboardRoastingRecent = document.querySelector("#dashboardRoastingRecent");
+    const dashboardCuppingRecent = document.querySelector("#dashboardCuppingRecent");
+    const monthDashboardHint = document.querySelector("#monthDashboardHint");
     const recordList = document.querySelector("#recordList");
     const cuppingCommentList = document.querySelector("#cuppingCommentList");
     const cuppingRecentList = document.querySelector("#cuppingRecentList");
@@ -2765,15 +2823,16 @@
           return { ...entry, blend, verdict };
         });
         if (withoutSeedEntries.length !== parsed.length) changed = true;
-        if (changed) writeEntries(withoutSeedEntries);
-        return withoutSeedEntries;
+        const sortedEntries = sortEntriesByDate(withoutSeedEntries);
+        if (changed) writeEntries(sortedEntries);
+        return sortedEntries;
       } catch {
         return [];
       }
     }
 
     function writeEntries(value) {
-      writeStoreValue(storageKey, value);
+      writeStoreValue(storageKey, sortEntriesByDate(value));
     }
 
     let entries = readEntries();
@@ -2782,14 +2841,14 @@
       const parsed = readStoreValue(nonShipResultsKey);
       if (!parsed) return [];
       try {
-        return Array.isArray(parsed) ? parsed.map((item) => ({ ...item, blend: canonicalBlendName(item.blend) })) : [];
+        return Array.isArray(parsed) ? sortNonShipResults(parsed.map((item) => ({ ...item, blend: canonicalBlendName(item.blend) }))) : [];
       } catch {
         return [];
       }
     }
 
     function writeNonShipResults(value) {
-      writeStoreValue(nonShipResultsKey, value);
+      writeStoreValue(nonShipResultsKey, sortNonShipResults(value));
     }
 
     let nonShipResults = readNonShipResults();
@@ -2798,14 +2857,14 @@
       const parsed = readStoreValue(ratioNoticesKey);
       if (!parsed) return [];
       try {
-        return Array.isArray(parsed) ? parsed : [];
+        return Array.isArray(parsed) ? sortRatioNotices(parsed) : [];
       } catch {
         return [];
       }
     }
 
     function writeRatioNotices(value) {
-      writeStoreValue(ratioNoticesKey, value);
+      writeStoreValue(ratioNoticesKey, sortRatioNotices(value));
     }
 
     let ratioNotices = readRatioNotices();
@@ -2836,6 +2895,57 @@
       if (!date) return value || today();
       date.setDate(date.getDate() + days);
       return formatDateInput(date);
+    }
+
+    function entryDisplayDate(entry) {
+      if (entry.entryType === "roasting") return entry.roastDate || entry.createdAt || "";
+      if (entry.entryType === "espresso") return entry.roastDate || entry.createdAt || "";
+      return entry.cuppingDate || entry.roastDate || entry.createdAt || "";
+    }
+
+    function dateTimestamp(value) {
+      const parsed = parseDateInput(value);
+      return parsed ? parsed.getTime() : 0;
+    }
+
+    function sortEntriesByDate(value) {
+      return [...value].sort((left, right) => {
+        const dateDiff = dateTimestamp(entryDisplayDate(right)) - dateTimestamp(entryDisplayDate(left));
+        if (dateDiff) return dateDiff;
+        return String(right.createdAt || "").localeCompare(String(left.createdAt || ""));
+      });
+    }
+
+    function sortRatioNotices(value) {
+      return [...value].sort((left, right) => dateTimestamp(right.effectiveDate) - dateTimestamp(left.effectiveDate));
+    }
+
+    function sortNonShipResults(value) {
+      return [...value].sort((left, right) => dateTimestamp(right.resultDate) - dateTimestamp(left.resultDate));
+    }
+
+    function currentMonthKey() {
+      return today().slice(0, 7);
+    }
+
+    function monthLabel(monthKey) {
+      const [year, month] = String(monthKey || currentMonthKey()).split("-");
+      return `${year}년 ${Number(month)}월`;
+    }
+
+    function isEntryInMonth(entry, monthKey = currentMonthKey()) {
+      return entryDisplayDate(entry).slice(0, 7) === monthKey;
+    }
+
+    function isEntryInLastDays(entry, days) {
+      const base = parseDateInput(today());
+      const target = parseDateInput(entryDisplayDate(entry));
+      if (!base || !target) return false;
+      base.setHours(23, 59, 59, 999);
+      const start = new Date(base);
+      start.setDate(start.getDate() - (days - 1));
+      start.setHours(0, 0, 0, 0);
+      return target >= start && target <= base;
     }
 
     function roastDateFromCuppingDate(value) {
@@ -3549,10 +3659,25 @@
       `;
     }
 
-    function renderSummary() {
+    function renderDashboardRecent(monthEntries) {
+      const recentRoasting = monthEntries
+        .filter((entry) => entry.entryType === "roasting" && isEntryInLastDays(entry, 3))
+        .slice(0, 8);
+      const recentCupping = monthEntries
+        .filter((entry) => isCuppingEntry(entry) && isEntryInLastDays(entry, 3))
+        .slice(0, 8);
+      dashboardRoastingRecent.innerHTML = recentRoasting.length
+        ? recentRoasting.map((entry) => cardMarkup(entry)).join("")
+        : `<div class="empty">최근 3일 로스팅 데이터가 없습니다.</div>`;
+      dashboardCuppingRecent.innerHTML = recentCupping.length
+        ? recentCupping.map((entry) => cuppingCommentMarkup(entry)).join("")
+        : `<div class="empty">최근 3일 커핑 코멘트가 없습니다.</div>`;
+    }
+
+    function renderSummary(summaryEntries) {
       blendSummary.innerHTML = Object.entries(categorizedBlendMap()).map(([category, categoryBlends]) => {
         const cards = categoryBlends.length ? categoryBlends.map((blend) => {
-          const blendEntries = entries.filter((entry) => entry.blend === blend);
+          const blendEntries = summaryEntries.filter((entry) => entry.blend === blend);
           const cuppingEntries = blendEntries.filter(isCuppingEntry);
           const latest = blendEntries[0];
           const passCount = cuppingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
@@ -3589,7 +3714,7 @@
 
     function renderRatioNotices() {
       const editable = canManageRatioNotices(approvedSessionUser());
-      const notices = activeAppView === "search" ? ratioNotices.filter(matchesRatioNotice) : ratioNotices;
+      const notices = sortRatioNotices(activeAppView === "search" ? ratioNotices.filter(matchesRatioNotice) : ratioNotices);
       ratioNoticeList.innerHTML = notices.length
         ? notices.map((notice) => `
           <article class="notice-item">
@@ -3608,14 +3733,16 @@
     }
 
     function renderBlendSheetTabs() {
+      const sheetEntries = activeAppView === "search" ? sortEntriesByDate(entries.filter(matchesFilters)) : sortEntriesByDate(entries.filter((entry) => isEntryInMonth(entry)));
       blendSheetTabs.innerHTML = allEntryBlends().map((blend) => {
-        const count = entries.filter((entry) => entry.blend === blend).length;
+        const count = sheetEntries.filter((entry) => entry.blend === blend).length;
         return `<button type="button" class="${activeBlendSheet === blend ? "active" : ""}" data-sheet-blend="${escapeHtml(blend)}">${escapeHtml(blend)} (${count})</button>`;
       }).join("");
     }
 
     function renderBlendSheet() {
-      const rows = entries.filter((entry) => entry.blend === activeBlendSheet && matchesFilters(entry));
+      const source = activeAppView === "search" ? entries.filter(matchesFilters) : entries.filter((entry) => isEntryInMonth(entry));
+      const rows = sortEntriesByDate(source).filter((entry) => entry.blend === activeBlendSheet);
       if (!rows.length) {
         blendSheet.innerHTML = `<div class="empty">이 블렌드 시트에 표시할 기록이 없습니다.</div>`;
         return;
@@ -3698,19 +3825,25 @@
         nonShipResultList.innerHTML = "";
         return;
       }
-      const noShipEntries = entries.filter((entry) => normalizeVerdict(entry.verdict) === "no_ship");
+      const visibleResults = sortNonShipResults(nonShipResults.filter((result) => String(result.resultDate || "").slice(0, 7) === currentMonthKey()));
+      const noShipEntries = entries.filter((entry) => normalizeVerdict(entry.verdict) === "no_ship" && isEntryInMonth(entry));
       const entryHints = noShipEntries.length
-        ? `<div class="list-summary"><span>ISSUE 판정 ${noShipEntries.length}개</span><span>소진 결과 ${nonShipResults.length}개</span></div>`
-        : `<div class="list-summary"><span>ISSUE 판정 0개</span><span>소진 결과 ${nonShipResults.length}개</span></div>`;
-      nonShipResultList.innerHTML = nonShipResults.length
-        ? `${entryHints}${nonShipResults.map((result) => nonShipResultMarkup(result)).join("")}`
+        ? `<div class="list-summary"><span>이번 달 ISSUE 판정 ${noShipEntries.length}개</span><span>소진 결과 ${visibleResults.length}개</span></div>`
+        : `<div class="list-summary"><span>이번 달 ISSUE 판정 0개</span><span>소진 결과 ${visibleResults.length}개</span></div>`;
+      nonShipResultList.innerHTML = visibleResults.length
+        ? `${entryHints}${visibleResults.map((result) => nonShipResultMarkup(result)).join("")}`
         : `${entryHints}<div class="empty">아직 저장된 ISSUE 소진 결과가 없습니다.</div>`;
     }
 
     function render() {
-      const visible = activeAppView === "search" ? entries.filter(matchesFilters) : entries;
+      entries = sortEntriesByDate(entries);
+      const monthKey = currentMonthKey();
+      const monthEntries = entries.filter((entry) => isEntryInMonth(entry, monthKey));
+      const visible = activeAppView === "search" ? entries.filter(matchesFilters) : monthEntries;
       const visibleCupping = visible.filter(isCuppingEntry);
-      renderSummary();
+      monthDashboardHint.textContent = `${monthLabel(monthKey)} 데이터만 표시합니다. 이전 달 기록은 검색에서 확인합니다.`;
+      renderDashboardRecent(monthEntries);
+      renderSummary(monthEntries);
       renderRatioNotices();
       renderBlendSheetTabs();
       renderBlendSheet();
@@ -3724,20 +3857,20 @@
       recordList.innerHTML = visible.length
         ? visible.map((entry) => cardMarkup(entry)).join("")
         : `<div class="empty">검색 조건에 맞는 QC 기록이 없습니다.</div>`;
-      const cuppingEntries = entries.filter(isCuppingEntry);
+      const cuppingEntries = (activeAppView === "search" ? entries : monthEntries).filter(isCuppingEntry);
       cuppingCommentList.innerHTML = cuppingEntries.length
         ? `${cuppingCommentSummaryMarkup(cuppingEntries)}${cuppingEntries.map((entry) => cuppingCommentMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
       cuppingRecentList.innerHTML = cuppingEntries.length
         ? cuppingEntries.slice(0, 6).map((entry) => cardMarkup(entry)).join("")
         : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
-      const roastingEntries = entries.filter((entry) => entry.entryType === "roasting");
+      const roastingEntries = monthEntries.filter((entry) => entry.entryType === "roasting");
       roastingRecentList.innerHTML = roastingEntries.length
-        ? `<div class="list-summary"><span>저장된 로스팅 데이터 ${roastingEntries.length}개</span><span>전체 표시</span></div>${roastingEntries.map((entry) => cardMarkup(entry)).join("")}`
+        ? `<div class="list-summary"><span>이번 달 로스팅 데이터 ${roastingEntries.length}개</span><span>${monthLabel(monthKey)}</span></div>${roastingEntries.map((entry) => cardMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 로스팅 데이터가 없습니다.</div>`;
-      const espressoEntries = entries.filter((entry) => entry.entryType === "espresso");
+      const espressoEntries = monthEntries.filter((entry) => entry.entryType === "espresso");
       espressoRecentList.innerHTML = espressoEntries.length
-        ? espressoEntries.slice(0, 6).map((entry) => cardMarkup(entry)).join("")
+        ? `<div class="list-summary"><span>이번 달 추출 평가 ${espressoEntries.length}개</span><span>${monthLabel(monthKey)}</span></div>${espressoEntries.map((entry) => cardMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 추출 평가가 없습니다.</div>`;
     }
 
