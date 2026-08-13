@@ -798,7 +798,7 @@
 
     .sheet-table {
       width: 100%;
-      min-width: 1120px;
+      min-width: 1360px;
       border-collapse: collapse;
       background: var(--surface);
       font-size: 12px;
@@ -1086,6 +1086,64 @@
       background: var(--surface);
     }
 
+    .comment-blend-group {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .comment-blend-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+    }
+
+    .comment-blend-head h4 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .comment-compare-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .comment-field-block {
+      display: grid;
+      gap: 4px;
+      margin-top: 9px;
+    }
+
+    .comment-field-block strong {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .comment-field-block p {
+      margin: 0;
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .comment-compare-grid .comment-item {
+      grid-template-columns: 1fr;
+      gap: 10px;
+      background: var(--surface);
+    }
+
+    .comment-compare-grid .comment-date {
+      white-space: normal;
+    }
+
     .comment-date {
       color: var(--teal);
       font-size: 12px;
@@ -1223,6 +1281,7 @@
       .blend-grid,
       .category-grid,
       .dashboard-recent-grid,
+      .comment-compare-grid,
       .toolbar,
       .calendar-head,
       .board,
@@ -1337,7 +1396,7 @@
       }
 
       .sheet-table {
-        min-width: 920px;
+        min-width: 1180px;
         font-size: 11px;
       }
 
@@ -1605,8 +1664,16 @@
             </div>
           </div>
           <div class="field" style="margin-top: 10px;">
-            <label for="noteInput">커핑 코멘트</label>
-            <textarea id="noteInput" required placeholder="예: #1~#6 문제없음 / #7~#8 바디 약함"></textarea>
+            <label for="flavorIssueInput">문제향미지표</label>
+            <textarea id="flavorIssueInput" required placeholder="예: #1~#2 비터 강함 / #3~#6 바디 약함"></textarea>
+          </div>
+          <div class="field">
+            <label for="roastDiagnosisInput">로스팅 문제 진단</label>
+            <textarea id="roastDiagnosisInput" placeholder="예: 배출온도 대비 홀빈 색도 낮음, 후반 화력 하락 의심"></textarea>
+          </div>
+          <div class="field">
+            <label for="solutionInput">솔루션</label>
+            <textarea id="solutionInput" placeholder="예: 다음 배치 화력 +3, 배출 전 20초 유지, 커핑 재확인"></textarea>
           </div>
           <div class="score-section roast-data-section">
             <p class="score-section-title">로스팅 데이터</p>
@@ -2368,7 +2435,9 @@
       acidity: document.querySelector("#acidityInput"),
       sweetness: document.querySelector("#sweetnessInput"),
       bitterness: document.querySelector("#bitternessInput"),
-      note: document.querySelector("#noteInput"),
+      flavorIssue: document.querySelector("#flavorIssueInput"),
+      roastDiagnosis: document.querySelector("#roastDiagnosisInput"),
+      solution: document.querySelector("#solutionInput"),
       tags: document.querySelector("#tagsInput")
     };
     const quickCuppingFields = {
@@ -2745,6 +2814,10 @@
       const session = currentSession();
       if (!session) return null;
       return users.find((user) => user.id === session.userId && user.status === "approved") || null;
+    }
+
+    function userDisplayName(user) {
+      return user?.name || user?.userId || "";
     }
 
     function isPrimaryAdmin(user) {
@@ -3215,6 +3288,13 @@
 
     function cuppingEntryFromFields(overrides = {}) {
       const cuppingDate = overrides.cuppingDate || fields.roastDate.value || today();
+      const user = approvedSessionUser();
+      const cuppingDetail = {
+        flavorIssue: normalizeText(overrides.flavorIssue ?? fields.flavorIssue.value),
+        roastDiagnosis: normalizeText(overrides.roastDiagnosis ?? fields.roastDiagnosis.value),
+        solution: normalizeText(overrides.solution ?? fields.solution.value)
+      };
+      const note = normalizeText(overrides.note || cuppingDetailNote(cuppingDetail) || cuppingDetail.flavorIssue);
       return {
         id: overrides.id || editingCuppingId || makeId(),
         blend: overrides.blend || fields.blend.value,
@@ -3247,8 +3327,12 @@
           bitterness: Number(fields.bitterness.value || 0),
           body: Number(fields.body.value || 0)
         },
-        note: normalizeText(overrides.note || fields.note.value),
-        tags: normalizeTagValue(overrides.tags ?? [...selectedIssueTypes(), ...inferIssueTypesFromText(overrides.note || fields.note.value)]),
+        cuppingDetail,
+        note,
+        tags: normalizeTagValue(overrides.tags ?? [...selectedIssueTypes(), ...inferIssueTypesFromText(note)]),
+        evaluatorName: overrides.evaluatorName || userDisplayName(user),
+        createdByName: overrides.createdByName || userDisplayName(user),
+        createdBy: overrides.createdBy || user?.userId || "",
         createdAt: today()
       };
     }
@@ -3474,6 +3558,7 @@
       }
       const scores = normalizedScores(entry);
       const intensity = normalizedIntensity(entry);
+      const cuppingDetail = normalizedCuppingDetail(entry);
       editingCuppingId = entry.id;
       fields.blend.value = entry.blend;
       fields.roastDate.value = entry.cuppingDate || cuppingDateFromRoastDate(entry.roastDate || today());
@@ -3488,7 +3573,9 @@
       fields.sweetness.value = intensity.sweetness || 4;
       fields.bitterness.value = intensity.bitterness || 2;
       fields.body.value = intensity.body || 4;
-      fields.note.value = entry.note || "";
+      fields.flavorIssue.value = cuppingDetail.flavorIssue;
+      fields.roastDiagnosis.value = cuppingDetail.roastDiagnosis;
+      fields.solution.value = cuppingDetail.solution;
       fields.tags.value = (entry.tags || []).join(", ");
       setSelectedIssueTypes(entry.tags || []);
       qcSubmitButton.textContent = "커핑 코멘트 수정";
@@ -3550,6 +3637,27 @@
         basket: espressoData.basket || "",
         grind: espressoData.grind || ""
       };
+    }
+
+    function normalizedCuppingDetail(entry) {
+      const detail = entry.cuppingDetail || {};
+      return {
+        flavorIssue: normalizeText(detail.flavorIssue || entry.flavorIssue || entry.note || ""),
+        roastDiagnosis: normalizeText(detail.roastDiagnosis || entry.roastDiagnosis || ""),
+        solution: normalizeText(detail.solution || entry.solution || "")
+      };
+    }
+
+    function cuppingDetailNote(detail) {
+      return [
+        detail.flavorIssue ? `문제향미지표: ${detail.flavorIssue}` : "",
+        detail.roastDiagnosis ? `로스팅 문제 진단: ${detail.roastDiagnosis}` : "",
+        detail.solution ? `솔루션: ${detail.solution}` : ""
+      ].filter(Boolean).join(" / ");
+    }
+
+    function entryEvaluatorName(entry) {
+      return entry.evaluatorName || entry.createdByName || entry.createdBy || "평가자 미기록";
     }
 
     function displayCell(value) {
@@ -3675,6 +3783,7 @@
       const query = filters.search.value.trim().toLowerCase();
       const category = getBlendCategory(entry.blend);
       const verdict = normalizeVerdict(entry.verdict);
+      const cuppingDetail = normalizedCuppingDetail(entry);
       const haystack = [
         category,
         entry.blend,
@@ -3685,6 +3794,8 @@
         verdictLabel(verdict),
         ...Object.values(normalizedRoastData(entry)),
         ...Object.values(normalizedEspressoData(entry)),
+        ...Object.values(cuppingDetail),
+        entryEvaluatorName(entry),
         entry.note,
         entry.tags.join(" ")
       ].join(" ").toLowerCase();
@@ -3780,6 +3891,7 @@
 
     function cuppingCommentMarkup(entry) {
       const user = approvedSessionUser();
+      const detail = normalizedCuppingDetail(entry);
       const issueTags = (entry.tags || []).filter((tag) => tag !== "빠른입력");
       const tags = issueTags.length
         ? issueTags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")
@@ -3795,15 +3907,65 @@
           </div>
           <div>
             <div class="qc-head">
-              <h4 class="qc-title">${escapeHtml(entry.blend || "-")} ${escapeHtml(entry.batch || "")}</h4>
+              <h4 class="qc-title">${escapeHtml(entryEvaluatorName(entry))}</h4>
               <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
             </div>
-            <p class="comment-body">${escapeHtml(entry.note || "코멘트 없음")}</p>
+            <div class="meta">
+              <span class="tag blue">${escapeHtml(entry.blend || "-")}</span>
+              <span class="tag">${escapeHtml(entry.batch || "범위 미기록")}</span>
+            </div>
+            <div class="comment-field-block">
+              <strong>문제향미지표</strong>
+              <p>${escapeHtml(detail.flavorIssue || "기록 없음")}</p>
+            </div>
+            <div class="comment-field-block">
+              <strong>로스팅 문제 진단</strong>
+              <p>${escapeHtml(detail.roastDiagnosis || "기록 없음")}</p>
+            </div>
+            <div class="comment-field-block">
+              <strong>솔루션</strong>
+              <p>${escapeHtml(detail.solution || "기록 없음")}</p>
+            </div>
             <div class="meta">${tags}</div>
           </div>
           ${actions}
         </article>
       `;
+    }
+
+    function cuppingCommentGroupMarkup(cuppingEntries) {
+      const categoryMap = categorizedBlendMap();
+      return Object.entries(categoryMap).map(([category, categoryBlends]) => {
+        const blendGroups = categoryBlends.map((blend) => {
+          const blendEntries = cuppingEntries.filter((entry) => entry.blend === blend);
+          if (!blendEntries.length) return "";
+          const evaluatorCount = new Set(blendEntries.map(entryEvaluatorName)).size;
+          return `
+            <section class="comment-blend-group">
+              <div class="comment-blend-head">
+                <div>
+                  <h4>${escapeHtml(blend)}</h4>
+                  <div class="meta">
+                    <span class="tag blue">${escapeHtml(category)}</span>
+                    <span class="tag">평가 ${blendEntries.length}개</span>
+                    <span class="tag">평가자 ${evaluatorCount}명</span>
+                  </div>
+                </div>
+              </div>
+              <div class="comment-compare-grid">
+                ${blendEntries.map((entry) => cuppingCommentMarkup(entry)).join("")}
+              </div>
+            </section>
+          `;
+        }).join("");
+        if (!blendGroups) return "";
+        return `
+          <div class="category-group">
+            <h3>${escapeHtml(category)}</h3>
+            ${blendGroups}
+          </div>
+        `;
+      }).join("");
     }
 
     function cuppingCommentSummaryMarkup(cuppingEntries) {
@@ -3962,12 +4124,16 @@
               <th>그라운드색도</th>
               <th>판정</th>
               <th>문제 유형</th>
-              <th>커핑 메모</th>
+              <th>평가자</th>
+              <th>문제향미지표</th>
+              <th>로스팅 문제 진단</th>
+              <th>솔루션</th>
             </tr>
           </thead>
           <tbody>
             ${rows.map((entry) => {
               const roastData = normalizedRoastData(entry);
+              const cuppingDetail = normalizedCuppingDetail(entry);
               const issueTags = (entry.tags || []).filter((tag) => tag !== "빠른입력").join(", ");
               return `
                 <tr>
@@ -3986,7 +4152,10 @@
                   <td>${displayCell(roastData.groundColor)}</td>
                   <td><span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span></td>
                   <td>${displayCell(issueTags)}</td>
-                  <td class="sheet-note">${escapeHtml(entry.note)}</td>
+                  <td>${displayCell(isCuppingEntry(entry) ? entryEvaluatorName(entry) : "")}</td>
+                  <td class="sheet-note">${displayCell(isCuppingEntry(entry) ? cuppingDetail.flavorIssue : "")}</td>
+                  <td class="sheet-note">${displayCell(isCuppingEntry(entry) ? cuppingDetail.roastDiagnosis : "")}</td>
+                  <td class="sheet-note">${displayCell(isCuppingEntry(entry) ? cuppingDetail.solution : "")}</td>
                 </tr>
               `;
             }).join("")}
@@ -4056,7 +4225,7 @@
         : `<div class="empty">검색 조건에 맞는 QC 기록이 없습니다.</div>`;
       const cuppingEntries = (activeAppView === "search" ? entries : monthEntries).filter(isCuppingEntry);
       cuppingCommentList.innerHTML = cuppingEntries.length
-        ? `${cuppingCommentSummaryMarkup(cuppingEntries)}${cuppingEntries.map((entry) => cuppingCommentMarkup(entry)).join("")}`
+        ? `${cuppingCommentSummaryMarkup(cuppingEntries)}${cuppingCommentGroupMarkup(cuppingEntries)}`
         : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
       cuppingRecentList.innerHTML = cuppingEntries.length
         ? cuppingEntries.slice(0, 6).map((entry) => cardMarkup(entry)).join("")
@@ -4085,6 +4254,9 @@
         roaster: item.roaster,
         batch: item.batch,
         verdict: inferVerdictFromText(item.note, "hold"),
+        flavorIssue: item.note,
+        roastDiagnosis: "",
+        solution: "",
         note: item.note,
         tags: ["빠른입력", ...inferIssueTypesFromText(item.note)]
       }));
@@ -4118,6 +4290,9 @@
       fields.roastTime.value = "";
       fields.wholeColor.value = "";
       fields.groundColor.value = "";
+      fields.flavorIssue.value = "";
+      fields.roastDiagnosis.value = "";
+      fields.solution.value = "";
       fields.aroma.value = 4;
       fields.flavor.value = 4;
       fields.body.value = 4;
