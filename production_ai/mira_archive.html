@@ -664,6 +664,98 @@
       padding: 12px;
     }
 
+    .calendar-panel {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .calendar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .calendar-head h3 {
+      font-size: 24px;
+    }
+
+    .calendar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: end;
+      gap: 6px;
+    }
+
+    .calendar-actions button {
+      min-height: 34px;
+      padding: 0 10px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .calendar-weekday {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .calendar-day {
+      min-height: 82px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      text-align: left;
+    }
+
+    .calendar-day.empty {
+      border-style: dashed;
+      background: #f2eee6;
+      opacity: 0.55;
+    }
+
+    .calendar-day.has-data {
+      background: #fffaf1;
+      border-color: rgba(31, 111, 120, 0.35);
+    }
+
+    .calendar-day.selected {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 2px rgba(31, 111, 120, 0.14) inset;
+    }
+
+    .calendar-day strong {
+      display: block;
+      font-size: 17px;
+    }
+
+    .calendar-day span {
+      display: inline-flex;
+      margin-top: 14px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: rgba(59, 95, 143, 0.12);
+      color: var(--blue);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .calendar-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
     .sheet-panel {
       overflow: hidden;
     }
@@ -1132,6 +1224,7 @@
       .category-grid,
       .dashboard-recent-grid,
       .toolbar,
+      .calendar-head,
       .board,
       .record-item,
       .comment-item,
@@ -1154,6 +1247,25 @@
       .app-nav button {
         width: 100%;
         min-height: 40px;
+      }
+
+      .calendar-grid {
+        gap: 4px;
+      }
+
+      .calendar-day {
+        min-height: 64px;
+        padding: 6px;
+      }
+
+      .calendar-day strong {
+        font-size: 14px;
+      }
+
+      .calendar-day span {
+        margin-top: 8px;
+        padding: 2px 5px;
+        font-size: 10px;
       }
 
       .userbar {
@@ -1640,6 +1752,23 @@
           <select id="levelFilter" hidden>
             <option value="all">전체</option>
           </select>
+        </section>
+
+        <section class="panel calendar-panel app-panel" data-app-panel="search">
+          <div class="calendar-head">
+            <div>
+              <h3 id="searchCalendarTitle">월별 배치 달력</h3>
+              <p class="hint">날짜를 누르면 그날 로스팅한 배치와 연결된 기록을 조회합니다.</p>
+            </div>
+            <div class="calendar-actions">
+              <button type="button" id="calendarPrevButton">이전 달</button>
+              <button type="button" id="calendarTodayButton">이번 달</button>
+              <button type="button" id="calendarNextButton">다음 달</button>
+              <button type="button" id="calendarClearButton">날짜 해제</button>
+            </div>
+          </div>
+          <div class="calendar-summary" id="searchCalendarSummary"></div>
+          <div class="calendar-grid" id="searchCalendar"></div>
         </section>
 
         <section class="panel notice-panel app-panel" data-app-panel="dashboard">
@@ -2246,6 +2375,13 @@
       input: document.querySelector("#quickCuppingInput"),
       message: document.querySelector("#quickCuppingMessage")
     };
+    const searchCalendarTitle = document.querySelector("#searchCalendarTitle");
+    const searchCalendarSummary = document.querySelector("#searchCalendarSummary");
+    const searchCalendar = document.querySelector("#searchCalendar");
+    const calendarPrevButton = document.querySelector("#calendarPrevButton");
+    const calendarTodayButton = document.querySelector("#calendarTodayButton");
+    const calendarNextButton = document.querySelector("#calendarNextButton");
+    const calendarClearButton = document.querySelector("#calendarClearButton");
     const filters = {
       search: document.querySelector("#searchInput"),
       category: document.querySelector("#categoryFilter"),
@@ -2327,6 +2463,8 @@
     };
     let activeBlendSheet = "올드독";
     let activeAppView = "dashboard";
+    let searchCalendarMonth = today().slice(0, 7);
+    let selectedSearchDate = "";
     let editingCuppingId = "";
     let editingRoastingId = "";
     let editingEspressoId = "";
@@ -2937,6 +3075,24 @@
       return entryDisplayDate(entry).slice(0, 7) === monthKey;
     }
 
+    function entryDateValues(entry) {
+      return Array.from(new Set([
+        entry.roastDate,
+        entry.cuppingDate,
+        entry.createdAt
+      ].filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")))));
+    }
+
+    function entryMatchesSelectedDate(entry) {
+      return !selectedSearchDate || entryDateValues(entry).includes(selectedSearchDate);
+    }
+
+    function shiftMonthKey(monthKey, delta) {
+      const [year, month] = String(monthKey || today().slice(0, 7)).split("-").map(Number);
+      const date = new Date(year, month - 1 + delta, 1);
+      return formatDateInput(date).slice(0, 7);
+    }
+
     function isEntryInLastDays(entry, days) {
       const base = parseDateInput(today());
       const target = parseDateInput(entryDisplayDate(entry));
@@ -3515,7 +3671,7 @@
       if (currentCategory && selectHasValue(filters.category, currentCategory)) filters.category.value = currentCategory;
     }
 
-    function matchesFilters(entry) {
+    function matchesFilterControls(entry, includeDate = true) {
       const query = filters.search.value.trim().toLowerCase();
       const category = getBlendCategory(entry.blend);
       const verdict = normalizeVerdict(entry.verdict);
@@ -3533,10 +3689,15 @@
         entry.tags.join(" ")
       ].join(" ").toLowerCase();
       return (!query || haystack.includes(query))
+        && (!includeDate || entryMatchesSelectedDate(entry))
         && (filters.category.value === "all" || category === filters.category.value)
         && (filters.blend.value === "all" || entry.blend === filters.blend.value)
         && (filters.verdict.value === "all" || verdict === filters.verdict.value)
         && (filters.roastLevel.value === "all" || entry.roastLevel === filters.roastLevel.value);
+    }
+
+    function matchesFilters(entry) {
+      return matchesFilterControls(entry, true);
     }
 
     function matchesRatioNotice(notice) {
@@ -3657,6 +3818,41 @@
           <div class="comment-stat"><span>ISSUE</span><strong>${issueCount}</strong></div>
         </div>
       `;
+    }
+
+    function renderSearchCalendar() {
+      const [year, month] = searchCalendarMonth.split("-").map(Number);
+      const firstDate = new Date(year, month - 1, 1);
+      const lastDate = new Date(year, month, 0);
+      const leadingEmptyDays = firstDate.getDay();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const matchedEntries = entries.filter((entry) => matchesFilterControls(entry, false));
+      const countByDate = matchedEntries.reduce((acc, entry) => {
+        entryDateValues(entry).forEach((value) => {
+          if (value.slice(0, 7) !== searchCalendarMonth) return;
+          acc[value] = (acc[value] || 0) + 1;
+        });
+        return acc;
+      }, {});
+      const dayButtons = [];
+      for (let index = 0; index < leadingEmptyDays; index += 1) {
+        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      }
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${searchCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const count = countByDate[dateValue] || 0;
+        dayButtons.push(`
+          <button type="button" class="calendar-day ${count ? "has-data" : ""} ${selectedSearchDate === dateValue ? "selected" : ""}" data-calendar-date="${dateValue}">
+            <strong>${day}</strong>
+            ${count ? `<span>${count}개 기록</span>` : ""}
+          </button>
+        `);
+      }
+      searchCalendarTitle.textContent = `${monthLabel(searchCalendarMonth)} 배치 달력`;
+      searchCalendarSummary.innerHTML = selectedSearchDate
+        ? `<span>선택 날짜 ${escapeHtml(selectedSearchDate)}</span><span>검색 결과 ${entries.filter(matchesFilters).length}개</span>`
+        : `<span>날짜를 선택하지 않으면 전체 기간 검색 결과를 표시합니다.</span><span>${monthLabel(searchCalendarMonth)} 달력 기록 ${Object.values(countByDate).reduce((sum, count) => sum + count, 0)}개</span>`;
+      searchCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
     function renderDashboardRecent(monthEntries) {
@@ -3842,6 +4038,7 @@
       const visible = activeAppView === "search" ? entries.filter(matchesFilters) : monthEntries;
       const visibleCupping = visible.filter(isCuppingEntry);
       monthDashboardHint.textContent = `${monthLabel(monthKey)} 데이터만 표시합니다. 이전 달 기록은 검색에서 확인합니다.`;
+      renderSearchCalendar();
       renderDashboardRecent(monthEntries);
       renderSummary(monthEntries);
       renderRatioNotices();
@@ -4370,6 +4567,36 @@
       if (!canManageNonShipResults(approvedSessionUser())) return;
       nonShipResults = nonShipResults.filter((result) => result.id !== button.dataset.deleteNonship);
       writeNonShipResults(nonShipResults);
+      render();
+    });
+
+    searchCalendar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-calendar-date]");
+      if (!button) return;
+      selectedSearchDate = selectedSearchDate === button.dataset.calendarDate ? "" : button.dataset.calendarDate;
+      render();
+    });
+
+    calendarPrevButton.addEventListener("click", () => {
+      searchCalendarMonth = shiftMonthKey(searchCalendarMonth, -1);
+      selectedSearchDate = "";
+      render();
+    });
+
+    calendarTodayButton.addEventListener("click", () => {
+      searchCalendarMonth = today().slice(0, 7);
+      selectedSearchDate = "";
+      render();
+    });
+
+    calendarNextButton.addEventListener("click", () => {
+      searchCalendarMonth = shiftMonthKey(searchCalendarMonth, 1);
+      selectedSearchDate = "";
+      render();
+    });
+
+    calendarClearButton.addEventListener("click", () => {
+      selectedSearchDate = "";
       render();
     });
 
