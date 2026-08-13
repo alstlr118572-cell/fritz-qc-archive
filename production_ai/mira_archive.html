@@ -869,6 +869,29 @@
       font-size: 13px;
     }
 
+    .ratio-builder {
+      display: grid;
+      gap: 8px;
+      grid-column: 1 / -1;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffaf1;
+    }
+
+    .ratio-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 100px;
+      gap: 8px;
+    }
+
+    .ratio-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
     .dashboard-recent-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1597,6 +1620,9 @@
         <button type="button" class="active" data-app-view="dashboard">QC 종합 현황판</button>
         <button type="button" data-app-view="search">검색</button>
         <button type="button" data-app-view="comments">커핑 코멘트</button>
+        <button type="button" data-app-view="corrections">로스팅 수정 지표</button>
+        <button type="button" data-app-view="green" id="greenPageButton">생두 관리</button>
+        <button type="button" data-app-view="ratios">생두 비율 이력</button>
         <button type="button" data-app-view="roasting" id="roastingPageButton">로스팅 입력</button>
         <button type="button" data-app-view="cupping" id="cuppingPageButton">커핑 입력</button>
         <button type="button" data-app-view="espresso" id="espressoPageButton">추출 평가</button>
@@ -1666,14 +1692,6 @@
           <div class="field" style="margin-top: 10px;">
             <label for="flavorIssueInput">문제향미지표</label>
             <textarea id="flavorIssueInput" required placeholder="예: #1~#2 비터 강함 / #3~#6 바디 약함"></textarea>
-          </div>
-          <div class="field">
-            <label for="roastDiagnosisInput">로스팅 문제 진단</label>
-            <textarea id="roastDiagnosisInput" placeholder="예: 배출온도 대비 홀빈 색도 낮음, 후반 화력 하락 의심"></textarea>
-          </div>
-          <div class="field">
-            <label for="solutionInput">솔루션</label>
-            <textarea id="solutionInput" placeholder="예: 다음 배치 화력 +3, 배출 전 20초 유지, 커핑 재확인"></textarea>
           </div>
           <div class="score-section roast-data-section">
             <p class="score-section-title">로스팅 데이터</p>
@@ -1838,13 +1856,27 @@
           <div class="calendar-grid" id="searchCalendar"></div>
         </section>
 
-        <section class="panel notice-panel app-panel" data-app-panel="dashboard">
+        <section class="panel notice-panel app-panel" data-app-panel="ratios">
           <div class="section-title" style="margin-bottom: 0;">
             <div>
-              <h3>생두 비율 변경공지</h3>
-              <p class="hint">블렌드별 생두 배합 변경과 적용일을 따로 확인합니다.</p>
+              <h3>생두 비율 변경 이력</h3>
+              <p class="hint">달력에서 적용일을 선택해 블렌드별 생두 배합 변경 내역을 조회합니다.</p>
             </div>
           </div>
+          <div class="calendar-head">
+            <div>
+              <h3 id="ratioCalendarTitle">비율 변경 달력</h3>
+              <p class="hint">표시된 날짜를 누르면 해당 적용일의 변경 내역만 볼 수 있습니다.</p>
+            </div>
+            <div class="calendar-actions">
+              <button type="button" id="ratioCalendarPrevButton">이전 달</button>
+              <button type="button" id="ratioCalendarTodayButton">이번 달</button>
+              <button type="button" id="ratioCalendarNextButton">다음 달</button>
+              <button type="button" id="ratioCalendarClearButton">날짜 해제</button>
+            </div>
+          </div>
+          <div class="calendar-summary" id="ratioCalendarSummary"></div>
+          <div class="calendar-grid" id="ratioCalendar"></div>
           <form class="notice-form" id="ratioNoticeForm">
             <div class="field">
               <label for="noticeBlendInput">블렌드</label>
@@ -1859,15 +1891,31 @@
               <label for="noticeDateInput">적용일</label>
               <input id="noticeDateInput" type="date" required>
             </div>
-            <div class="field">
-              <label for="noticeBeforeInput">기존 비율</label>
+            <div class="field" style="grid-column: span 2;">
+              <label for="noticeBeforeInput">기존 비율 메모</label>
               <input id="noticeBeforeInput" placeholder="예: A 40 / B 60">
             </div>
-            <div class="field">
-              <label for="noticeAfterInput">변경 비율</label>
-              <input id="noticeAfterInput" required placeholder="예: A 35 / B 65">
-            </div>
             <button class="primary" type="submit">공지 등록</button>
+            <div class="ratio-builder">
+              <label>변경 비율</label>
+              <div class="ratio-row">
+                <select data-ratio-bean></select>
+                <input data-ratio-percent inputmode="decimal" placeholder="%">
+              </div>
+              <div class="ratio-row">
+                <select data-ratio-bean></select>
+                <input data-ratio-percent inputmode="decimal" placeholder="%">
+              </div>
+              <div class="ratio-row">
+                <select data-ratio-bean></select>
+                <input data-ratio-percent inputmode="decimal" placeholder="%">
+              </div>
+              <div class="ratio-row">
+                <select data-ratio-bean></select>
+                <input data-ratio-percent inputmode="decimal" placeholder="%">
+              </div>
+              <input id="noticeAfterInput" type="hidden">
+            </div>
             <div class="field" style="grid-column: 1 / -1;">
               <label for="noticeReasonInput">변경 사유 / 메모</label>
               <textarea id="noticeReasonInput" placeholder="생두 수급, 컵 밸런스, 거래처 안내 사항 등을 남깁니다."></textarea>
@@ -1934,10 +1982,98 @@
           <div class="section-title">
             <div>
               <h3>커핑 코멘트 모아보기</h3>
-              <p class="hint">커핑 평가만 분리해서 날짜, 배치, 문제 유형, 코멘트를 확인합니다.</p>
+              <p class="hint">평가자별 문제향미지표를 블렌드별로 비교합니다.</p>
             </div>
           </div>
           <div class="comment-list" id="cuppingCommentList"></div>
+        </section>
+
+        <section class="panel cupping-panel app-panel" data-app-panel="corrections">
+          <div class="section-title">
+            <div>
+              <h3>로스팅 수정 지표</h3>
+              <p class="hint">커핑에서 발견된 문제를 기준으로 로스팅 문제 진단과 다음 배치 솔루션을 한눈에 확인합니다.</p>
+            </div>
+          </div>
+          <form class="notice-form" id="correctionForm">
+            <div class="field">
+              <label for="correctionBlendInput">블렌드</label>
+              <select id="correctionBlendInput"></select>
+            </div>
+            <div class="field">
+              <label for="correctionDateInput">기준일</label>
+              <input id="correctionDateInput" type="date" required>
+            </div>
+            <div class="field">
+              <label for="correctionBatchInput">배치</label>
+              <input id="correctionBatchInput" required placeholder="예: #1~#6">
+            </div>
+            <div class="field">
+              <label for="correctionFlavorIssueInput">문제향미지표</label>
+              <input id="correctionFlavorIssueInput" placeholder="예: 비터 강함 / 바디 약함">
+            </div>
+            <button class="primary" type="submit" id="correctionSubmitButton">지표 저장</button>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="correctionDiagnosisInput">로스팅 문제 진단</label>
+              <textarea id="correctionDiagnosisInput" required placeholder="예: 후반 화력 하락, 배출온도 대비 색도 낮음"></textarea>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="correctionSolutionInput">솔루션</label>
+              <textarea id="correctionSolutionInput" required placeholder="예: 다음 배치 화력 +3, 배출 전 유지 시간 조정"></textarea>
+            </div>
+            <p id="correctionMessage"></p>
+          </form>
+          <div class="comment-list" id="roastingCorrectionList"></div>
+        </section>
+
+        <section class="panel cupping-panel app-panel" data-app-panel="green">
+          <div class="section-title">
+            <div>
+              <h3>생두 관리</h3>
+              <p class="hint">입고 생두의 기본 정보와 수분율, 밀도, 입고일을 관리합니다.</p>
+            </div>
+          </div>
+          <form class="notice-form" id="greenBeanForm">
+            <div class="field">
+              <label for="greenBeanNameInput">생두 이름</label>
+              <input id="greenBeanNameInput" required placeholder="예: Colombia Huila">
+            </div>
+            <div class="field">
+              <label for="greenBeanOriginInput">산지</label>
+              <input id="greenBeanOriginInput" placeholder="예: Colombia / Ethiopia">
+            </div>
+            <div class="field">
+              <label for="greenBeanProcessInput">프로세스</label>
+              <input id="greenBeanProcessInput" required placeholder="예: Washed / Natural">
+            </div>
+            <div class="field">
+              <label for="greenBeanReceivedDateInput">입고일</label>
+              <input id="greenBeanReceivedDateInput" type="date" required>
+            </div>
+            <button class="primary" type="submit" id="greenBeanSubmitButton">생두 저장</button>
+            <div class="field">
+              <label for="greenBeanMoistureInput">수분율</label>
+              <input id="greenBeanMoistureInput" inputmode="decimal" placeholder="예: 10.8%">
+            </div>
+            <div class="field">
+              <label for="greenBeanDensityInput">밀도</label>
+              <input id="greenBeanDensityInput" inputmode="decimal" placeholder="예: 780 g/L">
+            </div>
+            <div class="field">
+              <label for="greenBeanVarietyInput">품종</label>
+              <input id="greenBeanVarietyInput" placeholder="예: Bourbon / Caturra">
+            </div>
+            <div class="field">
+              <label for="greenBeanAmountInput">입고량</label>
+              <input id="greenBeanAmountInput" placeholder="예: 60kg x 10bag">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="greenBeanNoteInput">메모</label>
+              <textarea id="greenBeanNoteInput" placeholder="수분율 특이사항, 샘플 컵 노트, 보관 위치 등을 남깁니다."></textarea>
+            </div>
+            <p id="greenBeanMessage"></p>
+          </form>
+          <div class="panel record-list scrollable-record-list" id="greenBeanList"></div>
         </section>
 
         <section class="panel cupping-panel app-panel" data-app-panel="cupping">
@@ -2206,6 +2342,8 @@
     const storageKey = "mira_blend_qc_entries_v1";
     const ratioNoticesKey = "mira_blend_qc_ratio_notices_v1";
     const nonShipResultsKey = "mira_blend_qc_non_ship_results_v1";
+    const correctionIndicatorsKey = "mira_blend_qc_correction_indicators_v1";
+    const greenBeansKey = "mira_blend_qc_green_beans_v1";
     const usersKey = "mira_blend_qc_users_v1";
     const sessionKey = "mira_blend_qc_session_v1";
     const savedIdKey = "mira_blend_qc_saved_user_id_v1";
@@ -2222,15 +2360,44 @@
     };
     const blendNameAliases = {
       "올드독강배전": "올드독 강배전",
+      "올드독강": "올드독 강배전",
       "올드독(강배전)": "올드독 강배전",
       "올드독(강)": "올드독 강배전",
       "올강배전": "올드독 강배전",
       "올강": "올드독 강배전",
+      "올(강배전)": "올드독 강배전",
+      "올(강)": "올드독 강배전",
+      "올드독": "올드독",
+      "올": "올드독",
+      "잘되어가시나": "잘되어 가시나",
+      "잘": "잘되어 가시나",
+      "서울": "서울시네마",
+      "서": "서울시네마",
+      "디카": "디카페인",
+      "다카": "디카페인",
+      "디": "디카페인",
       "행복마루(행복)": "행복마루",
+      "행복마루": "행복마루",
       "행복": "행복마루",
+      "행": "행복마루",
+      "문": "문지리",
       "너티 트리니티": "너티트리니티",
       "너티트리니티(너티)": "너티트리니티",
-      "너티": "너티트리니티"
+      "너티": "너티트리니티",
+      "너": "너티트리니티",
+      "아르": "아르켓",
+      "아": "아르켓",
+      "위드": "위드센",
+      "위": "위드센",
+      "사낙": "사는낙",
+      "사는": "사는낙",
+      "신": "신커피",
+      "영차영차블렌드": "영차영차 블렌드",
+      "영차영차": "영차영차 블렌드",
+      "영차": "영차영차 블렌드",
+      "크리스마스블렌드": "크리스마스 블렌드",
+      "크리스마스": "크리스마스 블렌드",
+      "크리": "크리스마스 블렌드"
     };
     const verdicts = [
       ["pass", "PASS"],
@@ -2356,6 +2523,7 @@
     const quickCuppingForm = document.querySelector("#quickCuppingForm");
     const form = document.querySelector("#qcForm");
     const qcSubmitButton = document.querySelector("#qcSubmitButton");
+    const resetButton = document.querySelector("#resetButton");
     const roastingForm = document.querySelector("#roastingForm");
     const roastingSubmitButton = document.querySelector("#roastingSubmitButton");
     const roastingBulkForm = document.querySelector("#roastingBulkForm");
@@ -2363,6 +2531,10 @@
     const espressoSubmitButton = document.querySelector("#espressoSubmitButton");
     const nonShipResultForm = document.querySelector("#nonShipResultForm");
     const ratioNoticeForm = document.querySelector("#ratioNoticeForm");
+    const correctionForm = document.querySelector("#correctionForm");
+    const correctionSubmitButton = document.querySelector("#correctionSubmitButton");
+    const greenBeanForm = document.querySelector("#greenBeanForm");
+    const greenBeanSubmitButton = document.querySelector("#greenBeanSubmitButton");
     const shell = document.querySelector(".shell");
     const masthead = document.querySelector("#masthead");
     const authShell = document.querySelector("#authShell");
@@ -2378,6 +2550,8 @@
     const appPanels = document.querySelectorAll("[data-app-panel]");
     const roastingPageButton = document.querySelector("#roastingPageButton");
     const cuppingPageButton = document.querySelector("#cuppingPageButton");
+    const correctionPageButton = document.querySelector("[data-app-view='corrections']");
+    const greenPageButton = document.querySelector("#greenPageButton");
     const espressoPageButton = document.querySelector("#espressoPageButton");
     const nonShipPageButton = document.querySelector("#nonShipPageButton");
     const authTabs = document.querySelectorAll("[data-auth-tab]");
@@ -2436,8 +2610,6 @@
       sweetness: document.querySelector("#sweetnessInput"),
       bitterness: document.querySelector("#bitternessInput"),
       flavorIssue: document.querySelector("#flavorIssueInput"),
-      roastDiagnosis: document.querySelector("#roastDiagnosisInput"),
-      solution: document.querySelector("#solutionInput"),
       tags: document.querySelector("#tagsInput")
     };
     const quickCuppingFields = {
@@ -2451,6 +2623,13 @@
     const calendarTodayButton = document.querySelector("#calendarTodayButton");
     const calendarNextButton = document.querySelector("#calendarNextButton");
     const calendarClearButton = document.querySelector("#calendarClearButton");
+    const ratioCalendarTitle = document.querySelector("#ratioCalendarTitle");
+    const ratioCalendarSummary = document.querySelector("#ratioCalendarSummary");
+    const ratioCalendar = document.querySelector("#ratioCalendar");
+    const ratioCalendarPrevButton = document.querySelector("#ratioCalendarPrevButton");
+    const ratioCalendarTodayButton = document.querySelector("#ratioCalendarTodayButton");
+    const ratioCalendarNextButton = document.querySelector("#ratioCalendarNextButton");
+    const ratioCalendarClearButton = document.querySelector("#ratioCalendarClearButton");
     const filters = {
       search: document.querySelector("#searchInput"),
       category: document.querySelector("#categoryFilter"),
@@ -2469,6 +2648,8 @@
     const monthDashboardHint = document.querySelector("#monthDashboardHint");
     const recordList = document.querySelector("#recordList");
     const cuppingCommentList = document.querySelector("#cuppingCommentList");
+    const roastingCorrectionList = document.querySelector("#roastingCorrectionList");
+    const greenBeanList = document.querySelector("#greenBeanList");
     const cuppingRecentList = document.querySelector("#cuppingRecentList");
     const roastingRecentList = document.querySelector("#roastingRecentList");
     const espressoRecentList = document.querySelector("#espressoRecentList");
@@ -2481,7 +2662,30 @@
       date: document.querySelector("#noticeDateInput"),
       before: document.querySelector("#noticeBeforeInput"),
       after: document.querySelector("#noticeAfterInput"),
-      reason: document.querySelector("#noticeReasonInput")
+      reason: document.querySelector("#noticeReasonInput"),
+      ratioBeans: Array.from(document.querySelectorAll("[data-ratio-bean]")),
+      ratioPercents: Array.from(document.querySelectorAll("[data-ratio-percent]"))
+    };
+    const correctionFields = {
+      blend: document.querySelector("#correctionBlendInput"),
+      date: document.querySelector("#correctionDateInput"),
+      batch: document.querySelector("#correctionBatchInput"),
+      flavorIssue: document.querySelector("#correctionFlavorIssueInput"),
+      diagnosis: document.querySelector("#correctionDiagnosisInput"),
+      solution: document.querySelector("#correctionSolutionInput"),
+      message: document.querySelector("#correctionMessage")
+    };
+    const greenBeanFields = {
+      name: document.querySelector("#greenBeanNameInput"),
+      origin: document.querySelector("#greenBeanOriginInput"),
+      process: document.querySelector("#greenBeanProcessInput"),
+      receivedDate: document.querySelector("#greenBeanReceivedDateInput"),
+      moisture: document.querySelector("#greenBeanMoistureInput"),
+      density: document.querySelector("#greenBeanDensityInput"),
+      variety: document.querySelector("#greenBeanVarietyInput"),
+      amount: document.querySelector("#greenBeanAmountInput"),
+      note: document.querySelector("#greenBeanNoteInput"),
+      message: document.querySelector("#greenBeanMessage")
     };
     const roastingFields = {
       blend: document.querySelector("#roastBlendInput"),
@@ -2534,7 +2738,11 @@
     let activeAppView = "dashboard";
     let searchCalendarMonth = today().slice(0, 7);
     let selectedSearchDate = "";
+    let ratioCalendarMonth = today().slice(0, 7);
+    let selectedRatioDate = "";
     let editingCuppingId = "";
+    let editingCorrectionId = "";
+    let editingGreenBeanId = "";
     let editingRoastingId = "";
     let editingEspressoId = "";
 
@@ -2732,6 +2940,7 @@
             ...user,
             status: "approved",
             role: "admin",
+            permissions: rolePermissions("admin"),
             approvedAt: today(),
             approvedBy: "admin",
           };
@@ -2739,6 +2948,7 @@
         return {
           ...user,
           role: user.role === "admin" ? "viewer" : normalizeRole(user.role),
+          permissions: normalizePermissions(user)
         };
       });
       writeUsers(users);
@@ -2752,6 +2962,14 @@
       const text = normalizeText(value);
       const compact = text.replace(/\s+/g, "");
       return blendNameAliases[text] || blendNameAliases[compact] || text;
+    }
+
+    function compactBlendToken(value) {
+      return String(value || "")
+        .trim()
+        .replace(/\s+/g, "")
+        .replace(/[［\[]/g, "(")
+        .replace(/[］\]]/g, ")");
     }
 
     function normalizeUserId(value) {
@@ -2777,16 +2995,55 @@
       return "사용자";
     }
 
-    function roleOptionsMarkup(role) {
+    const permissionOptions = [
+      ["cupping", "커핑 코멘트"],
+      ["roasting", "로스팅 데이터"],
+      ["correction", "로스팅 솔루션"],
+      ["green", "생두 관리"],
+      ["espresso", "추출 평가"]
+    ];
+
+    function rolePermissions(role) {
       const normalized = normalizeRole(role);
-      const roles = [
-        ["viewer", "사용자"],
-        ["cupper", "커핑 평가자"],
-        ["roaster", "로스터"],
-        ["green_manager", "생두 관리자"],
-        ["account_manager", "거래처관리자"]
-      ];
-      return roles.map(([value, label]) => `<option value="${value}" ${normalized === value ? "selected" : ""}>${label}</option>`).join("");
+      if (normalized === "admin") return permissionOptions.map(([value]) => value);
+      if (normalized === "cupper") return ["cupping"];
+      if (normalized === "roaster") return ["roasting", "correction"];
+      if (normalized === "green_manager") return ["green"];
+      if (normalized === "account_manager") return ["espresso"];
+      return [];
+    }
+
+    function normalizePermissions(user) {
+      if (!user) return [];
+      const fromRole = rolePermissions(user.role);
+      const fromPermissions = Array.isArray(user.permissions) ? user.permissions : [];
+      const allowed = new Set(permissionOptions.map(([value]) => value));
+      return Array.from(new Set([...fromRole, ...fromPermissions].filter((value) => allowed.has(value))));
+    }
+
+    function permissionLabel(value) {
+      return permissionOptions.find(([permission]) => permission === value)?.[1] || value;
+    }
+
+    function permissionLabels(user) {
+      const permissions = normalizePermissions(user);
+      return permissions.length ? permissions.map(permissionLabel).join(", ") : "조회 전용";
+    }
+
+    function permissionCheckboxMarkup(user, dataAttr) {
+      const selected = new Set(normalizePermissions(user));
+      return permissionOptions.map(([value, label]) => `
+        <label class="tag">
+          <input type="checkbox" value="${value}" ${selected.has(value) ? "checked" : ""} ${dataAttr} style="width: auto; min-height: 0; margin-right: 6px;">
+          ${label}
+        </label>
+      `).join("");
+    }
+
+    function checkedPermissions(selector) {
+      return Array.from(document.querySelectorAll(selector))
+        .filter((input) => input.checked)
+        .map((input) => input.value);
     }
 
     function userMatches(user, userId) {
@@ -2824,30 +3081,44 @@
       return Boolean(user) && normalizeUserId(user.userId) === primaryAdminUserId;
     }
 
+    function hasPermission(user, permission) {
+      return isPrimaryAdmin(user) || normalizePermissions(user).includes(permission);
+    }
+
     function canInputCupping(user) {
-      return isPrimaryAdmin(user) || normalizeRole(user?.role) === "cupper";
+      return hasPermission(user, "cupping");
     }
 
     function canInputRoasting(user) {
-      const role = normalizeRole(user?.role);
-      return isPrimaryAdmin(user) || role === "cupper" || role === "roaster" || role === "green_manager";
+      return hasPermission(user, "roasting");
     }
 
     function canInputEspresso(user) {
-      return isPrimaryAdmin(user) || normalizeRole(user?.role) === "account_manager";
+      return hasPermission(user, "espresso");
     }
 
     function canManageRatioNotices(user) {
-      const role = normalizeRole(user?.role);
-      return isPrimaryAdmin(user) || role === "cupper" || role === "green_manager";
+      return hasPermission(user, "green");
+    }
+
+    function canManageGreenBeans(user) {
+      return hasPermission(user, "green");
+    }
+
+    function canManageCorrections(user) {
+      return hasPermission(user, "correction");
     }
 
     function canManageNonShipResults(user) {
-      return Boolean(user) && normalizeRole(user.role) !== "viewer";
+      return isPrimaryAdmin(user);
     }
 
     function canManageData(user) {
       return isPrimaryAdmin(user);
+    }
+
+    function canDeleteEntry(entry, user) {
+      return canEditEntry(entry, user);
     }
 
     function canEditEntry(entry, user) {
@@ -2855,12 +3126,15 @@
       if (isPrimaryAdmin(user)) return true;
       if (entry.entryType === "roasting") return canInputRoasting(user);
       if (entry.entryType === "espresso") return canInputEspresso(user);
+      if (entry.entryType === "correction") return canManageCorrections(user);
       return canInputCupping(user);
     }
 
     function canOpenAppView(name, user) {
       if (name === "cupping") return canInputCupping(user);
       if (name === "roasting") return canInputRoasting(user);
+      if (name === "corrections") return canManageCorrections(user);
+      if (name === "green") return canManageGreenBeans(user);
       if (name === "espresso") return canInputEspresso(user);
       if (name === "nonship") return canManageNonShipResults(user);
       return true;
@@ -2870,10 +3144,15 @@
       const showInputPanel = canInputCupping(user) && activeAppView === "cupping";
       qcInputPanel.hidden = !showInputPanel;
       ratioNoticeForm.hidden = !canManageRatioNotices(user);
+      correctionForm.hidden = !canManageCorrections(user);
+      greenBeanForm.hidden = !canManageGreenBeans(user);
       roastingPageButton.hidden = !canInputRoasting(user);
       cuppingPageButton.hidden = !canInputCupping(user);
+      correctionPageButton.hidden = !canManageCorrections(user);
+      greenPageButton.hidden = !canManageGreenBeans(user);
       espressoPageButton.hidden = !canInputEspresso(user);
       nonShipPageButton.hidden = !canManageNonShipResults(user);
+      resetButton.hidden = !canManageData(user);
       appShell.classList.add("viewer-mode");
     }
 
@@ -2956,9 +3235,9 @@
             <span class="tag">${escapeHtml(user.requestedAt)}</span>
             <div class="access-row">
               <label for="access-${escapeHtml(user.id)}">권한</label>
-              <select id="access-${escapeHtml(user.id)}" data-access-role="${escapeHtml(user.id)}">
-                ${roleOptionsMarkup(user.role)}
-              </select>
+              <div id="access-${escapeHtml(user.id)}" class="meta">
+                ${permissionCheckboxMarkup(user, `data-access-permission="${escapeHtml(user.id)}"`)}
+              </div>
             </div>
             <div class="pending-actions">
               <button type="button" class="primary" data-approve="${user.id}">승인</button>
@@ -2979,10 +3258,11 @@
             <strong>${escapeHtml(user.name || "-")}</strong>
             <span class="tag">${escapeHtml(user.team || "-")}</span>
             ${isPrimaryAdmin(user)
-              ? `<span class="tag red">${roleLabel(user.role)}</span>`
-              : `<select class="role-select" data-user-role="${escapeHtml(user.id)}" ${user.status !== "approved" ? "disabled" : ""}>
-                  ${roleOptionsMarkup(user.role)}
-                </select>`}
+              ? `<span class="tag red">관리자</span>`
+              : `<div class="meta" data-user-permissions="${escapeHtml(user.id)}">
+                  ${permissionCheckboxMarkup(user, `data-user-permission="${escapeHtml(user.id)}" ${user.status !== "approved" ? "disabled" : ""}`)}
+                </div>`}
+            <span class="tag">${escapeHtml(permissionLabels(user))}</span>
             <span class="tag ${user.status === "approved" ? "green" : user.status === "pending" ? "amber" : "red"}">${escapeHtml(user.status || "-")}</span>
           </article>
         `).join("")
@@ -3063,6 +3343,44 @@
     }
 
     let nonShipResults = readNonShipResults();
+
+    function readCorrectionIndicators() {
+      const parsed = readStoreValue(correctionIndicatorsKey);
+      if (!parsed) return [];
+      try {
+        return Array.isArray(parsed)
+          ? sortEntriesByDate(parsed.map((item) => ({ ...item, blend: canonicalBlendName(item.blend), entryType: "correction" })))
+          : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeCorrectionIndicators(value) {
+      writeStoreValue(correctionIndicatorsKey, sortEntriesByDate(value));
+    }
+
+    let correctionIndicators = readCorrectionIndicators();
+
+    function sortGreenBeans(value) {
+      return [...value].sort((left, right) => dateTimestamp(right.receivedDate) - dateTimestamp(left.receivedDate));
+    }
+
+    function readGreenBeans() {
+      const parsed = readStoreValue(greenBeansKey);
+      if (!parsed) return [];
+      try {
+        return Array.isArray(parsed) ? sortGreenBeans(parsed) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeGreenBeans(value) {
+      writeStoreValue(greenBeansKey, sortGreenBeans(value));
+    }
+
+    let greenBeans = readGreenBeans();
 
     function readRatioNotices() {
       const parsed = readStoreValue(ratioNoticesKey);
@@ -3246,7 +3564,7 @@
     function parseQuickCuppingComments(value) {
       const text = normalizeText(value);
       if (!text) return [];
-      const tokenPattern = /(검\s*올(?:\s*\(?강(?:배전)?\)?)?|노\s*올(?:\s*\(?강(?:배전)?\)?)?|잘|서|디|다카|너티|행복)\s*(#?\d+(?:\s*(?:~|-)\s*#?\d+)?)/g;
+      const tokenPattern = /(검\s*(?:올|잘|서|디|다카|행복|행|문지리|문|너티|너|아르켓|아르|위드센|위|사는낙|사낙|신커피|신|영차영차|영차|크리스마스|크리)(?:\s*\(?강(?:배전)?\)?)?|노\s*(?:올|잘|서|디|다카|행복|행|문지리|문|너티|너|아르켓|아르|위드센|위|사는낙|사낙|신커피|신|영차영차|영차|크리스마스|크리)(?:\s*\(?강(?:배전)?\)?)?|올(?:\s*\(?강(?:배전)?\)?)?|잘|서|디|다카|행복|행|문지리|문|너티|너|아르켓|아르|위드센|위|사는낙|사낙|신커피|신|영차영차|영차|크리스마스|크리)\s*(#?\d+(?:\s*(?:~|-)\s*#?\d+)?)/g;
       const matches = Array.from(text.matchAll(tokenPattern));
       const parsed = matches.map((match, index) => {
         const nextStart = matches[index + 1]?.index ?? text.length;
@@ -3267,32 +3585,18 @@
     }
 
     function parseCuppingBlendMarker(value) {
-      let marker = String(value || "").replace(/\s+/g, "");
-      let roaster = "";
-      if (marker.startsWith("노")) {
-        roaster = "노랭이";
-        marker = marker.slice(1);
-      } else if (marker.startsWith("검")) {
-        roaster = "검댕이";
-        marker = marker.slice(1);
-      }
-      if (marker.startsWith("올") && /강/.test(marker)) return { blend: "올드독 강배전", roaster };
-      if (marker.startsWith("올")) return { blend: "올드독", roaster };
-      if (marker.startsWith("잘")) return { blend: "잘되어 가시나", roaster };
-      if (marker.startsWith("서")) return { blend: "서울시네마", roaster };
-      if (marker.startsWith("디") || marker.startsWith("다카")) return { blend: "디카페인", roaster };
-      if (marker.startsWith("행복")) return { blend: "행복마루", roaster };
-      if (marker.startsWith("너티")) return { blend: "너티트리니티", roaster };
-      return { blend: "", roaster };
+      const markerInfo = splitRoasterMarker(value);
+      return { blend: blendFromRoastMarker(markerInfo.marker), roaster: markerInfo.roaster };
     }
 
     function cuppingEntryFromFields(overrides = {}) {
       const cuppingDate = overrides.cuppingDate || fields.roastDate.value || today();
       const user = approvedSessionUser();
+      const existingDetail = editingCuppingId ? normalizedCuppingDetail(entries.find((entry) => entry.id === editingCuppingId) || {}) : {};
       const cuppingDetail = {
         flavorIssue: normalizeText(overrides.flavorIssue ?? fields.flavorIssue.value),
-        roastDiagnosis: normalizeText(overrides.roastDiagnosis ?? fields.roastDiagnosis.value),
-        solution: normalizeText(overrides.solution ?? fields.solution.value)
+        roastDiagnosis: normalizeText(overrides.roastDiagnosis ?? existingDetail.roastDiagnosis ?? ""),
+        solution: normalizeText(overrides.solution ?? existingDetail.solution ?? "")
       };
       const note = normalizeText(overrides.note || cuppingDetailNote(cuppingDetail) || cuppingDetail.flavorIssue);
       return {
@@ -3348,12 +3652,12 @@
     }
 
     function splitRoasterMarker(value) {
-      let marker = String(value || "").trim().replace(/\s+/g, "");
+      let marker = compactBlendToken(value);
       let roaster = "";
-      if (marker.startsWith("노") && marker.length > 1) {
+      if (marker.startsWith("노") && marker.length > 1 && blendFromRoastMarker(marker.slice(1))) {
         roaster = "노랭이";
         marker = marker.slice(1);
-      } else if (marker.startsWith("검") && marker.length > 1) {
+      } else if (marker.startsWith("검") && marker.length > 1 && blendFromRoastMarker(marker.slice(1))) {
         roaster = "검댕이";
         marker = marker.slice(1);
       }
@@ -3361,54 +3665,25 @@
     }
 
     function blendFromRoastMarker(value) {
-      const compact = String(value || "").trim().replace(/\s+/g, "");
-      const aliases = [
-        ["올드독강배전", "올드독 강배전"],
-        ["올드독(강배전)", "올드독 강배전"],
-        ["올드독(강)", "올드독 강배전"],
-        ["올강배전", "올드독 강배전"],
-        ["올강", "올드독 강배전"],
-        ["올(강배전)", "올드독 강배전"],
-        ["올(강)", "올드독 강배전"],
-        ["올드독", "올드독"],
-        ["올", "올드독"],
-        ["잘되어가시나", "잘되어 가시나"],
-        ["잘", "잘되어 가시나"],
-        ["서울시네마", "서울시네마"],
-        ["서울", "서울시네마"],
-        ["서", "서울시네마"],
-        ["디카페인", "디카페인"],
-        ["디카", "디카페인"],
-        ["다카", "디카페인"],
-        ["디", "디카페인"],
-        ["행복마루", "행복마루"],
-        ["행복", "행복마루"],
-        ["문지리", "문지리"],
-        ["너티트리니티", "너티트리니티"],
-        ["너티", "너티트리니티"],
-        ["아르켓", "아르켓"],
-        ["위드센", "위드센"],
-        ["사는낙", "사는낙"],
-        ["신커피", "신커피"],
-        ["영차영차블렌드", "영차영차 블렌드"],
-        ["영차영차", "영차영차 블렌드"],
-        ["영차", "영차영차 블렌드"],
-        ["크리스마스블렌드", "크리스마스 블렌드"],
-        ["크리스마스", "크리스마스 블렌드"]
-      ];
-      const match = aliases.find(([alias]) => compact === alias || compact.startsWith(alias));
+      const compact = compactBlendToken(value);
+      const aliasEntries = Object.entries(blendNameAliases)
+        .map(([alias, blend]) => [compactBlendToken(alias), blend])
+        .sort((left, right) => right[0].length - left[0].length);
+      const match = aliasEntries.find(([alias]) => compact === alias || compact.startsWith(alias));
       if (match) return match[1];
-      const catalogBlend = allEntryBlends().find((blend) => compact === blend.replace(/\s+/g, ""));
+      const catalogBlend = allEntryBlends().find((blend) => compact === compactBlendToken(blend));
       return catalogBlend || "";
     }
 
     function parseBatchBlend(label, fallbackBlend) {
-      const compact = String(label || "").trim().replace(/\s+/g, "");
+      const compact = compactBlendToken(label);
+      const numericOnly = compact.match(/^#?(\d+)$/);
+      if (numericOnly) return { blend: fallbackBlend, batch: `#${numericOnly[1]}`, roaster: "" };
       const match = compact.match(/^([^\d#]+)#?(\d+)$/);
       if (!match) {
         const markerInfo = splitRoasterMarker(compact);
         const blend = blendFromRoastMarker(markerInfo.marker);
-        return { blend: blend || fallbackBlend, batch: compact, roaster: markerInfo.roaster };
+        return { blend, batch: compact, roaster: markerInfo.roaster };
       }
       const markerInfo = splitRoasterMarker(match[1]);
       const prefix = markerInfo.marker;
@@ -3416,7 +3691,7 @@
       const roaster = markerInfo.roaster;
       const blend = blendFromRoastMarker(prefix);
       if (blend) return { blend, batch: `#${number}`, roaster };
-      return { blend: fallbackBlend, batch: compact };
+      return { blend: "", batch: compact, roaster };
     }
 
     function createRoastingEntry({ blend, roastDate, batch, roaster, operator = "", pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor, note = "로스팅 데이터 입력" }) {
@@ -3441,6 +3716,7 @@
     function parseBulkRoastingText(value, fallbackBlend) {
       const lines = String(value || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       const parsed = [];
+      const skippedLabels = [];
       const defaults = {
         roastDate: today(),
         roaster: "검댕이",
@@ -3474,6 +3750,10 @@
           return;
         }
         const batchInfo = parseBatchBlend(row[1], fallbackBlend);
+        if (!batchInfo.blend) {
+          skippedLabels.push(row[1]);
+          return;
+        }
         parsed.push(createRoastingEntry({
           blend: batchInfo.blend,
           roastDate: defaults.roastDate,
@@ -3497,6 +3777,7 @@
         last.note = `${last.note} - ${pendingNote}`;
         last.verdict = inferVerdictFromText(last.note, last.verdict || "hold");
       }
+      parsed.skippedLabels = skippedLabels;
       return parsed;
     }
 
@@ -3504,6 +3785,14 @@
       if (!type || type === "cupping") {
         editingCuppingId = "";
         qcSubmitButton.textContent = "저장";
+      }
+      if (!type || type === "correction") {
+        editingCorrectionId = "";
+        correctionSubmitButton.textContent = "지표 저장";
+      }
+      if (!type || type === "green") {
+        editingGreenBeanId = "";
+        greenBeanSubmitButton.textContent = "생두 저장";
       }
       if (!type || type === "roasting") {
         editingRoastingId = "";
@@ -3574,12 +3863,42 @@
       fields.bitterness.value = intensity.bitterness || 2;
       fields.body.value = intensity.body || 4;
       fields.flavorIssue.value = cuppingDetail.flavorIssue;
-      fields.roastDiagnosis.value = cuppingDetail.roastDiagnosis;
-      fields.solution.value = cuppingDetail.solution;
       fields.tags.value = (entry.tags || []).join(", ");
       setSelectedIssueTypes(entry.tags || []);
       qcSubmitButton.textContent = "커핑 코멘트 수정";
       setAppView("cupping");
+    }
+
+    function loadCorrectionForEdit(indicator) {
+      if (!indicator || !canManageCorrections(approvedSessionUser())) return;
+      const detail = normalizedCuppingDetail(indicator);
+      editingCorrectionId = indicator.id;
+      correctionFields.blend.value = indicator.blend || "올드독";
+      correctionFields.date.value = indicator.roastDate || indicator.cuppingDate || today();
+      correctionFields.batch.value = indicator.batch || "";
+      correctionFields.flavorIssue.value = detail.flavorIssue;
+      correctionFields.diagnosis.value = detail.roastDiagnosis;
+      correctionFields.solution.value = detail.solution;
+      correctionFields.message.textContent = "";
+      correctionSubmitButton.textContent = "지표 수정";
+      setAppView("corrections");
+    }
+
+    function loadGreenBeanForEdit(bean) {
+      if (!bean || !canManageGreenBeans(approvedSessionUser())) return;
+      editingGreenBeanId = bean.id;
+      greenBeanFields.name.value = bean.name || "";
+      greenBeanFields.origin.value = bean.origin || "";
+      greenBeanFields.process.value = bean.process || "";
+      greenBeanFields.receivedDate.value = bean.receivedDate || today();
+      greenBeanFields.moisture.value = bean.moisture || "";
+      greenBeanFields.density.value = bean.density || "";
+      greenBeanFields.variety.value = bean.variety || "";
+      greenBeanFields.amount.value = bean.amount || "";
+      greenBeanFields.note.value = bean.note || "";
+      greenBeanFields.message.textContent = "";
+      greenBeanSubmitButton.textContent = "생두 수정";
+      setAppView("green");
     }
 
     function scoreAverage(entry) {
@@ -3768,7 +4087,7 @@
     }
 
     function populateProductControls() {
-      const blendSelects = [fields.blend, filters.blend, noticeFields.blend, roastingFields.blend, espressoFields.blend, nonShipFields.blend];
+      const blendSelects = [fields.blend, filters.blend, noticeFields.blend, correctionFields.blend, roastingFields.blend, espressoFields.blend, nonShipFields.blend];
       blendSelects.forEach((select) => {
         const current = select.value;
         select.innerHTML = blendOptionMarkup(select === filters.blend);
@@ -3777,6 +4096,42 @@
       const currentCategory = filters.category.value;
       filters.category.innerHTML = categoryOptionMarkup();
       if (currentCategory && selectHasValue(filters.category, currentCategory)) filters.category.value = currentCategory;
+      populateGreenBeanRatioControls();
+    }
+
+    function greenBeanOptionMarkup() {
+      const options = greenBeans.map((bean) => {
+        const label = [bean.name, bean.process, bean.receivedDate].filter(Boolean).join(" / ");
+        return `<option value="${escapeHtml(bean.id)}">${escapeHtml(label || bean.name || "-")}</option>`;
+      }).join("");
+      return `<option value="">생두 선택</option>${options}`;
+    }
+
+    function populateGreenBeanRatioControls() {
+      const markup = greenBeanOptionMarkup();
+      noticeFields.ratioBeans.forEach((select) => {
+        const current = select.value;
+        select.innerHTML = markup;
+        if (current && selectHasValue(select, current)) select.value = current;
+      });
+    }
+
+    function selectedRatioComposition() {
+      return noticeFields.ratioBeans.map((select, index) => {
+        const bean = greenBeans.find((item) => item.id === select.value);
+        const percent = normalizeText(noticeFields.ratioPercents[index]?.value || "");
+        if (!bean || !percent) return null;
+        return {
+          beanId: bean.id,
+          beanName: bean.name || "",
+          process: bean.process || "",
+          percent
+        };
+      }).filter(Boolean);
+    }
+
+    function ratioCompositionText(composition) {
+      return (composition || []).map((item) => `${item.beanName}${item.process ? ` (${item.process})` : ""} ${item.percent}%`).join(" / ");
     }
 
     function matchesFilterControls(entry, includeDate = true) {
@@ -3794,9 +4149,9 @@
         verdictLabel(verdict),
         ...Object.values(normalizedRoastData(entry)),
         ...Object.values(normalizedEspressoData(entry)),
-        ...Object.values(cuppingDetail),
+        cuppingDetail.flavorIssue,
         entryEvaluatorName(entry),
-        entry.note,
+        isCuppingEntry(entry) ? cuppingDetail.flavorIssue : entry.note,
         entry.tags.join(" ")
       ].join(" ").toLowerCase();
       return (!query || haystack.includes(query))
@@ -3820,6 +4175,7 @@
         notice.effectiveDate,
         notice.beforeRatio,
         notice.afterRatio,
+        ratioCompositionText(notice.composition || []),
         notice.reason
       ].join(" ").toLowerCase();
       return (!query || haystack.includes(query))
@@ -3845,11 +4201,12 @@
       const isRoasting = entry.entryType === "roasting";
       const isEspresso = entry.entryType === "espresso";
       const isCupping = !isRoasting && !isEspresso;
+      const cuppingDetail = normalizedCuppingDetail(entry);
       const linkedRoastCount = isCupping ? linkedRoastingEntries(entry).length : 0;
       const user = approvedSessionUser();
       const editType = isRoasting ? "roasting" : isEspresso ? "espresso" : "cupping";
       const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${entry.id}" data-edit-type="${editType}">수정</button>`;
-      const deleteButton = compact || !canManageData(user) ? "" : `<button class="delete" data-delete="${entry.id}" title="QC 기록 삭제">×</button>`;
+      const deleteButton = compact || !canDeleteEntry(entry, user) ? "" : `<button class="delete" data-delete="${entry.id}" title="QC 기록 삭제">×</button>`;
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
       return `
         <article class="${compact ? "qc-card" : "record-item"}">
@@ -3859,7 +4216,7 @@
               <h4 class="qc-title">${escapeHtml(entry.blend)} ${compact ? escapeHtml(entry.batch || "") : ""}</h4>
               <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
             </div>
-            <p class="qc-body">${escapeHtml(entry.note)}</p>
+            <p class="qc-body">${escapeHtml(isCupping ? (cuppingDetail.flavorIssue || entry.note) : entry.note)}</p>
             <div class="meta">
               <span class="tag blue">${entry.roastLevel}</span>
               ${isEspresso
@@ -3897,7 +4254,7 @@
         ? issueTags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")
         : `<span class="tag">문제 유형 없음</span>`;
       const editButton = canEditEntry(entry, user) ? `<button type="button" data-edit-entry="${escapeHtml(entry.id)}" data-edit-type="cupping">수정</button>` : "";
-      const deleteButton = canManageData(user) ? `<button class="delete" data-delete="${escapeHtml(entry.id)}" title="커핑 코멘트 삭제">×</button>` : "";
+      const deleteButton = canDeleteEntry(entry, user) ? `<button class="delete" data-delete="${escapeHtml(entry.id)}" title="커핑 코멘트 삭제">×</button>` : "";
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
       return `
         <article class="comment-item">
@@ -3918,19 +4275,84 @@
               <strong>문제향미지표</strong>
               <p>${escapeHtml(detail.flavorIssue || "기록 없음")}</p>
             </div>
-            <div class="comment-field-block">
-              <strong>로스팅 문제 진단</strong>
-              <p>${escapeHtml(detail.roastDiagnosis || "기록 없음")}</p>
-            </div>
-            <div class="comment-field-block">
-              <strong>솔루션</strong>
-              <p>${escapeHtml(detail.solution || "기록 없음")}</p>
-            </div>
             <div class="meta">${tags}</div>
           </div>
           ${actions}
         </article>
       `;
+    }
+
+    function roastingCorrectionMarkup(entry) {
+      const detail = normalizedCuppingDetail(entry);
+      const user = approvedSessionUser();
+      const isStandaloneCorrection = entry.entryType === "correction";
+      const editButton = isStandaloneCorrection && canManageCorrections(user) ? `<button type="button" data-edit-correction="${escapeHtml(entry.id)}">수정</button>` : "";
+      const deleteButton = isStandaloneCorrection && isPrimaryAdmin(user) ? `<button class="delete" type="button" data-delete-correction="${escapeHtml(entry.id)}" title="수정 지표 삭제">×</button>` : "";
+      const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
+      return `
+        <article class="comment-item">
+          <div class="comment-date">
+            커핑 ${escapeHtml(entry.cuppingDate || "-")}<br>
+            로스팅 ${escapeHtml(entry.roastDate || "-")}
+          </div>
+          <div>
+            <div class="qc-head">
+              <h4 class="qc-title">${escapeHtml(entry.blend || "-")} ${escapeHtml(entry.batch || "")}</h4>
+              <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
+            </div>
+            <div class="meta">
+              <span class="tag blue">평가자 ${escapeHtml(entryEvaluatorName(entry))}</span>
+              <span class="tag">문제향미 ${escapeHtml(detail.flavorIssue || "기록 없음")}</span>
+            </div>
+            <div class="comment-field-block">
+              <strong>로스팅 문제 진단</strong>
+              <p>${escapeHtml(detail.roastDiagnosis || "진단 기록 없음")}</p>
+            </div>
+            <div class="comment-field-block">
+              <strong>솔루션</strong>
+              <p>${escapeHtml(detail.solution || "솔루션 기록 없음")}</p>
+            </div>
+          </div>
+          ${actions}
+        </article>
+      `;
+    }
+
+    function roastingCorrectionGroupMarkup(cuppingEntries) {
+      const correctionEntries = cuppingEntries.filter((entry) => {
+        const detail = normalizedCuppingDetail(entry);
+        return detail.flavorIssue || detail.roastDiagnosis || detail.solution || normalizeVerdict(entry.verdict) !== "pass";
+      });
+      if (!correctionEntries.length) return `<div class="empty">표시할 로스팅 수정 지표가 없습니다.</div>`;
+      return Object.entries(categorizedBlendMap()).map(([category, categoryBlends]) => {
+        const blendGroups = categoryBlends.map((blend) => {
+          const blendEntries = correctionEntries.filter((entry) => entry.blend === blend);
+          if (!blendEntries.length) return "";
+          return `
+            <section class="comment-blend-group">
+              <div class="comment-blend-head">
+                <div>
+                  <h4>${escapeHtml(blend)}</h4>
+                  <div class="meta">
+                    <span class="tag blue">${escapeHtml(category)}</span>
+                    <span class="tag">수정 지표 ${blendEntries.length}개</span>
+                  </div>
+                </div>
+              </div>
+              <div class="comment-compare-grid">
+                ${blendEntries.map((entry) => roastingCorrectionMarkup(entry)).join("")}
+              </div>
+            </section>
+          `;
+        }).join("");
+        if (!blendGroups) return "";
+        return `
+          <div class="category-group">
+            <h3>${escapeHtml(category)}</h3>
+            ${blendGroups}
+          </div>
+        `;
+      }).join("");
     }
 
     function cuppingCommentGroupMarkup(cuppingEntries) {
@@ -4017,6 +4439,39 @@
       searchCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
+    function renderRatioCalendar() {
+      const [year, month] = ratioCalendarMonth.split("-").map(Number);
+      const firstDate = new Date(year, month - 1, 1);
+      const lastDate = new Date(year, month, 0);
+      const leadingEmptyDays = firstDate.getDay();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const countByDate = ratioNotices.reduce((acc, notice) => {
+        const value = notice.effectiveDate || "";
+        if (value.slice(0, 7) !== ratioCalendarMonth) return acc;
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      }, {});
+      const dayButtons = [];
+      for (let index = 0; index < leadingEmptyDays; index += 1) {
+        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      }
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${ratioCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const count = countByDate[dateValue] || 0;
+        dayButtons.push(`
+          <button type="button" class="calendar-day ${count ? "has-data" : ""} ${selectedRatioDate === dateValue ? "selected" : ""}" data-ratio-date="${dateValue}">
+            <strong>${day}</strong>
+            ${count ? `<span>${count}개 변경</span>` : ""}
+          </button>
+        `);
+      }
+      ratioCalendarTitle.textContent = `${monthLabel(ratioCalendarMonth)} 비율 변경 달력`;
+      ratioCalendarSummary.innerHTML = selectedRatioDate
+        ? `<span>선택 적용일 ${escapeHtml(selectedRatioDate)}</span><span>변경 내역 ${ratioNotices.filter((notice) => notice.effectiveDate === selectedRatioDate).length}개</span>`
+        : `<span>날짜를 선택하지 않으면 전체 변경 이력을 표시합니다.</span><span>${monthLabel(ratioCalendarMonth)} 변경 ${Object.values(countByDate).reduce((sum, count) => sum + count, 0)}개</span>`;
+      ratioCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
+    }
+
     function renderDashboardRecent(monthEntries) {
       const recentRoasting = monthEntries
         .filter((entry) => entry.entryType === "roasting" && isEntryInLastDays(entry, 3))
@@ -4072,21 +4527,27 @@
 
     function renderRatioNotices() {
       const editable = canManageRatioNotices(approvedSessionUser());
-      const notices = sortRatioNotices(activeAppView === "search" ? ratioNotices.filter(matchesRatioNotice) : ratioNotices);
+      const notices = sortRatioNotices((activeAppView === "search" ? ratioNotices.filter(matchesRatioNotice) : ratioNotices)
+        .filter((notice) => !selectedRatioDate || notice.effectiveDate === selectedRatioDate));
       ratioNoticeList.innerHTML = notices.length
-        ? notices.map((notice) => `
-          <article class="notice-item">
-            <div>
-              <strong>${escapeHtml(notice.effectiveDate || "-")}</strong>
-              <div class="meta"><span class="tag blue">${escapeHtml(notice.blend)}</span></div>
-            </div>
-            <div>
-              <strong>${escapeHtml(notice.beforeRatio || "기존 비율 미기록")} → ${escapeHtml(notice.afterRatio || "-")}</strong>
-              <p>${escapeHtml(notice.reason || "변경 사유 미기록")}</p>
-            </div>
-            ${editable ? `<button class="delete" type="button" data-delete-notice="${escapeHtml(notice.id)}" title="공지 삭제">×</button>` : ""}
-          </article>
-        `).join("")
+        ? notices.map((notice) => {
+          const composition = notice.composition || [];
+          const afterText = ratioCompositionText(composition) || notice.afterRatio || "-";
+          return `
+            <article class="notice-item">
+              <div>
+                <strong>${escapeHtml(notice.effectiveDate || "-")}</strong>
+                <div class="meta"><span class="tag blue">${escapeHtml(notice.blend)}</span></div>
+              </div>
+              <div>
+                <strong>${escapeHtml(notice.beforeRatio || "기존 비율 미기록")} → ${escapeHtml(afterText)}</strong>
+                ${composition.length ? `<div class="ratio-chips">${composition.map((item) => `<span class="tag green">${escapeHtml(item.beanName)} ${escapeHtml(item.percent)}%</span>`).join("")}</div>` : ""}
+                <p>${escapeHtml(notice.reason || "변경 사유 미기록")}</p>
+              </div>
+              ${editable ? `<button class="delete" type="button" data-delete-notice="${escapeHtml(notice.id)}" title="공지 삭제">×</button>` : ""}
+            </article>
+          `;
+        }).join("")
         : `<div class="empty">표시할 생두 비율 변경공지가 없습니다.</div>`;
     }
 
@@ -4126,8 +4587,6 @@
               <th>문제 유형</th>
               <th>평가자</th>
               <th>문제향미지표</th>
-              <th>로스팅 문제 진단</th>
-              <th>솔루션</th>
             </tr>
           </thead>
           <tbody>
@@ -4154,8 +4613,6 @@
                   <td>${displayCell(issueTags)}</td>
                   <td>${displayCell(isCuppingEntry(entry) ? entryEvaluatorName(entry) : "")}</td>
                   <td class="sheet-note">${displayCell(isCuppingEntry(entry) ? cuppingDetail.flavorIssue : "")}</td>
-                  <td class="sheet-note">${displayCell(isCuppingEntry(entry) ? cuppingDetail.roastDiagnosis : "")}</td>
-                  <td class="sheet-note">${displayCell(isCuppingEntry(entry) ? cuppingDetail.solution : "")}</td>
                 </tr>
               `;
             }).join("")}
@@ -4185,6 +4642,40 @@
       `;
     }
 
+    function greenBeanMarkup(bean) {
+      const editable = canManageGreenBeans(approvedSessionUser());
+      return `
+        <article class="record-item">
+          <div class="date">입고 ${escapeHtml(bean.receivedDate || "-")}<br>${escapeHtml(bean.amount || "입고량 미기록")}</div>
+          <div>
+            <div class="qc-head">
+              <h4 class="qc-title">${escapeHtml(bean.name || "-")}</h4>
+              <span class="tag green">${escapeHtml(bean.process || "프로세스 미기록")}</span>
+            </div>
+            <p class="qc-body">${escapeHtml(bean.note || "메모 없음")}</p>
+            <div class="meta">
+              <span class="tag blue">산지 ${escapeHtml(bean.origin || "-")}</span>
+              <span class="tag">품종 ${escapeHtml(bean.variety || "-")}</span>
+              <span class="tag amber">수분율 ${escapeHtml(bean.moisture || "-")}</span>
+              <span class="tag amber">밀도 ${escapeHtml(bean.density || "-")}</span>
+              <span class="tag">등록 ${escapeHtml(bean.createdBy || "-")}</span>
+            </div>
+          </div>
+          ${editable ? `<div class="entry-actions"><button type="button" data-edit-green="${escapeHtml(bean.id)}">수정</button><button class="delete" type="button" data-delete-green="${escapeHtml(bean.id)}" title="생두 삭제">×</button></div>` : ""}
+        </article>
+      `;
+    }
+
+    function renderGreenBeans() {
+      if (!canManageGreenBeans(approvedSessionUser())) {
+        greenBeanList.innerHTML = "";
+        return;
+      }
+      greenBeanList.innerHTML = greenBeans.length
+        ? `<div class="list-summary"><span>등록 생두 ${greenBeans.length}개</span><span>입고일 최신순</span></div>${greenBeans.map((bean) => greenBeanMarkup(bean)).join("")}`
+        : `<div class="empty">아직 등록된 생두가 없습니다.</div>`;
+    }
+
     function renderNonShipResults() {
       if (!canManageNonShipResults(approvedSessionUser())) {
         nonShipResultList.innerHTML = "";
@@ -4208,11 +4699,13 @@
       const visibleCupping = visible.filter(isCuppingEntry);
       monthDashboardHint.textContent = `${monthLabel(monthKey)} 데이터만 표시합니다. 이전 달 기록은 검색에서 확인합니다.`;
       renderSearchCalendar();
+      renderRatioCalendar();
       renderDashboardRecent(monthEntries);
       renderSummary(monthEntries);
       renderRatioNotices();
       renderBlendSheetTabs();
       renderBlendSheet();
+      renderGreenBeans();
       renderNonShipResults();
       Object.keys(lanes).forEach((verdict) => {
         const laneEntries = visibleCupping.filter((entry) => normalizeVerdict(entry.verdict) === verdict);
@@ -4227,6 +4720,16 @@
       cuppingCommentList.innerHTML = cuppingEntries.length
         ? `${cuppingCommentSummaryMarkup(cuppingEntries)}${cuppingCommentGroupMarkup(cuppingEntries)}`
         : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
+      const correctionSource = [
+        ...correctionIndicators,
+        ...cuppingEntries.filter((entry) => {
+          const detail = normalizedCuppingDetail(entry);
+          return detail.roastDiagnosis || detail.solution;
+        })
+      ];
+      roastingCorrectionList.innerHTML = correctionSource.length
+        ? roastingCorrectionGroupMarkup(correctionSource)
+        : `<div class="empty">아직 표시할 로스팅 수정 지표가 없습니다.</div>`;
       cuppingRecentList.innerHTML = cuppingEntries.length
         ? cuppingEntries.slice(0, 6).map((entry) => cardMarkup(entry)).join("")
         : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
@@ -4291,8 +4794,6 @@
       fields.wholeColor.value = "";
       fields.groundColor.value = "";
       fields.flavorIssue.value = "";
-      fields.roastDiagnosis.value = "";
-      fields.solution.value = "";
       fields.aroma.value = 4;
       fields.flavor.value = 4;
       fields.body.value = 4;
@@ -4309,12 +4810,18 @@
       event.preventDefault();
       const user = approvedSessionUser();
       if (!canManageRatioNotices(user)) return;
+      const composition = selectedRatioComposition();
+      if (!composition.length) {
+        alert("변경 비율에 사용할 생두와 %를 하나 이상 입력해주세요.");
+        return;
+      }
       const notice = {
         id: makeId(),
         blend: noticeFields.blend.value,
         effectiveDate: noticeFields.date.value || today(),
         beforeRatio: noticeFields.before.value.trim(),
-        afterRatio: noticeFields.after.value.trim(),
+        afterRatio: ratioCompositionText(composition),
+        composition,
         reason: noticeFields.reason.value.trim(),
         createdAt: today(),
         createdBy: user?.userId || ""
@@ -4324,6 +4831,78 @@
       ratioNoticeForm.reset();
       noticeFields.blend.value = "올드독";
       noticeFields.date.value = today();
+      populateGreenBeanRatioControls();
+      render();
+    });
+
+    correctionForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = approvedSessionUser();
+      if (!canManageCorrections(user)) return;
+      const indicator = {
+        id: editingCorrectionId || makeId(),
+        entryType: "correction",
+        blend: correctionFields.blend.value,
+        roastDate: correctionFields.date.value || today(),
+        cuppingDate: correctionFields.date.value || today(),
+        batch: normalizeBatchRange(correctionFields.batch.value),
+        roastLevel: "로스팅 수정 지표",
+        verdict: "hold",
+        cuppingDetail: {
+          flavorIssue: normalizeText(correctionFields.flavorIssue.value),
+          roastDiagnosis: normalizeText(correctionFields.diagnosis.value),
+          solution: normalizeText(correctionFields.solution.value)
+        },
+        note: cuppingDetailNote({
+          flavorIssue: normalizeText(correctionFields.flavorIssue.value),
+          roastDiagnosis: normalizeText(correctionFields.diagnosis.value),
+          solution: normalizeText(correctionFields.solution.value)
+        }),
+        tags: normalizeTagValue(["로스팅 수정 지표"]),
+        evaluatorName: userDisplayName(user),
+        createdByName: userDisplayName(user),
+        createdBy: user?.userId || "",
+        createdAt: today()
+      };
+      correctionIndicators = editingCorrectionId
+        ? correctionIndicators.map((item) => item.id === editingCorrectionId ? { ...item, ...indicator, createdAt: item.createdAt || indicator.createdAt, updatedAt: today() } : item)
+        : [indicator, ...correctionIndicators];
+      writeCorrectionIndicators(correctionIndicators);
+      correctionForm.reset();
+      resetEditingState("correction");
+      correctionFields.blend.value = "올드독";
+      correctionFields.date.value = today();
+      correctionFields.message.textContent = "로스팅 수정 지표를 저장했습니다.";
+      render();
+    });
+
+    greenBeanForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = approvedSessionUser();
+      if (!canManageGreenBeans(user)) return;
+      const bean = {
+        id: editingGreenBeanId || makeId(),
+        name: normalizeText(greenBeanFields.name.value),
+        origin: normalizeText(greenBeanFields.origin.value),
+        process: normalizeText(greenBeanFields.process.value),
+        receivedDate: greenBeanFields.receivedDate.value || today(),
+        moisture: normalizeText(greenBeanFields.moisture.value),
+        density: normalizeText(greenBeanFields.density.value),
+        variety: normalizeText(greenBeanFields.variety.value),
+        amount: normalizeText(greenBeanFields.amount.value),
+        note: normalizeText(greenBeanFields.note.value),
+        createdAt: today(),
+        createdBy: userDisplayName(user)
+      };
+      greenBeans = editingGreenBeanId
+        ? greenBeans.map((item) => item.id === editingGreenBeanId ? { ...item, ...bean, createdAt: item.createdAt || bean.createdAt, updatedAt: today() } : item)
+        : [bean, ...greenBeans];
+      writeGreenBeans(greenBeans);
+      populateGreenBeanRatioControls();
+      greenBeanForm.reset();
+      resetEditingState("green");
+      greenBeanFields.receivedDate.value = today();
+      greenBeanFields.message.textContent = "생두 정보를 저장했습니다.";
       render();
     });
 
@@ -4372,7 +4951,10 @@
       writeEntries(entries);
       resetEditingState("roasting");
       roastingBulkForm.reset();
-      roastingBulkFields.message.textContent = `${parsedEntries.length}개 로스팅 배치를 저장했습니다.`;
+      const skippedLabels = parsedEntries.skippedLabels || [];
+      roastingBulkFields.message.textContent = skippedLabels.length
+        ? `${parsedEntries.length}개 저장, ${skippedLabels.length}개 분류 실패: ${skippedLabels.join(", ")}`
+        : `${parsedEntries.length}개 로스팅 배치를 저장했습니다.`;
       render();
     });
 
@@ -4528,6 +5110,7 @@
           team,
           status: "pending",
           role: "viewer",
+          permissions: [],
           requestedAt: today()
         },
         ...users
@@ -4549,8 +5132,7 @@
       const rejectButton = event.target.closest("[data-reject]");
       if (!approveButton && !rejectButton) return;
       const targetId = approveButton ? approveButton.dataset.approve : rejectButton.dataset.reject;
-      const roleSelect = document.querySelector(`[data-access-role="${targetId}"]`);
-      const selectedRole = normalizeRole(roleSelect?.value || "viewer");
+      const selectedPermissions = checkedPermissions(`[data-access-permission="${targetId}"]`);
       try {
         refreshUsers();
       } catch (error) {
@@ -4562,7 +5144,8 @@
         return {
           ...user,
           status: approveButton ? "approved" : "rejected",
-          role: approveButton ? selectedRole : normalizeRole(user.role),
+          role: approveButton ? "viewer" : normalizeRole(user.role),
+          permissions: approveButton ? selectedPermissions : normalizePermissions(user),
           approvedAt: approveButton ? today() : user.approvedAt,
           rejectedAt: rejectButton ? today() : user.rejectedAt
         };
@@ -4584,9 +5167,9 @@
     appPendingList.addEventListener("click", handlePendingClick);
 
     userList.addEventListener("change", (event) => {
-      const select = event.target.closest("[data-user-role]");
-      if (!select) return;
-      const targetId = select.dataset.userRole;
+      const checkbox = event.target.closest("[data-user-permission]");
+      if (!checkbox) return;
+      const targetId = checkbox.dataset.userPermission;
       try {
         refreshUsers();
       } catch (error) {
@@ -4595,7 +5178,11 @@
       }
       users = users.map((user) => {
         if (user.id !== targetId || isPrimaryAdmin(user)) return user;
-        return { ...user, role: normalizeRole(select.value) };
+        return {
+          ...user,
+          role: "viewer",
+          permissions: checkedPermissions(`[data-user-permission="${targetId}"]`)
+        };
       });
       try {
         writeUsers(users, { requireShared: true });
@@ -4715,7 +5302,8 @@
       }
       const button = event.target.closest("[data-delete]");
       if (!button) return;
-      if (!canManageData(approvedSessionUser())) return;
+      const entry = entries.find((item) => item.id === button.dataset.delete);
+      if (!canDeleteEntry(entry, approvedSessionUser())) return;
       entries = entries.filter((entry) => entry.id !== button.dataset.delete);
       writeEntries(entries);
       render();
@@ -4726,6 +5314,35 @@
     cuppingRecentList.addEventListener("click", handleEntryAction);
     roastingRecentList.addEventListener("click", handleEntryAction);
     espressoRecentList.addEventListener("click", handleEntryAction);
+
+    roastingCorrectionList.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-edit-correction]");
+      if (editButton) {
+        const indicator = correctionIndicators.find((item) => item.id === editButton.dataset.editCorrection);
+        if (indicator) loadCorrectionForEdit(indicator);
+        return;
+      }
+      const deleteButton = event.target.closest("[data-delete-correction]");
+      if (!deleteButton || !isPrimaryAdmin(approvedSessionUser())) return;
+      correctionIndicators = correctionIndicators.filter((item) => item.id !== deleteButton.dataset.deleteCorrection);
+      writeCorrectionIndicators(correctionIndicators);
+      render();
+    });
+
+    greenBeanList.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-edit-green]");
+      if (editButton) {
+        const bean = greenBeans.find((item) => item.id === editButton.dataset.editGreen);
+        if (bean) loadGreenBeanForEdit(bean);
+        return;
+      }
+      const deleteButton = event.target.closest("[data-delete-green]");
+      if (!deleteButton || !canManageGreenBeans(approvedSessionUser())) return;
+      greenBeans = greenBeans.filter((item) => item.id !== deleteButton.dataset.deleteGreen);
+      writeGreenBeans(greenBeans);
+      populateGreenBeanRatioControls();
+      render();
+    });
 
     ratioNoticeList.addEventListener("click", (event) => {
       const button = event.target.closest("[data-delete-notice]");
@@ -4775,6 +5392,36 @@
       render();
     });
 
+    ratioCalendar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-ratio-date]");
+      if (!button) return;
+      selectedRatioDate = selectedRatioDate === button.dataset.ratioDate ? "" : button.dataset.ratioDate;
+      render();
+    });
+
+    ratioCalendarPrevButton.addEventListener("click", () => {
+      ratioCalendarMonth = shiftMonthKey(ratioCalendarMonth, -1);
+      selectedRatioDate = "";
+      render();
+    });
+
+    ratioCalendarTodayButton.addEventListener("click", () => {
+      ratioCalendarMonth = today().slice(0, 7);
+      selectedRatioDate = "";
+      render();
+    });
+
+    ratioCalendarNextButton.addEventListener("click", () => {
+      ratioCalendarMonth = shiftMonthKey(ratioCalendarMonth, 1);
+      selectedRatioDate = "";
+      render();
+    });
+
+    ratioCalendarClearButton.addEventListener("click", () => {
+      selectedRatioDate = "";
+      render();
+    });
+
     Object.values(filters).forEach((filter) => {
       filter.addEventListener("input", () => {
         if (filter === filters.blend && filter.value !== "all") activeBlendSheet = filter.value;
@@ -4797,6 +5444,7 @@
     });
 
     document.querySelector("#resetButton").addEventListener("click", () => {
+      if (!canManageData(approvedSessionUser())) return;
       entries = [];
       writeEntries(entries);
       render();
@@ -4807,6 +5455,8 @@
     espressoFields.date.value = today();
     nonShipFields.date.value = today();
     noticeFields.date.value = today();
+    correctionFields.date.value = today();
+    greenBeanFields.receivedDate.value = today();
     appShell.style.display = "none";
     enforcePrimaryAdmin();
     populateProductControls();
