@@ -2037,7 +2037,11 @@
               <input id="correctionDateInput" type="date" required>
             </div>
             <div class="field" style="grid-column: 1 / -1;">
-              <label for="correctionSolutionInput">변경내용</label>
+              <label for="correctionDiagnosisInput">로스팅 문제진단</label>
+              <textarea id="correctionDiagnosisInput" required placeholder="예: 후반 화력 하락, 배출온도 대비 색도 낮음, 바디감 가벼움 원인 추정"></textarea>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="correctionSolutionInput">솔루션(변경 내용)</label>
               <textarea id="correctionSolutionInput" required placeholder="예: 배출온도 174.5도 기준으로 조정 / 후반 화력 +3 / 1차 크랙 이후 유지 시간 단축"></textarea>
             </div>
             <button class="primary" type="submit" id="correctionSubmitButton">변경내용 저장</button>
@@ -2815,6 +2819,7 @@
     const correctionFields = {
       blend: document.querySelector("#correctionBlendInput"),
       date: document.querySelector("#correctionDateInput"),
+      diagnosis: document.querySelector("#correctionDiagnosisInput"),
       solution: document.querySelector("#correctionSolutionInput"),
       message: document.querySelector("#correctionMessage")
     };
@@ -4100,7 +4105,8 @@
       editingCorrectionId = indicator.id;
       correctionFields.blend.value = indicator.blend || "올드독";
       correctionFields.date.value = indicator.roastDate || indicator.cuppingDate || today();
-      correctionFields.solution.value = normalizeText([detail.roastDiagnosis, detail.solution].filter(Boolean).join(" / "));
+      correctionFields.diagnosis.value = detail.roastDiagnosis;
+      correctionFields.solution.value = detail.solution || (!detail.roastDiagnosis ? indicator.note || "" : "");
       correctionFields.message.textContent = "";
       correctionSubmitButton.textContent = "변경내용 수정";
       setAppView("corrections");
@@ -4598,9 +4604,8 @@
       const editButton = isStandaloneCorrection && canManageCorrections(user) ? `<button type="button" data-edit-correction="${escapeHtml(entry.id)}">수정</button>` : "";
       const deleteButton = isStandaloneCorrection && isPrimaryAdmin(user) ? `<button class="delete" type="button" data-delete-correction="${escapeHtml(entry.id)}" title="프로파일 변경내용 삭제">×</button>` : "";
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
-      const changeText = normalizeText(entry.entryType === "correction"
-        ? detail.solution || detail.roastDiagnosis || entry.note
-        : [detail.roastDiagnosis, detail.solution].filter(Boolean).join(" / "));
+      const diagnosisText = normalizeText(detail.roastDiagnosis || "");
+      const solutionText = normalizeText(detail.solution || (!diagnosisText ? entry.note || "" : ""));
       return `
         <article class="comment-item">
           <div class="comment-date">
@@ -4612,7 +4617,14 @@
               <h4 class="qc-title">${escapeHtml(entry.blend || "-")}</h4>
               <span class="tag blue">프로파일 변경</span>
             </div>
-            <p class="qc-body">${escapeHtml(changeText || "변경내용 기록 없음")}</p>
+            <div class="comment-field-block">
+              <strong>로스팅 문제진단</strong>
+              <p>${escapeHtml(diagnosisText || "진단 기록 없음")}</p>
+            </div>
+            <div class="comment-field-block">
+              <strong>솔루션(변경 내용)</strong>
+              <p>${escapeHtml(solutionText || "변경내용 기록 없음")}</p>
+            </div>
           </div>
           ${actions}
         </article>
@@ -5367,6 +5379,7 @@
       event.preventDefault();
       const user = approvedSessionUser();
       if (!canManageCorrections(user)) return;
+      const diagnosis = normalizeText(correctionFields.diagnosis.value);
       const profileChange = normalizeText(correctionFields.solution.value);
       const indicator = {
         id: editingCorrectionId || makeId(),
@@ -5379,10 +5392,13 @@
         verdict: "hold",
         cuppingDetail: {
           flavorIssue: "",
-          roastDiagnosis: "",
+          roastDiagnosis: diagnosis,
           solution: profileChange
         },
-        note: profileChange,
+        note: cuppingDetailNote({
+          roastDiagnosis: diagnosis,
+          solution: profileChange
+        }),
         tags: normalizeTagValue(["로스팅 프로파일 변경내용"]),
         evaluatorName: userDisplayName(user),
         createdByName: userDisplayName(user),
