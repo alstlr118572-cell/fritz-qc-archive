@@ -3453,10 +3453,11 @@
         if (!Array.isArray(parsed)) return [];
         let changed = false;
         const withoutSeedEntries = parsed.filter((entry) => !seedEntryIds.has(entry.id)).map((entry) => {
-          const blend = canonicalBlendName(entry.blend);
-          const verdict = normalizeVerdict(entry.verdict);
-          if (blend !== entry.blend || verdict !== entry.verdict) changed = true;
-          return { ...entry, blend, verdict };
+          const normalizedEntry = normalizeRoastingEntryClassification(entry);
+          const blend = canonicalBlendName(normalizedEntry.blend);
+          const verdict = normalizeVerdict(normalizedEntry.verdict);
+          if (normalizedEntry !== entry || blend !== entry.blend || verdict !== entry.verdict) changed = true;
+          return { ...normalizedEntry, blend, verdict };
         });
         if (withoutSeedEntries.length !== parsed.length) changed = true;
         const sortedEntries = sortEntriesByDate(withoutSeedEntries);
@@ -3471,6 +3472,29 @@
 
     function writeEntries(value) {
       writeStoreValue(storageKey, uniqueEntriesByOperationalKey(value));
+    }
+
+    function normalizeRoastingEntryClassification(entry) {
+      if (!entry || entry.entryType !== "roasting") return entry;
+      const batchText = normalizeText(entry.batch || "");
+      if (!/[가-힣A-Za-z]/.test(batchText)) return entry;
+      const parsed = parseBatchBlend(batchText, canonicalBlendName(entry.blend || ""));
+      if (!parsed.blend) return entry;
+      const roastData = normalizedRoastData(entry);
+      const nextBlend = canonicalBlendName(parsed.blend);
+      const nextBatch = parsed.batch || entry.batch;
+      const nextRoaster = parsed.roaster || roastData.roaster || "";
+      if (nextBlend === entry.blend && nextBatch === entry.batch && nextRoaster === roastData.roaster) return entry;
+      return {
+        ...entry,
+        blend: nextBlend,
+        batch: nextBatch,
+        roastData: {
+          ...roastData,
+          roaster: nextRoaster
+        },
+        updatedAt: entry.updatedAt || today()
+      };
     }
 
     let entries = readEntries();
