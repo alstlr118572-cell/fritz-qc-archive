@@ -2083,6 +2083,20 @@
               <p class="hint">왼쪽 입력란에서 배치 범위별 커핑 코멘트를 저장합니다.</p>
             </div>
           </div>
+          <div class="calendar-head">
+            <div>
+              <h3 id="cuppingCalendarTitle">커핑 코멘트 달력</h3>
+              <p class="hint">날짜를 누르면 해당 커핑일로 일괄 코멘트를 저장합니다.</p>
+            </div>
+            <div class="calendar-actions">
+              <button type="button" id="cuppingCalendarPrevButton">이전 달</button>
+              <button type="button" id="cuppingCalendarTodayButton">이번 달</button>
+              <button type="button" id="cuppingCalendarNextButton">다음 달</button>
+              <button type="button" id="cuppingCalendarClearButton">날짜 해제</button>
+            </div>
+          </div>
+          <div class="calendar-summary" id="cuppingCalendarSummary"></div>
+          <div class="calendar-grid" id="cuppingCalendar"></div>
           <div class="panel record-list" id="cuppingRecentList"></div>
         </section>
 
@@ -2651,6 +2665,13 @@
     const roastingCalendarTodayButton = document.querySelector("#roastingCalendarTodayButton");
     const roastingCalendarNextButton = document.querySelector("#roastingCalendarNextButton");
     const roastingCalendarClearButton = document.querySelector("#roastingCalendarClearButton");
+    const cuppingCalendarTitle = document.querySelector("#cuppingCalendarTitle");
+    const cuppingCalendarSummary = document.querySelector("#cuppingCalendarSummary");
+    const cuppingCalendar = document.querySelector("#cuppingCalendar");
+    const cuppingCalendarPrevButton = document.querySelector("#cuppingCalendarPrevButton");
+    const cuppingCalendarTodayButton = document.querySelector("#cuppingCalendarTodayButton");
+    const cuppingCalendarNextButton = document.querySelector("#cuppingCalendarNextButton");
+    const cuppingCalendarClearButton = document.querySelector("#cuppingCalendarClearButton");
     const filters = {
       search: document.querySelector("#searchInput"),
       category: document.querySelector("#categoryFilter"),
@@ -2761,6 +2782,8 @@
     let selectedSearchDate = "";
     let roastingCalendarMonth = today().slice(0, 7);
     let selectedRoastingDate = "";
+    let cuppingCalendarMonth = today().slice(0, 7);
+    let selectedCuppingDate = "";
     let ratioCalendarMonth = today().slice(0, 7);
     let selectedRatioDate = "";
     let editingCuppingId = "";
@@ -4567,6 +4590,44 @@
       roastingCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
+    function renderCuppingCalendar() {
+      const [year, month] = cuppingCalendarMonth.split("-").map(Number);
+      const firstDate = new Date(year, month - 1, 1);
+      const lastDate = new Date(year, month, 0);
+      const leadingEmptyDays = firstDate.getDay();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const cuppingEntries = entries.filter(isCuppingEntry);
+      const countByDate = cuppingEntries.reduce((acc, entry) => {
+        const value = entry.cuppingDate || "";
+        if (value.slice(0, 7) !== cuppingCalendarMonth) return acc;
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      }, {});
+      const dayButtons = [];
+      for (let index = 0; index < leadingEmptyDays; index += 1) {
+        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      }
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${cuppingCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const count = countByDate[dateValue] || 0;
+        dayButtons.push(`
+          <button type="button" class="calendar-day ${count ? "has-data" : ""} ${selectedCuppingDate === dateValue ? "selected" : ""}" data-cupping-date="${dateValue}">
+            <strong>${day}</strong>
+            ${count ? `<span>${count}개 코멘트</span>` : ""}
+          </button>
+        `);
+      }
+      const monthCount = Object.values(countByDate).reduce((sum, count) => sum + count, 0);
+      const selectedCount = selectedCuppingDate
+        ? cuppingEntries.filter((entry) => entry.cuppingDate === selectedCuppingDate).length
+        : 0;
+      cuppingCalendarTitle.textContent = `${monthLabel(cuppingCalendarMonth)} 커핑 달력`;
+      cuppingCalendarSummary.innerHTML = selectedCuppingDate
+        ? `<span>선택 커핑일 ${escapeHtml(selectedCuppingDate)}</span><span>저장된 코멘트 ${selectedCount}개</span>`
+        : `<span>날짜를 선택하면 왼쪽 코멘트 빠른 입력의 커핑일로 사용합니다.</span><span>${monthLabel(cuppingCalendarMonth)} 코멘트 ${monthCount}개</span>`;
+      cuppingCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
+    }
+
     function renderDashboardRecent(monthEntries) {
       const recentRoasting = monthEntries
         .filter((entry) => entry.entryType === "roasting" && isEntryInLastDays(entry, 3))
@@ -4796,6 +4857,7 @@
       renderSearchCalendar();
       renderRatioCalendar();
       renderRoastingCalendar();
+      renderCuppingCalendar();
       renderDashboardRecent(monthEntries);
       renderSummary(monthEntries);
       renderRatioNotices();
@@ -4826,9 +4888,14 @@
       roastingCorrectionList.innerHTML = correctionSource.length
         ? roastingCorrectionGroupMarkup(correctionSource)
         : `<div class="empty">아직 표시할 로스팅 수정 지표가 없습니다.</div>`;
-      cuppingRecentList.innerHTML = cuppingEntries.length
-        ? cuppingEntries.slice(0, 6).map((entry) => cardMarkup(entry)).join("")
-        : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
+      const cuppingInputEntries = entries.filter((entry) => {
+        if (!isCuppingEntry(entry)) return false;
+        if (selectedCuppingDate) return entry.cuppingDate === selectedCuppingDate;
+        return entry.cuppingDate?.slice(0, 7) === cuppingCalendarMonth;
+      });
+      cuppingRecentList.innerHTML = cuppingInputEntries.length
+        ? `<div class="list-summary"><span>${selectedCuppingDate ? selectedCuppingDate : monthLabel(cuppingCalendarMonth)} 커핑 코멘트 ${cuppingInputEntries.length}개</span><span>${selectedCuppingDate ? "선택일" : "월간"}</span></div>${cuppingInputEntries.map((entry) => cardMarkup(entry)).join("")}`
+        : `<div class="empty">선택한 기간에 저장된 커핑 코멘트가 없습니다.</div>`;
       const roastingEntries = entries.filter((entry) => {
         if (entry.entryType !== "roasting") return false;
         if (selectedRoastingDate) return entry.roastDate === selectedRoastingDate;
@@ -4853,6 +4920,7 @@
       }
       const newEntries = parsed.map((item) => cuppingEntryFromFields({
         id: makeId(),
+        cuppingDate: selectedCuppingDate || fields.roastDate.value || today(),
         blend: item.blend,
         roaster: item.roaster,
         batch: item.batch,
@@ -5537,6 +5605,45 @@
 
     roastingCalendarClearButton.addEventListener("click", () => {
       selectedRoastingDate = "";
+      render();
+    });
+
+    cuppingCalendar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-cupping-date]");
+      if (!button) return;
+      selectedCuppingDate = selectedCuppingDate === button.dataset.cuppingDate ? "" : button.dataset.cuppingDate;
+      if (selectedCuppingDate) fields.roastDate.value = selectedCuppingDate;
+      render();
+    });
+
+    cuppingCalendarPrevButton.addEventListener("click", () => {
+      cuppingCalendarMonth = shiftMonthKey(cuppingCalendarMonth, -1);
+      selectedCuppingDate = "";
+      render();
+    });
+
+    cuppingCalendarTodayButton.addEventListener("click", () => {
+      cuppingCalendarMonth = today().slice(0, 7);
+      selectedCuppingDate = "";
+      fields.roastDate.value = today();
+      render();
+    });
+
+    cuppingCalendarNextButton.addEventListener("click", () => {
+      cuppingCalendarMonth = shiftMonthKey(cuppingCalendarMonth, 1);
+      selectedCuppingDate = "";
+      render();
+    });
+
+    cuppingCalendarClearButton.addEventListener("click", () => {
+      selectedCuppingDate = "";
+      render();
+    });
+
+    fields.roastDate.addEventListener("change", () => {
+      if (!fields.roastDate.value) return;
+      selectedCuppingDate = fields.roastDate.value;
+      cuppingCalendarMonth = fields.roastDate.value.slice(0, 7);
       render();
     });
 
