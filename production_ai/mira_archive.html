@@ -2170,6 +2170,20 @@
             <button class="primary" type="submit">일괄 저장</button>
             <p id="roastingBulkMessage"></p>
           </form>
+          <div class="calendar-head roasting-calendar-head">
+            <div>
+              <h3 id="roastingCalendarTitle">로스팅 데이터 달력</h3>
+              <p class="hint">날짜를 누르면 해당 로스팅일의 배치만 아래 목록에 표시합니다.</p>
+            </div>
+            <div class="calendar-actions">
+              <button type="button" id="roastingCalendarPrevButton">이전 달</button>
+              <button type="button" id="roastingCalendarTodayButton">이번 달</button>
+              <button type="button" id="roastingCalendarNextButton">다음 달</button>
+              <button type="button" id="roastingCalendarClearButton">날짜 해제</button>
+            </div>
+          </div>
+          <div class="calendar-summary" id="roastingCalendarSummary"></div>
+          <div class="calendar-grid" id="roastingCalendar"></div>
           <div class="panel record-list scrollable-record-list" id="roastingRecentList"></div>
         </section>
 
@@ -2630,6 +2644,13 @@
     const ratioCalendarTodayButton = document.querySelector("#ratioCalendarTodayButton");
     const ratioCalendarNextButton = document.querySelector("#ratioCalendarNextButton");
     const ratioCalendarClearButton = document.querySelector("#ratioCalendarClearButton");
+    const roastingCalendarTitle = document.querySelector("#roastingCalendarTitle");
+    const roastingCalendarSummary = document.querySelector("#roastingCalendarSummary");
+    const roastingCalendar = document.querySelector("#roastingCalendar");
+    const roastingCalendarPrevButton = document.querySelector("#roastingCalendarPrevButton");
+    const roastingCalendarTodayButton = document.querySelector("#roastingCalendarTodayButton");
+    const roastingCalendarNextButton = document.querySelector("#roastingCalendarNextButton");
+    const roastingCalendarClearButton = document.querySelector("#roastingCalendarClearButton");
     const filters = {
       search: document.querySelector("#searchInput"),
       category: document.querySelector("#categoryFilter"),
@@ -2738,6 +2759,8 @@
     let activeAppView = "dashboard";
     let searchCalendarMonth = today().slice(0, 7);
     let selectedSearchDate = "";
+    let roastingCalendarMonth = today().slice(0, 7);
+    let selectedRoastingDate = "";
     let ratioCalendarMonth = today().slice(0, 7);
     let selectedRatioDate = "";
     let editingCuppingId = "";
@@ -3315,15 +3338,17 @@
         });
         if (withoutSeedEntries.length !== parsed.length) changed = true;
         const sortedEntries = sortEntriesByDate(withoutSeedEntries);
-        if (changed) writeEntries(sortedEntries);
-        return sortedEntries;
+        const uniqueEntries = uniqueEntriesByOperationalKey(sortedEntries);
+        if (uniqueEntries.length !== sortedEntries.length) changed = true;
+        if (changed) writeEntries(uniqueEntries);
+        return uniqueEntries;
       } catch {
         return [];
       }
     }
 
     function writeEntries(value) {
-      writeStoreValue(storageKey, sortEntriesByDate(value));
+      writeStoreValue(storageKey, uniqueEntriesByOperationalKey(value));
     }
 
     let entries = readEntries();
@@ -3467,11 +3492,17 @@
     }
 
     function entryDateValues(entry) {
-      return Array.from(new Set([
+      if (entry.entryType === "roasting") {
+        return [entry.roastDate].filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")));
+      }
+      if (entry.entryType === "espresso") {
+        return [entry.roastDate].filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")));
+      }
+      const values = [
         entry.roastDate,
-        entry.cuppingDate,
-        entry.createdAt
-      ].filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")))));
+        entry.cuppingDate
+      ];
+      return Array.from(new Set(values.filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")))));
     }
 
     function entryMatchesSelectedDate(entry) {
@@ -3482,6 +3513,32 @@
       const [year, month] = String(monthKey || today().slice(0, 7)).split("-").map(Number);
       const date = new Date(year, month - 1 + delta, 1);
       return formatDateInput(date).slice(0, 7);
+    }
+
+    function entryDedupeKey(entry) {
+      const type = entry.entryType || "cupping";
+      const blend = canonicalBlendName(entry.blend || "");
+      const batch = normalizeBatchRange(entry.batch || "");
+      if (type === "roasting") {
+        const roaster = normalizeText(entry.roastData?.roaster || entry.roaster || "");
+        return [type, entry.roastDate || "", blend, batch, roaster].join("|");
+      }
+      if (type === "espresso") {
+        const account = normalizeText(entry.espresso?.account || "");
+        return [type, entry.roastDate || "", blend, batch, account].join("|");
+      }
+      return "";
+    }
+
+    function uniqueEntriesByOperationalKey(value) {
+      const seen = new Set();
+      return sortEntriesByDate(value).filter((entry) => {
+        const key = entryDedupeKey(entry);
+        if (!key) return true;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
     }
 
     function isEntryInLastDays(entry, days) {
@@ -4472,6 +4529,44 @@
       ratioCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
+    function renderRoastingCalendar() {
+      const [year, month] = roastingCalendarMonth.split("-").map(Number);
+      const firstDate = new Date(year, month - 1, 1);
+      const lastDate = new Date(year, month, 0);
+      const leadingEmptyDays = firstDate.getDay();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const roastingEntries = entries.filter((entry) => entry.entryType === "roasting");
+      const countByDate = roastingEntries.reduce((acc, entry) => {
+        const value = entry.roastDate || "";
+        if (value.slice(0, 7) !== roastingCalendarMonth) return acc;
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      }, {});
+      const dayButtons = [];
+      for (let index = 0; index < leadingEmptyDays; index += 1) {
+        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      }
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${roastingCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const count = countByDate[dateValue] || 0;
+        dayButtons.push(`
+          <button type="button" class="calendar-day ${count ? "has-data" : ""} ${selectedRoastingDate === dateValue ? "selected" : ""}" data-roasting-date="${dateValue}">
+            <strong>${day}</strong>
+            ${count ? `<span>${count}개 배치</span>` : ""}
+          </button>
+        `);
+      }
+      const monthCount = Object.values(countByDate).reduce((sum, count) => sum + count, 0);
+      const selectedCount = selectedRoastingDate
+        ? roastingEntries.filter((entry) => entry.roastDate === selectedRoastingDate).length
+        : 0;
+      roastingCalendarTitle.textContent = `${monthLabel(roastingCalendarMonth)} 로스팅 달력`;
+      roastingCalendarSummary.innerHTML = selectedRoastingDate
+        ? `<span>선택 로스팅일 ${escapeHtml(selectedRoastingDate)}</span><span>로스팅 배치 ${selectedCount}개</span>`
+        : `<span>날짜를 선택하지 않으면 ${monthLabel(roastingCalendarMonth)} 전체 로스팅 배치를 표시합니다.</span><span>월간 배치 ${monthCount}개</span>`;
+      roastingCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
+    }
+
     function renderDashboardRecent(monthEntries) {
       const recentRoasting = monthEntries
         .filter((entry) => entry.entryType === "roasting" && isEntryInLastDays(entry, 3))
@@ -4700,6 +4795,7 @@
       monthDashboardHint.textContent = `${monthLabel(monthKey)} 데이터만 표시합니다. 이전 달 기록은 검색에서 확인합니다.`;
       renderSearchCalendar();
       renderRatioCalendar();
+      renderRoastingCalendar();
       renderDashboardRecent(monthEntries);
       renderSummary(monthEntries);
       renderRatioNotices();
@@ -4733,9 +4829,13 @@
       cuppingRecentList.innerHTML = cuppingEntries.length
         ? cuppingEntries.slice(0, 6).map((entry) => cardMarkup(entry)).join("")
         : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
-      const roastingEntries = monthEntries.filter((entry) => entry.entryType === "roasting");
+      const roastingEntries = entries.filter((entry) => {
+        if (entry.entryType !== "roasting") return false;
+        if (selectedRoastingDate) return entry.roastDate === selectedRoastingDate;
+        return entry.roastDate?.slice(0, 7) === roastingCalendarMonth;
+      });
       roastingRecentList.innerHTML = roastingEntries.length
-        ? `<div class="list-summary"><span>이번 달 로스팅 데이터 ${roastingEntries.length}개</span><span>${monthLabel(monthKey)}</span></div>${roastingEntries.map((entry) => cardMarkup(entry)).join("")}`
+        ? `<div class="list-summary"><span>${selectedRoastingDate ? selectedRoastingDate : monthLabel(roastingCalendarMonth)} 로스팅 데이터 ${roastingEntries.length}개</span><span>${selectedRoastingDate ? "선택일" : "월간"}</span></div>${roastingEntries.map((entry) => cardMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 로스팅 데이터가 없습니다.</div>`;
       const espressoEntries = monthEntries.filter((entry) => entry.entryType === "espresso");
       espressoRecentList.innerHTML = espressoEntries.length
@@ -4926,6 +5026,11 @@
         groundColor: roastingFields.groundColor.value.trim()
       });
       const savedEntry = editingRoastingId ? { ...entry, id: editingRoastingId, updatedAt: today() } : entry;
+      const duplicateExists = entries.some((item) => item.id !== editingRoastingId && entryDedupeKey(item) === entryDedupeKey(savedEntry));
+      if (duplicateExists) {
+        roastingBulkFields.message.textContent = `${savedEntry.roastDate} ${savedEntry.blend} ${savedEntry.batch}는 이미 저장된 로스팅 배치입니다.`;
+        return;
+      }
       entries = editingRoastingId
         ? entries.map((item) => item.id === editingRoastingId ? { ...item, ...savedEntry, createdAt: item.createdAt || savedEntry.createdAt } : item)
         : [savedEntry, ...entries];
@@ -4947,14 +5052,27 @@
         roastingBulkFields.message.textContent = "저장할 수 있는 로스팅 데이터 줄을 찾지 못했습니다.";
         return;
       }
-      entries = [...parsedEntries, ...entries];
+      const existingKeys = new Set(entries.map(entryDedupeKey).filter(Boolean));
+      const newKeys = new Set();
+      const uniqueParsedEntries = parsedEntries.filter((entry) => {
+        const key = entryDedupeKey(entry);
+        if (key && (existingKeys.has(key) || newKeys.has(key))) return false;
+        if (key) newKeys.add(key);
+        return true;
+      });
+      if (!uniqueParsedEntries.length) {
+        roastingBulkFields.message.textContent = "이미 저장된 로스팅 배치라 추가 저장하지 않았습니다.";
+        return;
+      }
+      entries = [...uniqueParsedEntries, ...entries];
       writeEntries(entries);
       resetEditingState("roasting");
       roastingBulkForm.reset();
       const skippedLabels = parsedEntries.skippedLabels || [];
+      const duplicateCount = parsedEntries.length - uniqueParsedEntries.length;
       roastingBulkFields.message.textContent = skippedLabels.length
-        ? `${parsedEntries.length}개 저장, ${skippedLabels.length}개 분류 실패: ${skippedLabels.join(", ")}`
-        : `${parsedEntries.length}개 로스팅 배치를 저장했습니다.`;
+        ? `${uniqueParsedEntries.length}개 저장, ${duplicateCount}개 중복 제외, ${skippedLabels.length}개 분류 실패: ${skippedLabels.join(", ")}`
+        : `${uniqueParsedEntries.length}개 로스팅 배치를 저장했습니다.${duplicateCount ? ` ${duplicateCount}개 중복은 제외했습니다.` : ""}`;
       render();
     });
 
@@ -5389,6 +5507,36 @@
 
     calendarClearButton.addEventListener("click", () => {
       selectedSearchDate = "";
+      render();
+    });
+
+    roastingCalendar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-roasting-date]");
+      if (!button) return;
+      selectedRoastingDate = selectedRoastingDate === button.dataset.roastingDate ? "" : button.dataset.roastingDate;
+      render();
+    });
+
+    roastingCalendarPrevButton.addEventListener("click", () => {
+      roastingCalendarMonth = shiftMonthKey(roastingCalendarMonth, -1);
+      selectedRoastingDate = "";
+      render();
+    });
+
+    roastingCalendarTodayButton.addEventListener("click", () => {
+      roastingCalendarMonth = today().slice(0, 7);
+      selectedRoastingDate = "";
+      render();
+    });
+
+    roastingCalendarNextButton.addEventListener("click", () => {
+      roastingCalendarMonth = shiftMonthKey(roastingCalendarMonth, 1);
+      selectedRoastingDate = "";
+      render();
+    });
+
+    roastingCalendarClearButton.addEventListener("click", () => {
+      selectedRoastingDate = "";
       render();
     });
 
