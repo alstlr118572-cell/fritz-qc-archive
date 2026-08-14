@@ -166,6 +166,14 @@
       grid-template-columns: 1fr;
     }
 
+    .layout.cupping-input-mode .main {
+      order: 1;
+    }
+
+    .layout.cupping-input-mode #qcInputPanel {
+      order: 2;
+    }
+
     .app-nav {
       display: flex;
       gap: 6px;
@@ -549,6 +557,30 @@
       min-height: 0;
       margin: 0;
       accent-color: var(--teal);
+    }
+
+    .cupping-flow-form {
+      display: grid;
+      gap: 14px;
+    }
+
+    .cupping-step {
+      display: grid;
+      gap: 8px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(37, 36, 34, 0.12);
+    }
+
+    .cupping-step:first-of-type {
+      padding-top: 0;
+      border-top: 0;
+    }
+
+    .cupping-step-title {
+      margin: 0;
+      color: var(--teal);
+      font-size: 13px;
+      font-weight: 900;
     }
 
     .roast-data-section {
@@ -1675,23 +1707,23 @@
           <div class="field" style="margin-top: 10px;">
             <label>문제 유형</label>
             <div class="issue-type-grid" id="issueTypeGroup">
-              <label><input type="checkbox" value="향미 약함" data-issue-type>향미 약함</label>
-              <label><input type="checkbox" value="향미 이탈" data-issue-type>향미 이탈</label>
-              <label><input type="checkbox" value="비터 강함" data-issue-type>비터 강함</label>
-              <label><input type="checkbox" value="바디 약함" data-issue-type>바디 약함</label>
-              <label><input type="checkbox" value="산미 튐" data-issue-type>산미 튐</label>
+              <label><input type="checkbox" value="향미톤 낮음" data-issue-type>향미톤 낮음</label>
+              <label><input type="checkbox" value="캐릭터 향미 이탈" data-issue-type>캐릭터 향미 이탈</label>
+              <label><input type="checkbox" value="그슬린 향미" data-issue-type>그슬린 향미</label>
+              <label><input type="checkbox" value="향미 뭉침" data-issue-type>향미 뭉침</label>
+              <label><input type="checkbox" value="바디감 가벼움" data-issue-type>바디감 가벼움</label>
+              <label><input type="checkbox" value="단맛 가벼움" data-issue-type>단맛 가벼움</label>
               <label><input type="checkbox" value="단맛 부족" data-issue-type>단맛 부족</label>
-              <label><input type="checkbox" value="후미 짧음" data-issue-type>후미 짧음</label>
-              <label><input type="checkbox" value="탄맛" data-issue-type>탄맛</label>
-              <label><input type="checkbox" value="언더 느낌" data-issue-type>언더 느낌</label>
-              <label><input type="checkbox" value="오버 느낌" data-issue-type>오버 느낌</label>
-              <label><input type="checkbox" value="배치 간 편차 큼" data-issue-type>배치 간 편차 큼</label>
+              <label><input type="checkbox" value="애프터 짧음" data-issue-type>애프터 짧음</label>
+              <label><input type="checkbox" value="언더 뉘앙스" data-issue-type>언더 뉘앙스</label>
+              <label><input type="checkbox" value="오버 뉘앙스" data-issue-type>오버 뉘앙스</label>
+              <label><input type="checkbox" value="배치간 편차큼" data-issue-type>배치간 편차큼</label>
               <label><input type="checkbox" value="색도 대비 향미 이탈" data-issue-type>색도 대비 향미 이탈</label>
             </div>
           </div>
           <div class="field" style="margin-top: 10px;">
             <label for="flavorIssueInput">문제향미지표</label>
-            <textarea id="flavorIssueInput" required placeholder="예: #1~#2 비터 강함 / #3~#6 바디 약함"></textarea>
+            <textarea id="flavorIssueInput" required placeholder="예: #1~#2 그슬린 향미 / #3~#6 바디감 가벼움"></textarea>
           </div>
           <div class="score-section roast-data-section">
             <p class="score-section-title">로스팅 데이터</p>
@@ -2010,7 +2042,7 @@
             </div>
             <div class="field">
               <label for="correctionFlavorIssueInput">문제향미지표</label>
-              <input id="correctionFlavorIssueInput" placeholder="예: 비터 강함 / 바디 약함">
+              <input id="correctionFlavorIssueInput" placeholder="예: 그슬린 향미 / 바디감 가벼움">
             </div>
             <button class="primary" type="submit" id="correctionSubmitButton">지표 저장</button>
             <div class="field" style="grid-column: 1 / -1;">
@@ -2097,17 +2129,51 @@
           </div>
           <div class="calendar-summary" id="cuppingCalendarSummary"></div>
           <div class="calendar-grid" id="cuppingCalendar"></div>
-          <form class="panel notice-panel" id="cuppingBatchForm" style="margin-top: 12px;">
+          <form class="panel notice-panel cupping-flow-form" id="cuppingBatchForm" style="margin-top: 12px;">
             <div class="section-title" style="margin-bottom: 0;">
               <div>
                 <h3>연결 로스팅 배치 선택</h3>
                 <p class="hint" id="cuppingBatchHint">달력에서 선택한 로스팅 데이터를 불러옵니다.</p>
               </div>
             </div>
-            <div class="notice-list" id="cuppingBatchList"></div>
-            <div class="field">
-              <label for="cuppingBatchCommentInput">선택 배치 공통 코멘트</label>
-              <textarea id="cuppingBatchCommentInput" placeholder="예: 비터 강하다 / 바디 약하다 / 문제없음"></textarea>
+            <div class="cupping-step">
+              <p class="cupping-step-title">1. 배치 선택</p>
+              <div class="notice-list" id="cuppingBatchList"></div>
+            </div>
+            <div class="cupping-step">
+              <p class="cupping-step-title">2. 판정 선택</p>
+              <div class="field">
+                <label for="cuppingBatchVerdictInput">판정</label>
+                <select id="cuppingBatchVerdictInput">
+                  <option value="pass">PASS</option>
+                  <option value="hold">HOLD</option>
+                  <option value="no_ship">ISSUE</option>
+                </select>
+              </div>
+            </div>
+            <div class="cupping-step">
+              <p class="cupping-step-title">3. 문제향미 선택</p>
+              <div class="issue-type-grid" id="cuppingBatchIssueTypeGroup">
+                <label><input type="checkbox" value="향미톤 낮음" data-cupping-issue-type>향미톤 낮음</label>
+                <label><input type="checkbox" value="캐릭터 향미 이탈" data-cupping-issue-type>캐릭터 향미 이탈</label>
+                <label><input type="checkbox" value="그슬린 향미" data-cupping-issue-type>그슬린 향미</label>
+                <label><input type="checkbox" value="향미 뭉침" data-cupping-issue-type>향미 뭉침</label>
+                <label><input type="checkbox" value="바디감 가벼움" data-cupping-issue-type>바디감 가벼움</label>
+                <label><input type="checkbox" value="단맛 가벼움" data-cupping-issue-type>단맛 가벼움</label>
+                <label><input type="checkbox" value="단맛 부족" data-cupping-issue-type>단맛 부족</label>
+                <label><input type="checkbox" value="애프터 짧음" data-cupping-issue-type>애프터 짧음</label>
+                <label><input type="checkbox" value="언더 뉘앙스" data-cupping-issue-type>언더 뉘앙스</label>
+                <label><input type="checkbox" value="오버 뉘앙스" data-cupping-issue-type>오버 뉘앙스</label>
+                <label><input type="checkbox" value="배치간 편차큼" data-cupping-issue-type>배치간 편차큼</label>
+                <label><input type="checkbox" value="색도 대비 향미 이탈" data-cupping-issue-type>색도 대비 향미 이탈</label>
+              </div>
+            </div>
+            <div class="cupping-step">
+              <p class="cupping-step-title">4. 문제향미 지표 코멘트</p>
+              <div class="field">
+                <label for="cuppingBatchCommentInput">문제향미 지표 코멘트</label>
+                <textarea id="cuppingBatchCommentInput" placeholder="예: #1~2 그슬린 향미 / #3~6 바디감 가벼움"></textarea>
+              </div>
             </div>
             <button class="primary" type="submit">선택 배치 코멘트 저장</button>
             <p id="cuppingBatchMessage"></p>
@@ -2449,17 +2515,17 @@
     ];
     const issueTypePatterns = [
       ["색도 대비 향미 이탈", /색도.*향미|향미.*색도/],
-      ["배치 간 편차 큼", /편차|배치간|배치 간/],
-      ["향미 약함", /향미약|향미 약|향미가약|향미가 약/],
-      ["향미 이탈", /향미이탈|향미 이탈|맛이탈|맛 이탈/],
-      ["비터 강함", /비터|쓴맛강|쓴맛 강|쓴맛이강|쓴맛이 강/],
-      ["바디 약함", /바디약|바디 약|바디감떨어|바디감 떨어|바디감약|바디감 약/],
-      ["산미 튐", /산미튐|산미 튐|산미가튐|산미가 튐|산미강|산미 강/],
-      ["단맛 부족", /단맛부족|단맛 부족|단맛약|단맛 약|단맛이약|단맛이 약/],
-      ["후미 짧음", /후미짧|후미 짧|피니시짧|피니시 짧/],
-      ["탄맛", /탄맛|스모키|그을|탄 느낌|탄느낌/],
-      ["언더 느낌", /언더|덜익|덜 익|풋내/],
-      ["오버 느낌", /오버|과배전|로스티|비터강|비터 강/]
+      ["배치간 편차큼", /편차|배치간|배치 간/],
+      ["향미톤 낮음", /향미톤낮|향미톤 낮|향미약|향미 약|향미가약|향미가 약/],
+      ["캐릭터 향미 이탈", /캐릭터.*이탈|향미이탈|향미 이탈|맛이탈|맛 이탈/],
+      ["그슬린 향미", /그슬|탄맛|스모키|그을|탄 느낌|탄느낌/],
+      ["향미 뭉침", /향미뭉침|향미 뭉침|뭉침|답답/],
+      ["바디감 가벼움", /바디가벼|바디 가벼|바디감가벼|바디감 가벼|바디약|바디 약|바디감떨어|바디감 떨어|바디감약|바디감 약/],
+      ["단맛 가벼움", /단맛가벼|단맛 가벼|단맛약|단맛 약|단맛이약|단맛이 약/],
+      ["단맛 부족", /단맛부족|단맛 부족/],
+      ["애프터 짧음", /애프터짧|애프터 짧|후미짧|후미 짧|피니시짧|피니시 짧/],
+      ["언더 뉘앙스", /언더|덜익|덜 익|풋내/],
+      ["오버 뉘앙스", /오버|과배전|로스티|비터강|비터 강/]
     ];
     let blendCategories = readBlendCatalog();
     let blends = Object.values(blendCategories).flat();
@@ -2508,8 +2574,8 @@
         },
         scores: { aroma: 3.5, flavor: 4.0, balance: 3.5, after: 3.5 },
         intensity: { acidity: 3.5, sweetness: 3.5, bitterness: 2.5, body: 3.5 },
-        note: "향은 좋지만 후미가 짧게 느껴진다. 확인 필요.",
-        tags: ["#1", "후미 짧음", "확인 필요"],
+        note: "향은 좋지만 애프터가 짧게 느껴진다. 확인 필요.",
+        tags: ["#1", "애프터 짧음", "확인 필요"],
         createdAt: "2026-08-03"
       },
       {
@@ -2663,6 +2729,8 @@
     const cuppingBatchFields = {
       hint: document.querySelector("#cuppingBatchHint"),
       list: document.querySelector("#cuppingBatchList"),
+      verdict: document.querySelector("#cuppingBatchVerdictInput"),
+      issueTypes: document.querySelectorAll("[data-cupping-issue-type]"),
       comment: document.querySelector("#cuppingBatchCommentInput"),
       message: document.querySelector("#cuppingBatchMessage")
     };
@@ -3210,8 +3278,9 @@
     }
 
     function applyQcPermission(user) {
-      const showInputPanel = canInputCupping(user) && activeAppView === "cupping";
+      const showInputPanel = canInputCupping(user) && activeAppView === "cupping" && Boolean(editingCuppingId);
       qcInputPanel.hidden = !showInputPanel;
+      appShell.classList.toggle("cupping-input-mode", activeAppView === "cupping");
       ratioNoticeForm.hidden = !canManageRatioNotices(user);
       correctionForm.hidden = !canManageCorrections(user);
       greenBeanForm.hidden = !canManageGreenBeans(user);
@@ -3650,6 +3719,18 @@
 
     function selectedIssueTypes() {
       return Array.from(document.querySelectorAll("[data-issue-type]:checked")).map((input) => input.value);
+    }
+
+    function selectedCuppingBatchIssueTypes() {
+      return Array.from(cuppingBatchFields.issueTypes || [])
+        .filter((input) => input.checked)
+        .map((input) => input.value);
+    }
+
+    function clearCuppingBatchIssueTypes() {
+      Array.from(cuppingBatchFields.issueTypes || []).forEach((input) => {
+        input.checked = false;
+      });
     }
 
     function setSelectedIssueTypes(values = []) {
@@ -5088,10 +5169,12 @@
         cuppingBatchFields.message.textContent = "선택 배치에 저장할 코멘트를 입력해주세요.";
         return;
       }
+      const selectedIssueTypes = selectedCuppingBatchIssueTypes();
       const candidates = cuppingRoastingCandidates();
       const selectedEntries = candidates.filter((entry) => selectedCuppingBatchIds.has(entry.id));
       const groupedEntries = groupSelectedRoastingEntries(selectedEntries);
       const cuppingDate = fields.roastDate.value || today();
+      const verdict = normalizeVerdict(cuppingBatchFields.verdict?.value || inferVerdictFromText(note, "hold"));
       const newEntries = groupedEntries.map((group) => cuppingEntryFromFields({
         id: makeId(),
         cuppingDate,
@@ -5099,16 +5182,17 @@
         blend: group.blend,
         roaster: group.roaster,
         batch: group.batch,
-        verdict: inferVerdictFromText(note, "hold"),
+        verdict,
         flavorIssue: note,
         roastDiagnosis: "",
         solution: "",
         note,
-        tags: ["배치선택", ...inferIssueTypesFromText(note)]
+        tags: ["배치선택", ...selectedIssueTypes, ...inferIssueTypesFromText(note)]
       }));
       entries = [...newEntries, ...entries];
       writeEntries(entries);
       cuppingBatchFields.comment.value = "";
+      clearCuppingBatchIssueTypes();
       selectedCuppingBatchIds = new Set();
       cuppingBatchFields.message.textContent = `${newEntries.length}개 커핑 코멘트를 선택 배치에 저장했습니다.`;
       render();
