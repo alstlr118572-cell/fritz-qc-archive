@@ -2097,6 +2097,21 @@
           </div>
           <div class="calendar-summary" id="cuppingCalendarSummary"></div>
           <div class="calendar-grid" id="cuppingCalendar"></div>
+          <form class="panel notice-panel" id="cuppingBatchForm" style="margin-top: 12px;">
+            <div class="section-title" style="margin-bottom: 0;">
+              <div>
+                <h3>연결 로스팅 배치 선택</h3>
+                <p class="hint" id="cuppingBatchHint">커핑일에 연결되는 로스팅 데이터를 불러옵니다.</p>
+              </div>
+            </div>
+            <div class="notice-list" id="cuppingBatchList"></div>
+            <div class="field">
+              <label for="cuppingBatchCommentInput">선택 배치 공통 코멘트</label>
+              <textarea id="cuppingBatchCommentInput" placeholder="예: 비터 강하다 / 바디 약하다 / 문제없음"></textarea>
+            </div>
+            <button class="primary" type="submit">선택 배치 코멘트 저장</button>
+            <p id="cuppingBatchMessage"></p>
+          </form>
           <div class="panel record-list" id="cuppingRecentList"></div>
         </section>
 
@@ -2549,6 +2564,7 @@
     const seedEntryIds = new Set(seedEntries.map((entry) => entry.id));
 
     const quickCuppingForm = document.querySelector("#quickCuppingForm");
+    const cuppingBatchForm = document.querySelector("#cuppingBatchForm");
     const form = document.querySelector("#qcForm");
     const qcSubmitButton = document.querySelector("#qcSubmitButton");
     const resetButton = document.querySelector("#resetButton");
@@ -2643,6 +2659,12 @@
     const quickCuppingFields = {
       input: document.querySelector("#quickCuppingInput"),
       message: document.querySelector("#quickCuppingMessage")
+    };
+    const cuppingBatchFields = {
+      hint: document.querySelector("#cuppingBatchHint"),
+      list: document.querySelector("#cuppingBatchList"),
+      comment: document.querySelector("#cuppingBatchCommentInput"),
+      message: document.querySelector("#cuppingBatchMessage")
     };
     const searchCalendarTitle = document.querySelector("#searchCalendarTitle");
     const searchCalendarSummary = document.querySelector("#searchCalendarSummary");
@@ -2784,6 +2806,7 @@
     let selectedRoastingDate = "";
     let cuppingCalendarMonth = today().slice(0, 7);
     let selectedCuppingDate = "";
+    let selectedCuppingBatchIds = new Set();
     let ratioCalendarMonth = today().slice(0, 7);
     let selectedRatioDate = "";
     let editingCuppingId = "";
@@ -4090,6 +4113,73 @@
       return leftRange[0] <= rightRange[1] && rightRange[0] <= leftRange[1];
     }
 
+    function batchStartNumber(batch) {
+      const range = batchNumberRange(batch);
+      return range ? range[0] : Number.MAX_SAFE_INTEGER;
+    }
+
+    function batchRangeFromNumbers(numbers) {
+      const sorted = [...new Set(numbers)].sort((a, b) => a - b);
+      if (!sorted.length) return "";
+      if (sorted.length === 1) return `#${sorted[0]}`;
+      return `#${sorted[0]}~#${sorted[sorted.length - 1]}`;
+    }
+
+    function selectedCuppingRoastDate() {
+      return roastDateFromCuppingDate(selectedCuppingDate || fields.roastDate.value || today());
+    }
+
+    function cuppingRoastingCandidates() {
+      const roastDate = selectedCuppingRoastDate();
+      return sortEntriesByDate(entries)
+        .filter((entry) => entry.entryType === "roasting" && entry.roastDate === roastDate)
+        .sort((left, right) => {
+          const blendDiff = String(left.blend || "").localeCompare(String(right.blend || ""), "ko");
+          if (blendDiff) return blendDiff;
+          return batchStartNumber(left.batch) - batchStartNumber(right.batch);
+        });
+    }
+
+    function groupSelectedRoastingEntries(selectedEntries) {
+      const byBlend = selectedEntries.reduce((acc, entry) => {
+        const key = entry.blend || "미분류";
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(entry);
+        return acc;
+      }, {});
+      return Object.entries(byBlend).flatMap(([blend, blendEntries]) => {
+        const sorted = [...blendEntries].sort((left, right) => batchStartNumber(left.batch) - batchStartNumber(right.batch));
+        const numericEntries = sorted.filter((entry) => batchNumberRange(entry.batch));
+        const nonNumericEntries = sorted.filter((entry) => !batchNumberRange(entry.batch));
+        const groups = [];
+        let current = [];
+        numericEntries.forEach((entry) => {
+          const range = batchNumberRange(entry.batch);
+          const last = current[current.length - 1];
+          const lastRange = last ? batchNumberRange(last.batch) : null;
+          if (!lastRange || range[0] <= lastRange[1] + 1) {
+            current.push(entry);
+            return;
+          }
+          groups.push(current);
+          current = [entry];
+        });
+        if (current.length) groups.push(current);
+        nonNumericEntries.forEach((entry) => groups.push([entry]));
+        return groups.map((group) => {
+          const numbers = group.flatMap((entry) => batchNumberRange(entry.batch) || []);
+          const roasters = Array.from(new Set(group.map((entry) => normalizedRoastData(entry).roaster).filter(Boolean)));
+          return {
+            blend,
+            roastDate: group[0]?.roastDate || selectedCuppingRoastDate(),
+            batch: numbers.length ? batchRangeFromNumbers(numbers) : group.map((entry) => entry.batch).join(", "),
+            roaster: roasters.length === 1 ? roasters[0] : "",
+            sourceIds: group.map((entry) => entry.id)
+          };
+        });
+      });
+    }
+
     function linkedRoastingEntries(entry) {
       if (!isCuppingEntry(entry)) return [];
       return entries.filter((candidate) => (
@@ -4628,6 +4718,47 @@
       cuppingCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
+    function renderCuppingBatchPicker() {
+      const cuppingDate = selectedCuppingDate || fields.roastDate.value || today();
+      const roastDate = roastDateFromCuppingDate(cuppingDate);
+      const candidates = cuppingRoastingCandidates();
+      const validIds = new Set(candidates.map((entry) => entry.id));
+      selectedCuppingBatchIds = new Set([...selectedCuppingBatchIds].filter((id) => validIds.has(id)));
+      cuppingBatchFields.hint.textContent = `${cuppingDate} 커핑일 기준 연결 로스팅일은 ${roastDate}입니다.`;
+      if (!candidates.length) {
+        cuppingBatchFields.list.innerHTML = `<div class="empty">${roastDate}에 저장된 로스팅 배치가 없습니다.</div>`;
+        return;
+      }
+      const grouped = candidates.reduce((acc, entry) => {
+        const key = entry.blend || "미분류";
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(entry);
+        return acc;
+      }, {});
+      cuppingBatchFields.list.innerHTML = Object.entries(grouped).map(([blend, blendEntries]) => `
+        <section class="comment-blend-group">
+          <div class="comment-blend-head">
+            <div>
+              <h4>${escapeHtml(blend)}</h4>
+              <p class="hint">${escapeHtml(roastDate)} 로스팅 배치 ${blendEntries.length}개</p>
+            </div>
+            <button type="button" data-select-cupping-blend="${escapeHtml(blend)}">전체 선택</button>
+          </div>
+          <div class="issue-type-grid">
+            ${blendEntries.map((entry) => {
+              const roastData = normalizedRoastData(entry);
+              return `
+                <label>
+                  <input type="checkbox" data-cupping-roast-entry="${escapeHtml(entry.id)}" ${selectedCuppingBatchIds.has(entry.id) ? "checked" : ""}>
+                  ${escapeHtml(entry.batch || "-")} ${escapeHtml(roastData.roaster || "")}
+                </label>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      `).join("");
+    }
+
     function renderDashboardRecent(monthEntries) {
       const recentRoasting = monthEntries
         .filter((entry) => entry.entryType === "roasting" && isEntryInLastDays(entry, 3))
@@ -4858,6 +4989,7 @@
       renderRatioCalendar();
       renderRoastingCalendar();
       renderCuppingCalendar();
+      renderCuppingBatchPicker();
       renderDashboardRecent(monthEntries);
       renderSummary(monthEntries);
       renderRatioNotices();
@@ -4935,6 +5067,44 @@
       writeEntries(entries);
       quickCuppingFields.input.value = "";
       quickCuppingFields.message.textContent = `${newEntries.length}개 커핑 코멘트를 저장했습니다.`;
+      render();
+    });
+
+    cuppingBatchForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!canInputCupping(approvedSessionUser())) return;
+      const note = normalizeText(cuppingBatchFields.comment.value);
+      if (!selectedCuppingBatchIds.size) {
+        cuppingBatchFields.message.textContent = "코멘트를 적용할 로스팅 배치를 선택해주세요.";
+        return;
+      }
+      if (!note) {
+        cuppingBatchFields.message.textContent = "선택 배치에 저장할 코멘트를 입력해주세요.";
+        return;
+      }
+      const candidates = cuppingRoastingCandidates();
+      const selectedEntries = candidates.filter((entry) => selectedCuppingBatchIds.has(entry.id));
+      const groupedEntries = groupSelectedRoastingEntries(selectedEntries);
+      const cuppingDate = selectedCuppingDate || fields.roastDate.value || today();
+      const newEntries = groupedEntries.map((group) => cuppingEntryFromFields({
+        id: makeId(),
+        cuppingDate,
+        roastDate: group.roastDate,
+        blend: group.blend,
+        roaster: group.roaster,
+        batch: group.batch,
+        verdict: inferVerdictFromText(note, "hold"),
+        flavorIssue: note,
+        roastDiagnosis: "",
+        solution: "",
+        note,
+        tags: ["배치선택", ...inferIssueTypesFromText(note)]
+      }));
+      entries = [...newEntries, ...entries];
+      writeEntries(entries);
+      cuppingBatchFields.comment.value = "";
+      selectedCuppingBatchIds = new Set();
+      cuppingBatchFields.message.textContent = `${newEntries.length}개 커핑 코멘트를 선택 배치에 저장했습니다.`;
       render();
     });
 
@@ -5501,6 +5671,24 @@
     roastingRecentList.addEventListener("click", handleEntryAction);
     espressoRecentList.addEventListener("click", handleEntryAction);
 
+    cuppingBatchFields.list.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-cupping-roast-entry]");
+      if (!input) return;
+      if (input.checked) selectedCuppingBatchIds.add(input.dataset.cuppingRoastEntry);
+      else selectedCuppingBatchIds.delete(input.dataset.cuppingRoastEntry);
+      renderCuppingBatchPicker();
+    });
+
+    cuppingBatchFields.list.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-select-cupping-blend]");
+      if (!button) return;
+      const blend = button.dataset.selectCuppingBlend;
+      cuppingRoastingCandidates()
+        .filter((entry) => entry.blend === blend)
+        .forEach((entry) => selectedCuppingBatchIds.add(entry.id));
+      render();
+    });
+
     roastingCorrectionList.addEventListener("click", (event) => {
       const editButton = event.target.closest("[data-edit-correction]");
       if (editButton) {
@@ -5613,18 +5801,21 @@
       if (!button) return;
       selectedCuppingDate = selectedCuppingDate === button.dataset.cuppingDate ? "" : button.dataset.cuppingDate;
       if (selectedCuppingDate) fields.roastDate.value = selectedCuppingDate;
+      selectedCuppingBatchIds = new Set();
       render();
     });
 
     cuppingCalendarPrevButton.addEventListener("click", () => {
       cuppingCalendarMonth = shiftMonthKey(cuppingCalendarMonth, -1);
       selectedCuppingDate = "";
+      selectedCuppingBatchIds = new Set();
       render();
     });
 
     cuppingCalendarTodayButton.addEventListener("click", () => {
       cuppingCalendarMonth = today().slice(0, 7);
       selectedCuppingDate = "";
+      selectedCuppingBatchIds = new Set();
       fields.roastDate.value = today();
       render();
     });
@@ -5632,11 +5823,13 @@
     cuppingCalendarNextButton.addEventListener("click", () => {
       cuppingCalendarMonth = shiftMonthKey(cuppingCalendarMonth, 1);
       selectedCuppingDate = "";
+      selectedCuppingBatchIds = new Set();
       render();
     });
 
     cuppingCalendarClearButton.addEventListener("click", () => {
       selectedCuppingDate = "";
+      selectedCuppingBatchIds = new Set();
       render();
     });
 
@@ -5644,6 +5837,7 @@
       if (!fields.roastDate.value) return;
       selectedCuppingDate = fields.roastDate.value;
       cuppingCalendarMonth = fields.roastDate.value.slice(0, 7);
+      selectedCuppingBatchIds = new Set();
       render();
     });
 
