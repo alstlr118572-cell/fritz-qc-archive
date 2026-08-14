@@ -2265,7 +2265,7 @@
             </div>
             <div class="field">
               <label for="roastingBulkInput">로스팅 데이터 원문</label>
-              <textarea id="roastingBulkInput" placeholder="8/3 검댕이 110pa 53hz 홍길동&#10;올1 236/62/174.5/14:55/50/54.8&#10;올(강) 2 236/55/174/14:12/45.6/55.9&#10;노올3 236/55/174/14:12/45.6/55.9"></textarea>
+              <textarea id="roastingBulkInput" placeholder="8/3 검댕이 110pa 53hz 홍길동&#10;올1 236/62/174.5/14:55/50/54.8&#10;올2(강) 236/55/174/14:12/45.6/55.9&#10;노올3 236/55/174/14:12/45.6/55.9"></textarea>
             </div>
             <button class="primary" type="submit">일괄 저장</button>
             <p id="roastingBulkMessage"></p>
@@ -3870,13 +3870,14 @@
       const compact = compactBlendToken(label);
       const numericOnly = compact.match(/^#?(\d+)$/);
       if (numericOnly) return { blend: fallbackBlend, batch: `#${numericOnly[1]}`, roaster: "" };
-      const match = compact.match(/^([^\d#]+)#?(\d+)$/);
+      const match = compact.match(/^([^\d#]+)#?(\d+)(?:\(?((?:강배전|강))\)?)?$/);
       if (!match) {
         const markerInfo = splitRoasterMarker(compact);
         const blend = blendFromRoastMarker(markerInfo.marker);
         return { blend, batch: compact, roaster: markerInfo.roaster };
       }
-      const markerInfo = splitRoasterMarker(match[1]);
+      const marker = match[3] ? `${match[1]}(${match[3]})` : match[1];
+      const markerInfo = splitRoasterMarker(marker);
       const prefix = markerInfo.marker;
       const number = match[2];
       const roaster = markerInfo.roaster;
