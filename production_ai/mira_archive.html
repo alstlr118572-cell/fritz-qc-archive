@@ -2085,8 +2085,8 @@
           </div>
           <div class="calendar-head">
             <div>
-              <h3 id="cuppingCalendarTitle">커핑 코멘트 달력</h3>
-              <p class="hint">날짜를 누르면 해당 커핑일로 일괄 코멘트를 저장합니다.</p>
+              <h3 id="cuppingCalendarTitle">로스팅 배치 달력</h3>
+              <p class="hint">날짜를 누르면 해당 로스팅일의 배치를 선택해 커핑 코멘트를 저장합니다.</p>
             </div>
             <div class="calendar-actions">
               <button type="button" id="cuppingCalendarPrevButton">이전 달</button>
@@ -2101,7 +2101,7 @@
             <div class="section-title" style="margin-bottom: 0;">
               <div>
                 <h3>연결 로스팅 배치 선택</h3>
-                <p class="hint" id="cuppingBatchHint">커핑일에 연결되는 로스팅 데이터를 불러옵니다.</p>
+                <p class="hint" id="cuppingBatchHint">달력에서 선택한 로스팅 데이터를 불러옵니다.</p>
               </div>
             </div>
             <div class="notice-list" id="cuppingBatchList"></div>
@@ -4126,11 +4126,12 @@
     }
 
     function selectedCuppingRoastDate() {
-      return roastDateFromCuppingDate(selectedCuppingDate || fields.roastDate.value || today());
+      return selectedCuppingDate || "";
     }
 
     function cuppingRoastingCandidates() {
       const roastDate = selectedCuppingRoastDate();
+      if (!roastDate) return [];
       return sortEntriesByDate(entries)
         .filter((entry) => entry.entryType === "roasting" && entry.roastDate === roastDate)
         .sort((left, right) => {
@@ -4686,9 +4687,9 @@
       const lastDate = new Date(year, month, 0);
       const leadingEmptyDays = firstDate.getDay();
       const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-      const cuppingEntries = entries.filter(isCuppingEntry);
-      const countByDate = cuppingEntries.reduce((acc, entry) => {
-        const value = entry.cuppingDate || "";
+      const roastingEntries = entries.filter((entry) => entry.entryType === "roasting");
+      const countByDate = roastingEntries.reduce((acc, entry) => {
+        const value = entry.roastDate || "";
         if (value.slice(0, 7) !== cuppingCalendarMonth) return acc;
         acc[value] = (acc[value] || 0) + 1;
         return acc;
@@ -4703,28 +4704,32 @@
         dayButtons.push(`
           <button type="button" class="calendar-day ${count ? "has-data" : ""} ${selectedCuppingDate === dateValue ? "selected" : ""}" data-cupping-date="${dateValue}">
             <strong>${day}</strong>
-            ${count ? `<span>${count}개 코멘트</span>` : ""}
+            ${count ? `<span>${count}개 배치</span>` : ""}
           </button>
         `);
       }
       const monthCount = Object.values(countByDate).reduce((sum, count) => sum + count, 0);
       const selectedCount = selectedCuppingDate
-        ? cuppingEntries.filter((entry) => entry.cuppingDate === selectedCuppingDate).length
+        ? roastingEntries.filter((entry) => entry.roastDate === selectedCuppingDate).length
         : 0;
-      cuppingCalendarTitle.textContent = `${monthLabel(cuppingCalendarMonth)} 커핑 달력`;
+      cuppingCalendarTitle.textContent = `${monthLabel(cuppingCalendarMonth)} 로스팅 배치 달력`;
       cuppingCalendarSummary.innerHTML = selectedCuppingDate
-        ? `<span>선택 커핑일 ${escapeHtml(selectedCuppingDate)}</span><span>저장된 코멘트 ${selectedCount}개</span>`
-        : `<span>날짜를 선택하면 왼쪽 코멘트 빠른 입력의 커핑일로 사용합니다.</span><span>${monthLabel(cuppingCalendarMonth)} 코멘트 ${monthCount}개</span>`;
+        ? `<span>선택 로스팅일 ${escapeHtml(selectedCuppingDate)}</span><span>로스팅 배치 ${selectedCount}개</span>`
+        : `<span>날짜를 선택하면 해당 로스팅일의 배치를 아래에서 선택할 수 있습니다.</span><span>${monthLabel(cuppingCalendarMonth)} 로스팅 배치 ${monthCount}개</span>`;
       cuppingCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
     function renderCuppingBatchPicker() {
-      const cuppingDate = selectedCuppingDate || fields.roastDate.value || today();
-      const roastDate = roastDateFromCuppingDate(cuppingDate);
+      const roastDate = selectedCuppingRoastDate();
       const candidates = cuppingRoastingCandidates();
       const validIds = new Set(candidates.map((entry) => entry.id));
       selectedCuppingBatchIds = new Set([...selectedCuppingBatchIds].filter((id) => validIds.has(id)));
-      cuppingBatchFields.hint.textContent = `${cuppingDate} 커핑일 기준 연결 로스팅일은 ${roastDate}입니다.`;
+      if (!roastDate) {
+        cuppingBatchFields.hint.textContent = "달력에서 로스팅일을 선택하면 해당 날짜의 배치가 표시됩니다.";
+        cuppingBatchFields.list.innerHTML = `<div class="empty">먼저 로스팅 배치 달력에서 날짜를 선택해주세요.</div>`;
+        return;
+      }
+      cuppingBatchFields.hint.textContent = `${roastDate} 로스팅 배치를 선택해 같은 코멘트를 일괄 저장합니다.`;
       if (!candidates.length) {
         cuppingBatchFields.list.innerHTML = `<div class="empty">${roastDate}에 저장된 로스팅 배치가 없습니다.</div>`;
         return;
@@ -5022,12 +5027,12 @@
         : `<div class="empty">아직 표시할 로스팅 수정 지표가 없습니다.</div>`;
       const cuppingInputEntries = entries.filter((entry) => {
         if (!isCuppingEntry(entry)) return false;
-        if (selectedCuppingDate) return entry.cuppingDate === selectedCuppingDate;
-        return entry.cuppingDate?.slice(0, 7) === cuppingCalendarMonth;
+        if (selectedCuppingDate) return entry.roastDate === selectedCuppingDate;
+        return entry.roastDate?.slice(0, 7) === cuppingCalendarMonth;
       });
       cuppingRecentList.innerHTML = cuppingInputEntries.length
-        ? `<div class="list-summary"><span>${selectedCuppingDate ? selectedCuppingDate : monthLabel(cuppingCalendarMonth)} 커핑 코멘트 ${cuppingInputEntries.length}개</span><span>${selectedCuppingDate ? "선택일" : "월간"}</span></div>${cuppingInputEntries.map((entry) => cardMarkup(entry)).join("")}`
-        : `<div class="empty">선택한 기간에 저장된 커핑 코멘트가 없습니다.</div>`;
+        ? `<div class="list-summary"><span>${selectedCuppingDate ? `${selectedCuppingDate} 로스팅 연결` : monthLabel(cuppingCalendarMonth)} 커핑 코멘트 ${cuppingInputEntries.length}개</span><span>${selectedCuppingDate ? "선택 로스팅일" : "월간"}</span></div>${cuppingInputEntries.map((entry) => cardMarkup(entry)).join("")}`
+        : `<div class="empty">선택한 로스팅 기간에 저장된 커핑 코멘트가 없습니다.</div>`;
       const roastingEntries = entries.filter((entry) => {
         if (entry.entryType !== "roasting") return false;
         if (selectedRoastingDate) return entry.roastDate === selectedRoastingDate;
@@ -5052,7 +5057,8 @@
       }
       const newEntries = parsed.map((item) => cuppingEntryFromFields({
         id: makeId(),
-        cuppingDate: selectedCuppingDate || fields.roastDate.value || today(),
+        cuppingDate: fields.roastDate.value || today(),
+        roastDate: selectedCuppingDate || roastDateFromCuppingDate(fields.roastDate.value || today()),
         blend: item.blend,
         roaster: item.roaster,
         batch: item.batch,
@@ -5085,7 +5091,7 @@
       const candidates = cuppingRoastingCandidates();
       const selectedEntries = candidates.filter((entry) => selectedCuppingBatchIds.has(entry.id));
       const groupedEntries = groupSelectedRoastingEntries(selectedEntries);
-      const cuppingDate = selectedCuppingDate || fields.roastDate.value || today();
+      const cuppingDate = fields.roastDate.value || today();
       const newEntries = groupedEntries.map((group) => cuppingEntryFromFields({
         id: makeId(),
         cuppingDate,
@@ -5800,7 +5806,6 @@
       const button = event.target.closest("[data-cupping-date]");
       if (!button) return;
       selectedCuppingDate = selectedCuppingDate === button.dataset.cuppingDate ? "" : button.dataset.cuppingDate;
-      if (selectedCuppingDate) fields.roastDate.value = selectedCuppingDate;
       selectedCuppingBatchIds = new Set();
       render();
     });
@@ -5835,9 +5840,6 @@
 
     fields.roastDate.addEventListener("change", () => {
       if (!fields.roastDate.value) return;
-      selectedCuppingDate = fields.roastDate.value;
-      cuppingCalendarMonth = fields.roastDate.value.slice(0, 7);
-      selectedCuppingBatchIds = new Set();
       render();
     });
 
