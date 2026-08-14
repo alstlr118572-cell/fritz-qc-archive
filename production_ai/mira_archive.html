@@ -1652,7 +1652,7 @@
         <button type="button" class="active" data-app-view="dashboard">QC 종합 현황판</button>
         <button type="button" data-app-view="search">검색</button>
         <button type="button" data-app-view="comments">커핑 코멘트</button>
-        <button type="button" data-app-view="corrections">로스팅 수정 지표</button>
+        <button type="button" data-app-view="corrections">로스팅 프로파일 변경내용</button>
         <button type="button" data-app-view="green" id="greenPageButton">생두 관리</button>
         <button type="button" data-app-view="ratios">생두 비율 이력</button>
         <button type="button" data-app-view="roasting" id="roastingPageButton">로스팅 입력</button>
@@ -2023,8 +2023,8 @@
         <section class="panel cupping-panel app-panel" data-app-panel="corrections">
           <div class="section-title">
             <div>
-              <h3>로스팅 수정 지표</h3>
-              <p class="hint">커핑에서 발견된 문제를 기준으로 로스팅 문제 진단과 다음 배치 솔루션을 한눈에 확인합니다.</p>
+              <h3>로스팅 프로파일 변경내용</h3>
+              <p class="hint">블렌드별 로스팅 프로파일 변경 이력을 날짜 기준으로 기록합니다.</p>
             </div>
           </div>
           <form class="notice-form" id="correctionForm">
@@ -2036,25 +2036,27 @@
               <label for="correctionDateInput">기준일</label>
               <input id="correctionDateInput" type="date" required>
             </div>
-            <div class="field">
-              <label for="correctionBatchInput">배치</label>
-              <input id="correctionBatchInput" required placeholder="예: #1~#6">
-            </div>
-            <div class="field">
-              <label for="correctionFlavorIssueInput">문제향미지표</label>
-              <input id="correctionFlavorIssueInput" placeholder="예: 그슬린 향미 / 바디감 가벼움">
-            </div>
-            <button class="primary" type="submit" id="correctionSubmitButton">지표 저장</button>
             <div class="field" style="grid-column: 1 / -1;">
-              <label for="correctionDiagnosisInput">로스팅 문제 진단</label>
-              <textarea id="correctionDiagnosisInput" required placeholder="예: 후반 화력 하락, 배출온도 대비 색도 낮음"></textarea>
+              <label for="correctionSolutionInput">변경내용</label>
+              <textarea id="correctionSolutionInput" required placeholder="예: 배출온도 174.5도 기준으로 조정 / 후반 화력 +3 / 1차 크랙 이후 유지 시간 단축"></textarea>
             </div>
-            <div class="field" style="grid-column: 1 / -1;">
-              <label for="correctionSolutionInput">솔루션</label>
-              <textarea id="correctionSolutionInput" required placeholder="예: 다음 배치 화력 +3, 배출 전 유지 시간 조정"></textarea>
-            </div>
+            <button class="primary" type="submit" id="correctionSubmitButton">변경내용 저장</button>
             <p id="correctionMessage"></p>
           </form>
+          <div class="calendar-head" style="margin-top: 12px;">
+            <div>
+              <h3 id="correctionCalendarTitle">프로파일 변경 달력</h3>
+              <p class="hint">날짜를 누르면 해당 기준일의 변경내용만 확인합니다.</p>
+            </div>
+            <div class="calendar-actions">
+              <button type="button" id="correctionCalendarPrevButton">이전 달</button>
+              <button type="button" id="correctionCalendarTodayButton">이번 달</button>
+              <button type="button" id="correctionCalendarNextButton">다음 달</button>
+              <button type="button" id="correctionCalendarClearButton">날짜 해제</button>
+            </div>
+          </div>
+          <div class="calendar-summary" id="correctionCalendarSummary"></div>
+          <div class="calendar-grid" id="correctionCalendar"></div>
           <div class="comment-list" id="roastingCorrectionList"></div>
         </section>
 
@@ -2767,6 +2769,13 @@
     const cuppingCalendarTodayButton = document.querySelector("#cuppingCalendarTodayButton");
     const cuppingCalendarNextButton = document.querySelector("#cuppingCalendarNextButton");
     const cuppingCalendarClearButton = document.querySelector("#cuppingCalendarClearButton");
+    const correctionCalendarTitle = document.querySelector("#correctionCalendarTitle");
+    const correctionCalendarSummary = document.querySelector("#correctionCalendarSummary");
+    const correctionCalendar = document.querySelector("#correctionCalendar");
+    const correctionCalendarPrevButton = document.querySelector("#correctionCalendarPrevButton");
+    const correctionCalendarTodayButton = document.querySelector("#correctionCalendarTodayButton");
+    const correctionCalendarNextButton = document.querySelector("#correctionCalendarNextButton");
+    const correctionCalendarClearButton = document.querySelector("#correctionCalendarClearButton");
     const filters = {
       search: document.querySelector("#searchInput"),
       category: document.querySelector("#categoryFilter"),
@@ -2806,9 +2815,6 @@
     const correctionFields = {
       blend: document.querySelector("#correctionBlendInput"),
       date: document.querySelector("#correctionDateInput"),
-      batch: document.querySelector("#correctionBatchInput"),
-      flavorIssue: document.querySelector("#correctionFlavorIssueInput"),
-      diagnosis: document.querySelector("#correctionDiagnosisInput"),
       solution: document.querySelector("#correctionSolutionInput"),
       message: document.querySelector("#correctionMessage")
     };
@@ -2881,6 +2887,8 @@
     let selectedRoastingDate = "";
     let cuppingCalendarMonth = today().slice(0, 7);
     let selectedCuppingDate = "";
+    let correctionCalendarMonth = today().slice(0, 7);
+    let selectedCorrectionDate = "";
     let selectedCuppingBatchIds = new Set();
     let ratioCalendarMonth = today().slice(0, 7);
     let selectedRatioDate = "";
@@ -3142,7 +3150,7 @@
     const permissionOptions = [
       ["cupping", "커핑 코멘트"],
       ["roasting", "로스팅 데이터"],
-      ["correction", "로스팅 솔루션"],
+      ["correction", "로스팅 프로파일 변경내용"],
       ["green", "생두 관리"],
       ["espresso", "추출 평가"]
     ];
@@ -4004,7 +4012,7 @@
       }
       if (!type || type === "correction") {
         editingCorrectionId = "";
-        correctionSubmitButton.textContent = "지표 저장";
+        correctionSubmitButton.textContent = "변경내용 저장";
       }
       if (!type || type === "green") {
         editingGreenBeanId = "";
@@ -4092,12 +4100,9 @@
       editingCorrectionId = indicator.id;
       correctionFields.blend.value = indicator.blend || "올드독";
       correctionFields.date.value = indicator.roastDate || indicator.cuppingDate || today();
-      correctionFields.batch.value = indicator.batch || "";
-      correctionFields.flavorIssue.value = detail.flavorIssue;
-      correctionFields.diagnosis.value = detail.roastDiagnosis;
-      correctionFields.solution.value = detail.solution;
+      correctionFields.solution.value = normalizeText([detail.roastDiagnosis, detail.solution].filter(Boolean).join(" / "));
       correctionFields.message.textContent = "";
-      correctionSubmitButton.textContent = "지표 수정";
+      correctionSubmitButton.textContent = "변경내용 수정";
       setAppView("corrections");
     }
 
@@ -4591,31 +4596,23 @@
       const user = approvedSessionUser();
       const isStandaloneCorrection = entry.entryType === "correction";
       const editButton = isStandaloneCorrection && canManageCorrections(user) ? `<button type="button" data-edit-correction="${escapeHtml(entry.id)}">수정</button>` : "";
-      const deleteButton = isStandaloneCorrection && isPrimaryAdmin(user) ? `<button class="delete" type="button" data-delete-correction="${escapeHtml(entry.id)}" title="수정 지표 삭제">×</button>` : "";
+      const deleteButton = isStandaloneCorrection && isPrimaryAdmin(user) ? `<button class="delete" type="button" data-delete-correction="${escapeHtml(entry.id)}" title="프로파일 변경내용 삭제">×</button>` : "";
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
+      const changeText = normalizeText(entry.entryType === "correction"
+        ? detail.solution || detail.roastDiagnosis || entry.note
+        : [detail.roastDiagnosis, detail.solution].filter(Boolean).join(" / "));
       return `
         <article class="comment-item">
           <div class="comment-date">
-            커핑 ${escapeHtml(entry.cuppingDate || "-")}<br>
-            로스팅 ${escapeHtml(entry.roastDate || "-")}
+            기준일<br>
+            ${escapeHtml(entry.roastDate || entry.cuppingDate || "-")}
           </div>
           <div>
             <div class="qc-head">
-              <h4 class="qc-title">${escapeHtml(entry.blend || "-")} ${escapeHtml(entry.batch || "")}</h4>
-              <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
+              <h4 class="qc-title">${escapeHtml(entry.blend || "-")}</h4>
+              <span class="tag blue">프로파일 변경</span>
             </div>
-            <div class="meta">
-              <span class="tag blue">평가자 ${escapeHtml(entryEvaluatorName(entry))}</span>
-              <span class="tag">문제향미 ${escapeHtml(detail.flavorIssue || "기록 없음")}</span>
-            </div>
-            <div class="comment-field-block">
-              <strong>로스팅 문제 진단</strong>
-              <p>${escapeHtml(detail.roastDiagnosis || "진단 기록 없음")}</p>
-            </div>
-            <div class="comment-field-block">
-              <strong>솔루션</strong>
-              <p>${escapeHtml(detail.solution || "솔루션 기록 없음")}</p>
-            </div>
+            <p class="qc-body">${escapeHtml(changeText || "변경내용 기록 없음")}</p>
           </div>
           ${actions}
         </article>
@@ -4627,7 +4624,7 @@
         const detail = normalizedCuppingDetail(entry);
         return detail.flavorIssue || detail.roastDiagnosis || detail.solution || normalizeVerdict(entry.verdict) !== "pass";
       });
-      if (!correctionEntries.length) return `<div class="empty">표시할 로스팅 수정 지표가 없습니다.</div>`;
+      if (!correctionEntries.length) return `<div class="empty">표시할 로스팅 프로파일 변경내용이 없습니다.</div>`;
       return Object.entries(categorizedBlendMap()).map(([category, categoryBlends]) => {
         const blendGroups = categoryBlends.map((blend) => {
           const blendEntries = correctionEntries.filter((entry) => entry.blend === blend);
@@ -4639,7 +4636,7 @@
                   <h4>${escapeHtml(blend)}</h4>
                   <div class="meta">
                     <span class="tag blue">${escapeHtml(category)}</span>
-                    <span class="tag">수정 지표 ${blendEntries.length}개</span>
+                    <span class="tag">변경내용 ${blendEntries.length}개</span>
                   </div>
                 </div>
               </div>
@@ -4774,6 +4771,57 @@
         ? `<span>선택 적용일 ${escapeHtml(selectedRatioDate)}</span><span>변경 내역 ${ratioNotices.filter((notice) => notice.effectiveDate === selectedRatioDate).length}개</span>`
         : `<span>날짜를 선택하지 않으면 전체 변경 이력을 표시합니다.</span><span>${monthLabel(ratioCalendarMonth)} 변경 ${Object.values(countByDate).reduce((sum, count) => sum + count, 0)}개</span>`;
       ratioCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
+    }
+
+    function correctionEntryDate(entry) {
+      return entry.roastDate || entry.cuppingDate || entry.createdAt || "";
+    }
+
+    function profileChangeSource(cuppingEntries) {
+      return [
+        ...correctionIndicators,
+        ...cuppingEntries.filter((entry) => {
+          const detail = normalizedCuppingDetail(entry);
+          return detail.roastDiagnosis || detail.solution;
+        })
+      ];
+    }
+
+    function renderCorrectionCalendar(correctionSource) {
+      const [year, month] = correctionCalendarMonth.split("-").map(Number);
+      const firstDate = new Date(year, month - 1, 1);
+      const lastDate = new Date(year, month, 0);
+      const leadingEmptyDays = firstDate.getDay();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const countByDate = correctionSource.reduce((acc, entry) => {
+        const value = correctionEntryDate(entry);
+        if (value.slice(0, 7) !== correctionCalendarMonth) return acc;
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      }, {});
+      const dayButtons = [];
+      for (let index = 0; index < leadingEmptyDays; index += 1) {
+        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      }
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${correctionCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const count = countByDate[dateValue] || 0;
+        dayButtons.push(`
+          <button type="button" class="calendar-day ${count ? "has-data" : ""} ${selectedCorrectionDate === dateValue ? "selected" : ""}" data-correction-date="${dateValue}">
+            <strong>${day}</strong>
+            ${count ? `<span>${count}개 변경</span>` : ""}
+          </button>
+        `);
+      }
+      const monthCount = Object.values(countByDate).reduce((sum, count) => sum + count, 0);
+      const selectedCount = selectedCorrectionDate
+        ? correctionSource.filter((entry) => correctionEntryDate(entry) === selectedCorrectionDate).length
+        : 0;
+      correctionCalendarTitle.textContent = `${monthLabel(correctionCalendarMonth)} 프로파일 변경 달력`;
+      correctionCalendarSummary.innerHTML = selectedCorrectionDate
+        ? `<span>선택 기준일 ${escapeHtml(selectedCorrectionDate)}</span><span>변경내용 ${selectedCount}개</span>`
+        : `<span>날짜를 선택하지 않으면 ${monthLabel(correctionCalendarMonth)} 전체 변경내용을 표시합니다.</span><span>월간 변경 ${monthCount}개</span>`;
+      correctionCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
     function renderRoastingCalendar() {
@@ -5148,16 +5196,16 @@
       cuppingCommentList.innerHTML = cuppingEntries.length
         ? `${cuppingCommentSummaryMarkup(cuppingEntries)}${cuppingCommentGroupMarkup(cuppingEntries)}`
         : `<div class="empty">아직 저장된 커핑 코멘트가 없습니다.</div>`;
-      const correctionSource = [
-        ...correctionIndicators,
-        ...cuppingEntries.filter((entry) => {
-          const detail = normalizedCuppingDetail(entry);
-          return detail.roastDiagnosis || detail.solution;
-        })
-      ];
-      roastingCorrectionList.innerHTML = correctionSource.length
-        ? roastingCorrectionGroupMarkup(correctionSource)
-        : `<div class="empty">아직 표시할 로스팅 수정 지표가 없습니다.</div>`;
+      const correctionSource = profileChangeSource(cuppingEntries);
+      renderCorrectionCalendar(correctionSource);
+      const visibleCorrectionSource = correctionSource.filter((entry) => {
+        const value = correctionEntryDate(entry);
+        if (selectedCorrectionDate) return value === selectedCorrectionDate;
+        return value.slice(0, 7) === correctionCalendarMonth;
+      });
+      roastingCorrectionList.innerHTML = visibleCorrectionSource.length
+        ? roastingCorrectionGroupMarkup(visibleCorrectionSource)
+        : `<div class="empty">아직 표시할 로스팅 프로파일 변경내용이 없습니다.</div>`;
       const cuppingInputEntries = entries.filter((entry) => {
         if (!isCuppingEntry(entry)) return false;
         if (selectedCuppingDate) return entry.roastDate === selectedCuppingDate;
@@ -5319,26 +5367,23 @@
       event.preventDefault();
       const user = approvedSessionUser();
       if (!canManageCorrections(user)) return;
+      const profileChange = normalizeText(correctionFields.solution.value);
       const indicator = {
         id: editingCorrectionId || makeId(),
         entryType: "correction",
         blend: correctionFields.blend.value,
         roastDate: correctionFields.date.value || today(),
         cuppingDate: correctionFields.date.value || today(),
-        batch: normalizeBatchRange(correctionFields.batch.value),
-        roastLevel: "로스팅 수정 지표",
+        batch: "",
+        roastLevel: "로스팅 프로파일 변경내용",
         verdict: "hold",
         cuppingDetail: {
-          flavorIssue: normalizeText(correctionFields.flavorIssue.value),
-          roastDiagnosis: normalizeText(correctionFields.diagnosis.value),
-          solution: normalizeText(correctionFields.solution.value)
+          flavorIssue: "",
+          roastDiagnosis: "",
+          solution: profileChange
         },
-        note: cuppingDetailNote({
-          flavorIssue: normalizeText(correctionFields.flavorIssue.value),
-          roastDiagnosis: normalizeText(correctionFields.diagnosis.value),
-          solution: normalizeText(correctionFields.solution.value)
-        }),
-        tags: normalizeTagValue(["로스팅 수정 지표"]),
+        note: profileChange,
+        tags: normalizeTagValue(["로스팅 프로파일 변경내용"]),
         evaluatorName: userDisplayName(user),
         createdByName: userDisplayName(user),
         createdBy: user?.userId || "",
@@ -5352,7 +5397,7 @@
       resetEditingState("correction");
       correctionFields.blend.value = "올드독";
       correctionFields.date.value = today();
-      correctionFields.message.textContent = "로스팅 수정 지표를 저장했습니다.";
+      correctionFields.message.textContent = "로스팅 프로파일 변경내용을 저장했습니다.";
       render();
     });
 
@@ -5937,6 +5982,36 @@
 
     roastingCalendarClearButton.addEventListener("click", () => {
       selectedRoastingDate = "";
+      render();
+    });
+
+    correctionCalendar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-correction-date]");
+      if (!button) return;
+      selectedCorrectionDate = selectedCorrectionDate === button.dataset.correctionDate ? "" : button.dataset.correctionDate;
+      render();
+    });
+
+    correctionCalendarPrevButton.addEventListener("click", () => {
+      correctionCalendarMonth = shiftMonthKey(correctionCalendarMonth, -1);
+      selectedCorrectionDate = "";
+      render();
+    });
+
+    correctionCalendarTodayButton.addEventListener("click", () => {
+      correctionCalendarMonth = today().slice(0, 7);
+      selectedCorrectionDate = "";
+      render();
+    });
+
+    correctionCalendarNextButton.addEventListener("click", () => {
+      correctionCalendarMonth = shiftMonthKey(correctionCalendarMonth, 1);
+      selectedCorrectionDate = "";
+      render();
+    });
+
+    correctionCalendarClearButton.addEventListener("click", () => {
+      selectedCorrectionDate = "";
       render();
     });
 
