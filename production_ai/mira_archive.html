@@ -2215,7 +2215,8 @@
             </div>
             <div class="field">
               <label for="roastOperatorInput">실제 로스팅한 사람</label>
-              <input id="roastOperatorInput" placeholder="예: 홍길동">
+              <input id="roastOperatorInput" list="roastOperatorOptions" placeholder="이름 선택 또는 입력">
+              <datalist id="roastOperatorOptions"></datalist>
             </div>
             <div class="field">
               <label for="roastPressureInput">압력</label>
@@ -2248,6 +2249,10 @@
             <div class="field">
               <label for="roastGroundColorInput">그라운드빈 색도</label>
               <input id="roastGroundColorInput" inputmode="decimal">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="roastNoteInput">특이사항 코멘트</label>
+              <textarea id="roastNoteInput" placeholder="예: 식사 후 로스팅 재개 / 사일로 이슈 10분 예열 후 투입 / 배기 확인 필요"></textarea>
             </div>
             <button class="primary" type="submit" id="roastingSubmitButton">로스팅 데이터 저장</button>
           </form>
@@ -2825,6 +2830,7 @@
       batch: document.querySelector("#roastBatchOnlyInput"),
       roaster: document.querySelector("#roastMachineInput"),
       operator: document.querySelector("#roastOperatorInput"),
+      operatorOptions: document.querySelector("#roastOperatorOptions"),
       pressure: document.querySelector("#roastPressureInput"),
       drumSpeed: document.querySelector("#roastDrumSpeedInput"),
       exhaust: document.querySelector("#roastExhaustInput"),
@@ -2832,7 +2838,8 @@
       dropTemp: document.querySelector("#roastDropTempOnlyInput"),
       roastTime: document.querySelector("#roastTimeOnlyInput"),
       wholeColor: document.querySelector("#roastWholeColorInput"),
-      groundColor: document.querySelector("#roastGroundColorInput")
+      groundColor: document.querySelector("#roastGroundColorInput"),
+      note: document.querySelector("#roastNoteInput")
     };
     const roastingBulkFields = {
       input: document.querySelector("#roastingBulkInput"),
@@ -4006,6 +4013,7 @@
         roastingFields.roastTime.value = roastData.roastTime;
         roastingFields.wholeColor.value = roastData.wholeColor;
         roastingFields.groundColor.value = roastData.groundColor;
+        roastingFields.note.value = entry.note === "로스팅 데이터 입력" ? "" : entry.note || "";
         roastingSubmitButton.textContent = "로스팅 데이터 수정";
         setAppView("roasting");
         return;
@@ -4349,6 +4357,25 @@
       filters.category.innerHTML = categoryOptionMarkup();
       if (currentCategory && selectHasValue(filters.category, currentCategory)) filters.category.value = currentCategory;
       populateGreenBeanRatioControls();
+      populateRoastingOperatorControls();
+    }
+
+    function populateRoastingOperatorControls() {
+      if (!roastingFields.operatorOptions) return;
+      const currentUser = approvedSessionUser();
+      const names = new Set();
+      users
+        .filter((user) => user.status === "approved" && canInputRoasting(user))
+        .forEach((user) => {
+          const name = userDisplayName(user);
+          if (name) names.add(name);
+        });
+      const currentName = userDisplayName(currentUser);
+      if (currentName && canInputRoasting(currentUser)) names.add(currentName);
+      roastingFields.operatorOptions.innerHTML = Array.from(names)
+        .sort((left, right) => left.localeCompare(right, "ko"))
+        .map((name) => `<option value="${escapeHtml(name)}"></option>`)
+        .join("");
     }
 
     function greenBeanOptionMarkup() {
@@ -4959,7 +4986,7 @@
               <th>판정</th>
               <th>문제 유형</th>
               <th>평가자</th>
-              <th>문제향미지표</th>
+              <th>문제향미지표 / 특이사항</th>
             </tr>
           </thead>
           <tbody>
@@ -4985,7 +5012,7 @@
                   <td><span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span></td>
                   <td>${displayCell(issueTags)}</td>
                   <td>${displayCell(isCuppingEntry(entry) ? entryEvaluatorName(entry) : "")}</td>
-                  <td class="sheet-note">${displayCell(isCuppingEntry(entry) ? cuppingDetail.flavorIssue : "")}</td>
+                  <td class="sheet-note">${displayCell(isCuppingEntry(entry) ? cuppingDetail.flavorIssue : entry.note === "로스팅 데이터 입력" ? "" : entry.note)}</td>
                 </tr>
               `;
             }).join("")}
@@ -5351,7 +5378,8 @@
         dropTemp: roastingFields.dropTemp.value.trim(),
         roastTime: roastingFields.roastTime.value.trim(),
         wholeColor: roastingFields.wholeColor.value.trim(),
-        groundColor: roastingFields.groundColor.value.trim()
+        groundColor: roastingFields.groundColor.value.trim(),
+        note: normalizeText(roastingFields.note.value) || "로스팅 데이터 입력"
       });
       const savedEntry = editingRoastingId ? { ...entry, id: editingRoastingId, updatedAt: today() } : entry;
       const duplicateExists = entries.some((item) => item.id !== editingRoastingId && entryDedupeKey(item) === entryDedupeKey(savedEntry));
@@ -5369,6 +5397,7 @@
       roastingFields.date.value = today();
       roastingFields.roaster.value = "검댕이";
       roastingFields.operator.value = "";
+      roastingFields.note.value = "";
       render();
     });
 
