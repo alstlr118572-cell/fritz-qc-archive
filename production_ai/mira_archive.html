@@ -4207,6 +4207,17 @@
       return entry.evaluatorName || entry.createdByName || entry.createdBy || "평가자 미기록";
     }
 
+    function isEntryByEvaluator(entry, user) {
+      if (!entry || !user) return false;
+      const cleanIds = (values) => values.filter((value) => value || value === 0).map(normalizeUserId).filter(Boolean);
+      const cleanNames = (values) => values.filter((value) => value || value === 0).map(normalizeText).filter(Boolean);
+      const userIds = new Set(cleanIds([user.id, user.userId]));
+      const userNames = new Set(cleanNames([userDisplayName(user), user.name]));
+      const entryIds = cleanIds([entry.createdBy, entry.userId]);
+      const entryNames = cleanNames([entry.evaluatorName, entry.createdByName]);
+      return entryIds.some((value) => userIds.has(value)) || entryNames.some((value) => userNames.has(value));
+    }
+
     function displayCell(value) {
       return value || value === 0 ? escapeHtml(value) : "-";
     }
@@ -4254,11 +4265,30 @@
       return selectedCuppingDate || "";
     }
 
+    function evaluatorCompletedCuppingEntries(roastDate = selectedCuppingRoastDate(), user = approvedSessionUser()) {
+      if (!roastDate || !user) return [];
+      return entries.filter((entry) => (
+        isCuppingEntry(entry)
+        && entry.entryType !== "correction"
+        && entry.roastDate === roastDate
+        && isEntryByEvaluator(entry, user)
+      ));
+    }
+
+    function isRoastingBatchCompletedByEvaluator(roastingEntry, completedEntries = evaluatorCompletedCuppingEntries()) {
+      return completedEntries.some((entry) => (
+        entry.blend === roastingEntry.blend
+        && batchesOverlap(entry.batch, roastingEntry.batch)
+      ));
+    }
+
     function cuppingRoastingCandidates() {
       const roastDate = selectedCuppingRoastDate();
       if (!roastDate) return [];
+      const completedEntries = evaluatorCompletedCuppingEntries(roastDate);
       return sortEntriesByDate(entries)
         .filter((entry) => entry.entryType === "roasting" && entry.roastDate === roastDate)
+        .filter((entry) => !isRoastingBatchCompletedByEvaluator(entry, completedEntries))
         .sort((left, right) => {
           const blendDiff = String(left.blend || "").localeCompare(String(right.blend || ""), "ko");
           if (blendDiff) return blendDiff;
@@ -4915,6 +4945,10 @@
     function renderCuppingBatchPicker() {
       const roastDate = selectedCuppingRoastDate();
       const candidates = cuppingRoastingCandidates();
+      const allRoastingCount = roastDate
+        ? entries.filter((entry) => entry.entryType === "roasting" && entry.roastDate === roastDate).length
+        : 0;
+      const completedCount = Math.max(0, allRoastingCount - candidates.length);
       const validIds = new Set(candidates.map((entry) => entry.id));
       selectedCuppingBatchIds = new Set([...selectedCuppingBatchIds].filter((id) => validIds.has(id)));
       if (!roastDate) {
@@ -4922,9 +4956,11 @@
         cuppingBatchFields.list.innerHTML = `<div class="empty">먼저 로스팅 배치 달력에서 날짜를 선택해주세요.</div>`;
         return;
       }
-      cuppingBatchFields.hint.textContent = `${roastDate} 로스팅 배치를 선택해 같은 코멘트를 일괄 저장합니다.`;
+      cuppingBatchFields.hint.textContent = `${roastDate} 로스팅 배치 중 이 계정에서 미평가 ${candidates.length}개, 평가 완료 ${completedCount}개입니다.`;
       if (!candidates.length) {
-        cuppingBatchFields.list.innerHTML = `<div class="empty">${roastDate}에 저장된 로스팅 배치가 없습니다.</div>`;
+        cuppingBatchFields.list.innerHTML = allRoastingCount
+          ? `<div class="empty">이 계정에서 ${roastDate} 로스팅 배치 평가는 모두 완료되었습니다.</div>`
+          : `<div class="empty">${roastDate}에 저장된 로스팅 배치가 없습니다.</div>`;
         return;
       }
       const grouped = candidates.reduce((acc, entry) => {
