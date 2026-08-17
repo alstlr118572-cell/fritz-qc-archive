@@ -3474,17 +3474,17 @@
         });
         if (withoutSeedEntries.length !== parsed.length) changed = true;
         const sortedEntries = sortEntriesByDate(withoutSeedEntries);
-        const uniqueEntries = uniqueEntriesByOperationalKey(sortedEntries);
-        if (uniqueEntries.length !== sortedEntries.length) changed = true;
-        if (changed) writeEntries(uniqueEntries);
-        return uniqueEntries;
+        const unifiedEntries = unifiedOperationalEntries(sortedEntries);
+        if (unifiedEntries.length !== sortedEntries.length || JSON.stringify(unifiedEntries) !== JSON.stringify(sortedEntries)) changed = true;
+        if (changed) writeEntries(unifiedEntries);
+        return unifiedEntries;
       } catch {
         return [];
       }
     }
 
     function writeEntries(value) {
-      writeStoreValue(storageKey, uniqueEntriesByOperationalKey(value));
+      writeStoreValue(storageKey, unifiedOperationalEntries(value));
     }
 
     function normalizeRoastingEntryClassification(entry) {
@@ -3803,6 +3803,11 @@
         return { ...entry, verdict, updatedAt: today() };
       });
       return { entries: result, updated };
+    }
+
+    function unifiedOperationalEntries(collection) {
+      const uniqueEntries = uniqueEntriesByOperationalKey(collection);
+      return syncRoastingVerdictsFromCupping(uniqueEntries, uniqueEntries.filter(isCuppingEntry)).entries;
     }
 
     function isEntryInLastDays(entry, days) {
@@ -5149,10 +5154,11 @@
       blendSummary.innerHTML = Object.entries(categorizedBlendMap()).map(([category, categoryBlends]) => {
         const cards = categoryBlends.length ? categoryBlends.map((blend) => {
           const blendEntries = summaryEntries.filter((entry) => entry.blend === blend);
-          const cuppingEntries = blendEntries.filter(isCuppingEntry);
-          const latest = blendEntries[0];
-          const passCount = cuppingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
-          const watchCount = blendEntries.filter((entry) => normalizeVerdict(entry.verdict) !== "pass").length;
+          const roastingEntries = blendEntries.filter((entry) => entry.entryType === "roasting");
+          const latest = roastingEntries[0] || blendEntries[0];
+          const verdictEntries = roastingEntries.length ? roastingEntries : blendEntries;
+          const passCount = verdictEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
+          const watchCount = verdictEntries.filter((entry) => normalizeVerdict(entry.verdict) !== "pass").length;
           return `
             <article class="blend-card">
               <h2>${escapeHtml(blend)}</h2>
@@ -5162,7 +5168,7 @@
                 <span class="tag">${latest ? latest.roastDate : "기록 대기"}</span>
               </div>
               <div class="blend-meta">
-                <div class="mini-stat"><span>기록</span><strong>${blendEntries.length}</strong></div>
+                <div class="mini-stat"><span>배치</span><strong>${roastingEntries.length || blendEntries.length}</strong></div>
                 <div class="mini-stat"><span>PASS</span><strong>${passCount}</strong></div>
                 <div class="mini-stat"><span>확인</span><strong>${watchCount}</strong></div>
               </div>
@@ -5359,7 +5365,7 @@
     }
 
     function render() {
-      entries = sortEntriesByDate(entries);
+      entries = unifiedOperationalEntries(entries);
       const monthKey = currentMonthKey();
       const monthEntries = entries.filter((entry) => isEntryInMonth(entry, monthKey));
       const visible = activeAppView === "search" ? entries.filter(matchesFilters) : monthEntries;
@@ -5720,9 +5726,8 @@
         tags: normalizeTags(`추출평가, ${batch}, ${espressoFields.account.value.trim()}`),
         createdAt: today()
       };
-      entries = editingEspressoId
-        ? entries.map((item) => item.id === editingEspressoId ? { ...item, ...entry, createdAt: item.createdAt || entry.createdAt, updatedAt: today() } : item)
-        : [entry, ...entries];
+      const upserted = saveOperationalEntry(entries, entry, editingEspressoId);
+      entries = upserted.entries;
       writeEntries(entries);
       espressoForm.reset();
       resetEditingState("espresso");
