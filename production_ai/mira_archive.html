@@ -3613,7 +3613,7 @@
     function entryDisplayDate(entry) {
       if (entry.entryType === "roasting") return entry.roastDate || entry.createdAt || "";
       if (entry.entryType === "espresso") return entry.roastDate || entry.createdAt || "";
-      return entry.cuppingDate || entry.roastDate || entry.createdAt || "";
+      return entry.roastDate || entry.cuppingDate || entry.createdAt || "";
     }
 
     function dateTimestamp(value) {
@@ -3657,10 +3657,7 @@
       if (entry.entryType === "espresso") {
         return [entry.roastDate].filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")));
       }
-      const values = [
-        entry.roastDate,
-        entry.cuppingDate
-      ];
+      const values = [entry.roastDate || entry.cuppingDate];
       return Array.from(new Set(values.filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")))));
     }
 
