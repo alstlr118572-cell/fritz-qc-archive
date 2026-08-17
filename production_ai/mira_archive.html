@@ -3770,6 +3770,41 @@
       return upsertOperationalEntries(collection, [nextEntry]);
     }
 
+    function syncRoastingVerdictsFromCupping(collection, cuppingEntries) {
+      const targets = cuppingEntries.filter((entry) => isCuppingEntry(entry) && entry.entryType !== "correction");
+      if (!targets.length) return { entries: collection, updated: 0 };
+      let updated = 0;
+      const result = collection.map((entry) => {
+        if (entry.entryType !== "roasting") return entry;
+        const shouldSync = targets.some((cuppingEntry) => (
+          cuppingEntry.blend === entry.blend
+          && cuppingEntry.roastDate === entry.roastDate
+          && batchesOverlap(cuppingEntry.batch, entry.batch)
+        ));
+        if (!shouldSync) return entry;
+        const linkedVerdicts = collection
+          .filter((candidate) => (
+            isCuppingEntry(candidate)
+            && candidate.entryType !== "correction"
+            && candidate.blend === entry.blend
+            && candidate.roastDate === entry.roastDate
+            && batchesOverlap(candidate.batch, entry.batch)
+          ))
+          .map((candidate) => normalizeVerdict(candidate.verdict));
+        const verdict = linkedVerdicts.includes("no_ship")
+          ? "no_ship"
+          : linkedVerdicts.includes("hold")
+          ? "hold"
+          : linkedVerdicts.includes("pass")
+          ? "pass"
+          : normalizeVerdict(entry.verdict);
+        if (normalizeVerdict(entry.verdict) === verdict) return entry;
+        updated += 1;
+        return { ...entry, verdict, updatedAt: today() };
+      });
+      return { entries: result, updated };
+    }
+
     function isEntryInLastDays(entry, days) {
       const base = parseDateInput(today());
       const target = parseDateInput(entryDisplayDate(entry));
@@ -5410,10 +5445,11 @@
         tags: ["빠른입력", ...inferIssueTypesFromText(item.note)]
       }));
       const upserted = upsertOperationalEntries(entries, newEntries);
-      entries = upserted.entries;
+      const verdictSync = syncRoastingVerdictsFromCupping(upserted.entries, newEntries);
+      entries = verdictSync.entries;
       writeEntries(entries);
       quickCuppingFields.input.value = "";
-      quickCuppingFields.message.textContent = `${upserted.inserted}개 신규 저장, ${upserted.updated}개 기존 코멘트를 수정 반영했습니다.`;
+      quickCuppingFields.message.textContent = `${upserted.inserted}개 신규 저장, ${upserted.updated}개 기존 코멘트 수정, ${verdictSync.updated}개 로스팅 배치 판정을 동기화했습니다.`;
       render();
     });
 
@@ -5450,12 +5486,13 @@
         tags: ["배치선택", ...selectedIssueTypes, ...inferIssueTypesFromText(note)]
       }));
       const upserted = upsertOperationalEntries(entries, newEntries);
-      entries = upserted.entries;
+      const verdictSync = syncRoastingVerdictsFromCupping(upserted.entries, newEntries);
+      entries = verdictSync.entries;
       writeEntries(entries);
       cuppingBatchFields.comment.value = "";
       clearCuppingBatchIssueTypes();
       selectedCuppingBatchIds = new Set();
-      cuppingBatchFields.message.textContent = `${upserted.inserted}개 신규 저장, ${upserted.updated}개 기존 코멘트를 선택 배치 기준으로 수정 반영했습니다.`;
+      cuppingBatchFields.message.textContent = `${upserted.inserted}개 신규 저장, ${upserted.updated}개 기존 코멘트 수정, ${verdictSync.updated}개 로스팅 배치 판정을 동기화했습니다.`;
       render();
     });
 
@@ -5464,7 +5501,8 @@
       if (!canInputCupping(approvedSessionUser())) return;
       const entry = cuppingEntryFromFields();
       const upserted = saveOperationalEntry(entries, entry, editingCuppingId);
-      entries = upserted.entries;
+      const verdictSync = syncRoastingVerdictsFromCupping(upserted.entries, [entry]);
+      entries = verdictSync.entries;
       writeEntries(entries);
       form.reset();
       resetEditingState("cupping");
@@ -5492,8 +5530,8 @@
       fields.bitterness.value = 2;
       setSelectedIssueTypes([]);
       fields.message.textContent = upserted.updated
-        ? "기존 커핑 코멘트를 수정 반영했습니다."
-        : "커핑 코멘트를 저장했습니다.";
+        ? `기존 커핑 코멘트를 수정 반영했습니다. 로스팅 배치 판정 ${verdictSync.updated}개를 동기화했습니다.`
+        : `커핑 코멘트를 저장했습니다. 로스팅 배치 판정 ${verdictSync.updated}개를 동기화했습니다.`;
       render();
     });
 
