@@ -1685,7 +1685,7 @@
               </select>
             </div>
             <div class="field">
-              <label for="roastDateInput">커핑일</label>
+              <label for="roastDateInput">로스팅일</label>
               <input id="roastDateInput" type="date" required>
             </div>
           </div>
@@ -4687,7 +4687,7 @@
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
       return `
         <article class="${compact ? "qc-card" : "record-item"}">
-          ${compact ? "" : `<div class="date">${isCupping ? `로스팅 ${escapeHtml(entry.roastDate || "-")}<br>커핑 ${escapeHtml(entry.cuppingDate || "-")}` : `${entry.roastDate}<br>${escapeHtml(entry.batch || "범위 미기록")}`}</div>`}
+          ${compact ? "" : `<div class="date">${isCupping ? `로스팅 ${escapeHtml(entry.roastDate || "-")}<br>${escapeHtml(entry.batch || "범위 미기록")}` : `${entry.roastDate}<br>${escapeHtml(entry.batch || "범위 미기록")}`}</div>`}
           <div>
             <div class="qc-head">
               <h4 class="qc-title">${escapeHtml(entry.blend)} ${compact ? escapeHtml(entry.batch || "") : ""}</h4>
@@ -4713,8 +4713,7 @@
                   <span class="tag amber">홀빈 ${escapeHtml(roastData.wholeColor || "-")}</span>
                   <span class="tag amber">그라운드 ${escapeHtml(roastData.groundColor || "-")}</span>
                   <span class="tag ${linkedCuppings.length ? "green" : "amber"}">커핑 연결 ${linkedCuppings.length}개</span>`
-                : `<span class="tag blue">커핑일 ${escapeHtml(entry.cuppingDate || "-")}</span>
-                  <span class="tag">연결 로스팅일 ${escapeHtml(entry.roastDate || "-")}</span>
+                : `<span class="tag blue">로스팅일 ${escapeHtml(entry.roastDate || "-")}</span>
                   <span class="tag ${linkedRoastCount ? "green" : "amber"}">로스팅 연결 ${linkedRoastCount}개</span>`}
               ${tags}
             </div>
@@ -4746,8 +4745,8 @@
       return `
         <article class="comment-item">
           <div class="comment-date">
-            커핑 ${escapeHtml(entry.cuppingDate || "-")}<br>
-            로스팅 ${escapeHtml(entry.roastDate || "-")}
+            로스팅<br>
+            ${escapeHtml(entry.roastDate || "-")}
           </div>
           <div>
             <div class="qc-head">
@@ -5243,7 +5242,6 @@
           <thead>
             <tr>
               <th>로스팅일</th>
-              <th>커핑일</th>
               <th>평가 범위</th>
               <th>로스터기</th>
               <th>로스팅한 사람</th>
@@ -5270,7 +5268,6 @@
               return `
                 <tr>
                   <td>${displayCell(entry.roastDate)}</td>
-                  <td>${displayCell(isCuppingEntry(entry) ? entry.cuppingDate : "")}</td>
                   <td>${displayCell(entry.batch)}</td>
                   <td>${displayCell(roastData.roaster)}</td>
                   <td>${displayCell(roastData.operator)}</td>
