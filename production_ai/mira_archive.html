@@ -3683,10 +3683,21 @@
         return [type, entry.roastDate || "", blend, batch, roaster].join("|");
       }
       if (type === "espresso") {
-        const account = normalizeText(entry.espresso?.account || "");
+        const account = normalizeText(entry.espressoData?.account || entry.espresso?.account || "");
         return [type, entry.roastDate || "", blend, batch, account].join("|");
       }
-      return "";
+      if (type === "correction") return "";
+      const evaluator = normalizeUserId(entry.createdBy || "") || normalizeText(entry.evaluatorName || entry.createdByName || "");
+      return ["cupping", entry.roastDate || "", blend, batch, evaluator].join("|");
+    }
+
+    function roastingBaseKey(entry) {
+      return [
+        "roasting",
+        entry.roastDate || "",
+        canonicalBlendName(entry.blend || ""),
+        normalizeBatchRange(entry.batch || "")
+      ].join("|");
     }
 
     function uniqueEntriesByOperationalKey(value) {
@@ -3698,6 +3709,68 @@
         seen.add(key);
         return true;
       });
+    }
+
+    function findExistingEntryIndex(candidate, collection = entries, ignoreId = "") {
+      const key = entryDedupeKey(candidate);
+      if (!key) return -1;
+      const exactIndex = collection.findIndex((entry) => entry.id !== ignoreId && entryDedupeKey(entry) === key);
+      if (exactIndex !== -1) return exactIndex;
+      if (candidate.entryType !== "roasting") return -1;
+      const baseKey = roastingBaseKey(candidate);
+      const baseMatches = collection
+        .map((entry, index) => ({ entry, index }))
+        .filter(({ entry }) => entry.id !== ignoreId && entry.entryType === "roasting" && roastingBaseKey(entry) === baseKey);
+      return baseMatches.length === 1 ? baseMatches[0].index : -1;
+    }
+
+    function mergeOperationalEntry(existing, next) {
+      return {
+        ...existing,
+        ...next,
+        id: existing.id || next.id,
+        createdAt: existing.createdAt || next.createdAt,
+        createdBy: existing.createdBy || next.createdBy,
+        createdByName: existing.createdByName || next.createdByName,
+        evaluatorName: existing.evaluatorName || next.evaluatorName,
+        updatedAt: today()
+      };
+    }
+
+    function upsertOperationalEntries(collection, nextEntries) {
+      const result = [...collection];
+      let inserted = 0;
+      let updated = 0;
+      nextEntries.forEach((nextEntry) => {
+        const index = findExistingEntryIndex(nextEntry, result, nextEntry.id);
+        if (index === -1) {
+          result.unshift(nextEntry);
+          inserted += 1;
+          return;
+        }
+        result[index] = mergeOperationalEntry(result[index], nextEntry);
+        updated += 1;
+      });
+      return { entries: result, inserted, updated };
+    }
+
+    function saveOperationalEntry(collection, nextEntry, editingId = "") {
+      if (!editingId) return upsertOperationalEntries(collection, [nextEntry]);
+      const existing = collection.find((entry) => entry.id === editingId);
+      const withoutEditing = collection.filter((entry) => entry.id !== editingId);
+      const conflictIndex = findExistingEntryIndex(nextEntry, withoutEditing, editingId);
+      if (conflictIndex !== -1) {
+        withoutEditing[conflictIndex] = mergeOperationalEntry(withoutEditing[conflictIndex], nextEntry);
+        return { entries: withoutEditing, inserted: 0, updated: 1 };
+      }
+      if (existing) {
+        return {
+          entries: collection.map((entry) => entry.id === editingId ? mergeOperationalEntry(entry, nextEntry) : entry),
+          inserted: 0,
+          updated: 1
+        };
+      }
+      return upsertOperationalEntries(collection, [nextEntry]);
     }
 
     function isEntryInLastDays(entry, days) {
@@ -4346,6 +4419,27 @@
       ));
     }
 
+    function linkedCuppingEntries(entry) {
+      if (!entry || entry.entryType !== "roasting") return [];
+      return sortEntriesByDate(entries).filter((candidate) => (
+        isCuppingEntry(candidate)
+        && candidate.entryType !== "correction"
+        && candidate.blend === entry.blend
+        && candidate.roastDate === entry.roastDate
+        && batchesOverlap(candidate.batch, entry.batch)
+      ));
+    }
+
+    function cuppingSummaryText(entry) {
+      const linked = linkedCuppingEntries(entry);
+      if (!linked.length) return "";
+      return linked.map((comment) => {
+        const detail = normalizedCuppingDetail(comment);
+        const body = detail.flavorIssue || comment.note || "기록 없음";
+        return `${entryEvaluatorName(comment)}: ${body}`;
+      }).join(" / ");
+    }
+
     function normalizeVerdict(value) {
       if (value === "pass") return "pass";
       if (value === "watch") return "hold";
@@ -4548,6 +4642,7 @@
       const isCupping = !isRoasting && !isEspresso;
       const cuppingDetail = normalizedCuppingDetail(entry);
       const linkedRoastCount = isCupping ? linkedRoastingEntries(entry).length : 0;
+      const linkedCuppings = isRoasting ? linkedCuppingEntries(entry) : [];
       const user = approvedSessionUser();
       const editType = isRoasting ? "roasting" : isEspresso ? "espresso" : "cupping";
       const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${entry.id}" data-edit-type="${editType}">수정</button>`;
@@ -4579,12 +4674,22 @@
                   <span class="tag">드럼 ${escapeHtml(roastData.drumSpeed || "-")}</span>
                   <span class="tag amber">배출온도 ${escapeHtml(roastData.dropTemp || "-")}</span>
                   <span class="tag amber">홀빈 ${escapeHtml(roastData.wholeColor || "-")}</span>
-                  <span class="tag amber">그라운드 ${escapeHtml(roastData.groundColor || "-")}</span>`
+                  <span class="tag amber">그라운드 ${escapeHtml(roastData.groundColor || "-")}</span>
+                  <span class="tag ${linkedCuppings.length ? "green" : "amber"}">커핑 연결 ${linkedCuppings.length}개</span>`
                 : `<span class="tag blue">커핑일 ${escapeHtml(entry.cuppingDate || "-")}</span>
                   <span class="tag">연결 로스팅일 ${escapeHtml(entry.roastDate || "-")}</span>
                   <span class="tag ${linkedRoastCount ? "green" : "amber"}">로스팅 연결 ${linkedRoastCount}개</span>`}
               ${tags}
             </div>
+            ${isRoasting && linkedCuppings.length ? `
+              <div class="comment-field-block">
+                <strong>연결 커핑 코멘트</strong>
+                ${linkedCuppings.map((comment) => {
+                  const detail = normalizedCuppingDetail(comment);
+                  return `<p>${escapeHtml(entryEvaluatorName(comment))}: ${escapeHtml(detail.flavorIssue || comment.note || "기록 없음")}</p>`;
+                }).join("")}
+              </div>
+            ` : ""}
           </div>
           ${actions}
         </article>
@@ -5082,7 +5187,15 @@
 
     function renderBlendSheet() {
       const source = activeAppView === "search" ? entries.filter(matchesFilters) : entries.filter((entry) => isEntryInMonth(entry));
-      const rows = sortEntriesByDate(source).filter((entry) => entry.blend === activeBlendSheet);
+      const blendRows = sortEntriesByDate(source).filter((entry) => entry.blend === activeBlendSheet);
+      const roastingRows = blendRows.filter((entry) => entry.entryType === "roasting");
+      const attachedCuppingIds = new Set();
+      roastingRows.forEach((entry) => {
+        linkedCuppingEntries(entry).forEach((comment) => {
+          if (blendRows.some((row) => row.id === comment.id)) attachedCuppingIds.add(comment.id);
+        });
+      });
+      const rows = blendRows.filter((entry) => entry.entryType === "roasting" || !attachedCuppingIds.has(entry.id));
       if (!rows.length) {
         blendSheet.innerHTML = `<div class="empty">이 블렌드 시트에 표시할 기록이 없습니다.</div>`;
         return;
@@ -5115,6 +5228,7 @@
               const roastData = normalizedRoastData(entry);
               const cuppingDetail = normalizedCuppingDetail(entry);
               const issueTags = (entry.tags || []).filter((tag) => tag !== "빠른입력").join(", ");
+              const linkedComment = entry.entryType === "roasting" ? cuppingSummaryText(entry) : "";
               return `
                 <tr>
                   <td>${displayCell(entry.roastDate)}</td>
@@ -5133,7 +5247,7 @@
                   <td><span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span></td>
                   <td>${displayCell(issueTags)}</td>
                   <td>${displayCell(isCuppingEntry(entry) ? entryEvaluatorName(entry) : "")}</td>
-                  <td class="sheet-note">${displayCell(isCuppingEntry(entry) ? cuppingDetail.flavorIssue : entry.note === "로스팅 데이터 입력" ? "" : entry.note)}</td>
+                  <td class="sheet-note">${displayCell(linkedComment || (isCuppingEntry(entry) ? cuppingDetail.flavorIssue : entry.note === "로스팅 데이터 입력" ? "" : entry.note))}</td>
                 </tr>
               `;
             }).join("")}
@@ -5298,10 +5412,11 @@
         note: item.note,
         tags: ["빠른입력", ...inferIssueTypesFromText(item.note)]
       }));
-      entries = [...newEntries, ...entries];
+      const upserted = upsertOperationalEntries(entries, newEntries);
+      entries = upserted.entries;
       writeEntries(entries);
       quickCuppingFields.input.value = "";
-      quickCuppingFields.message.textContent = `${newEntries.length}개 커핑 코멘트를 저장했습니다.`;
+      quickCuppingFields.message.textContent = `${upserted.inserted}개 신규 저장, ${upserted.updated}개 기존 코멘트를 수정 반영했습니다.`;
       render();
     });
 
@@ -5337,12 +5452,13 @@
         note,
         tags: ["배치선택", ...selectedIssueTypes, ...inferIssueTypesFromText(note)]
       }));
-      entries = [...newEntries, ...entries];
+      const upserted = upsertOperationalEntries(entries, newEntries);
+      entries = upserted.entries;
       writeEntries(entries);
       cuppingBatchFields.comment.value = "";
       clearCuppingBatchIssueTypes();
       selectedCuppingBatchIds = new Set();
-      cuppingBatchFields.message.textContent = `${newEntries.length}개 커핑 코멘트를 선택 배치에 저장했습니다.`;
+      cuppingBatchFields.message.textContent = `${upserted.inserted}개 신규 저장, ${upserted.updated}개 기존 코멘트를 선택 배치 기준으로 수정 반영했습니다.`;
       render();
     });
 
@@ -5350,9 +5466,8 @@
       event.preventDefault();
       if (!canInputCupping(approvedSessionUser())) return;
       const entry = cuppingEntryFromFields();
-      entries = editingCuppingId
-        ? entries.map((item) => item.id === editingCuppingId ? { ...item, ...entry, createdAt: item.createdAt || entry.createdAt, updatedAt: today() } : item)
-        : [entry, ...entries];
+      const upserted = saveOperationalEntry(entries, entry, editingCuppingId);
+      entries = upserted.entries;
       writeEntries(entries);
       form.reset();
       resetEditingState("cupping");
@@ -5379,6 +5494,9 @@
       fields.sweetness.value = 4;
       fields.bitterness.value = 2;
       setSelectedIssueTypes([]);
+      fields.message.textContent = upserted.updated
+        ? "기존 커핑 코멘트를 수정 반영했습니다."
+        : "커핑 코멘트를 저장했습니다.";
       render();
     });
 
@@ -5504,14 +5622,8 @@
         note: normalizeText(roastingFields.note.value) || "로스팅 데이터 입력"
       });
       const savedEntry = editingRoastingId ? { ...entry, id: editingRoastingId, updatedAt: today() } : entry;
-      const duplicateExists = entries.some((item) => item.id !== editingRoastingId && entryDedupeKey(item) === entryDedupeKey(savedEntry));
-      if (duplicateExists) {
-        roastingBulkFields.message.textContent = `${savedEntry.roastDate} ${savedEntry.blend} ${savedEntry.batch}는 이미 저장된 로스팅 배치입니다.`;
-        return;
-      }
-      entries = editingRoastingId
-        ? entries.map((item) => item.id === editingRoastingId ? { ...item, ...savedEntry, createdAt: item.createdAt || savedEntry.createdAt } : item)
-        : [savedEntry, ...entries];
+      const upserted = saveOperationalEntry(entries, savedEntry, editingRoastingId);
+      entries = upserted.entries;
       writeEntries(entries);
       roastingForm.reset();
       resetEditingState("roasting");
@@ -5520,6 +5632,9 @@
       roastingFields.roaster.value = "검댕이";
       roastingFields.operator.value = "";
       roastingFields.note.value = "";
+      roastingBulkFields.message.textContent = upserted.updated
+        ? `${savedEntry.roastDate} ${savedEntry.blend} ${savedEntry.batch} 로스팅 배치를 수정 반영했습니다.`
+        : `${savedEntry.roastDate} ${savedEntry.blend} ${savedEntry.batch} 로스팅 배치를 저장했습니다.`;
       render();
     });
 
@@ -5531,27 +5646,15 @@
         roastingBulkFields.message.textContent = "저장할 수 있는 로스팅 데이터 줄을 찾지 못했습니다.";
         return;
       }
-      const existingKeys = new Set(entries.map(entryDedupeKey).filter(Boolean));
-      const newKeys = new Set();
-      const uniqueParsedEntries = parsedEntries.filter((entry) => {
-        const key = entryDedupeKey(entry);
-        if (key && (existingKeys.has(key) || newKeys.has(key))) return false;
-        if (key) newKeys.add(key);
-        return true;
-      });
-      if (!uniqueParsedEntries.length) {
-        roastingBulkFields.message.textContent = "이미 저장된 로스팅 배치라 추가 저장하지 않았습니다.";
-        return;
-      }
-      entries = [...uniqueParsedEntries, ...entries];
+      const upserted = upsertOperationalEntries(entries, parsedEntries);
+      entries = upserted.entries;
       writeEntries(entries);
       resetEditingState("roasting");
       roastingBulkForm.reset();
       const skippedLabels = parsedEntries.skippedLabels || [];
-      const duplicateCount = parsedEntries.length - uniqueParsedEntries.length;
       roastingBulkFields.message.textContent = skippedLabels.length
-        ? `${uniqueParsedEntries.length}개 저장, ${duplicateCount}개 중복 제외, ${skippedLabels.length}개 분류 실패: ${skippedLabels.join(", ")}`
-        : `${uniqueParsedEntries.length}개 로스팅 배치를 저장했습니다.${duplicateCount ? ` ${duplicateCount}개 중복은 제외했습니다.` : ""}`;
+        ? `${upserted.inserted}개 신규 저장, ${upserted.updated}개 기존 배치 수정, ${skippedLabels.length}개 분류 실패: ${skippedLabels.join(", ")}`
+        : `${upserted.inserted}개 신규 저장, ${upserted.updated}개 기존 배치를 수정 반영했습니다.`;
       render();
     });
 
