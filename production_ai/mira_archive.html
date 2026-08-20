@@ -1658,6 +1658,7 @@
         <button type="button" data-app-view="roasting" id="roastingPageButton">로스팅 입력</button>
         <button type="button" data-app-view="cupping" id="cuppingPageButton">커핑 입력</button>
         <button type="button" data-app-view="espresso" id="espressoPageButton">추출 평가</button>
+        <button type="button" data-app-view="visit" id="visitPageButton">거래처 방문일지</button>
         <button type="button" data-app-view="nonship" id="nonShipPageButton">ISSUE 결과</button>
       </nav>
 
@@ -2381,6 +2382,101 @@
           <div class="panel record-list" id="espressoRecentList"></div>
         </section>
 
+        <section class="panel cupping-panel app-panel" data-app-panel="visit">
+          <div class="section-title">
+            <div>
+              <h3>거래처 방문일지</h3>
+              <p class="hint">방문 매장 정보, 사용 원두, 추출 레시피, 상담 내용을 한 번에 기록합니다.</p>
+            </div>
+          </div>
+          <div class="calendar-head">
+            <div>
+              <h3 id="visitCalendarTitle">방문일지 달력</h3>
+              <p class="hint">방문일을 누르면 해당 날짜의 거래처 방문 기록을 확인합니다.</p>
+            </div>
+            <div class="calendar-actions">
+              <button type="button" id="visitCalendarPrevButton">이전 달</button>
+              <button type="button" id="visitCalendarTodayButton">이번 달</button>
+              <button type="button" id="visitCalendarNextButton">다음 달</button>
+              <button type="button" id="visitCalendarClearButton">날짜 해제</button>
+            </div>
+          </div>
+          <div class="calendar-summary" id="visitCalendarSummary"></div>
+          <div class="calendar-grid" id="visitCalendar"></div>
+          <form class="notice-form" id="visitForm">
+            <div class="field">
+              <label for="visitDateInput">방문일</label>
+              <input id="visitDateInput" type="date" required>
+            </div>
+            <div class="field">
+              <label for="visitCustomerInput">고객명</label>
+              <input id="visitCustomerInput" required placeholder="예: 김민석">
+            </div>
+            <div class="field">
+              <label for="visitStoreInput">상호명</label>
+              <input id="visitStoreInput" required placeholder="예: 송베이">
+            </div>
+            <div class="field">
+              <label for="visitManagerInput">방문 담당자</label>
+              <input id="visitManagerInput" placeholder="예: 엄민식">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="visitAddressInput">주소</label>
+              <input id="visitAddressInput" placeholder="예: 인천 연수구 아카데미로...">
+            </div>
+            <div class="field">
+              <label for="visitPhoneInput">전화번호</label>
+              <input id="visitPhoneInput" placeholder="예: 010-0000-0000">
+            </div>
+            <div class="field">
+              <label for="visitCoffeeInput">사용커피</label>
+              <input id="visitCoffeeInput" placeholder="예: 잘되어가시나, 서울시네마">
+            </div>
+            <div class="field">
+              <label for="visitMonthlyUsageInput">월평균사용량</label>
+              <input id="visitMonthlyUsageInput" placeholder="예: 55kg">
+            </div>
+            <div class="field">
+              <label for="visitMachineInput">머신</label>
+              <input id="visitMachineInput" placeholder="예: 엘로치오 디그니티 3gr">
+            </div>
+            <div class="field">
+              <label for="visitGrinderInput">그라인더</label>
+              <input id="visitGrinderInput" placeholder="예: 메저 메이저, 안핌 슈퍼">
+            </div>
+            <div class="field">
+              <label for="visitBasketInput">바스켓</label>
+              <input id="visitBasketInput" placeholder="예: IMS 20g">
+            </div>
+            <div class="field">
+              <label for="visitFlowPressureInput">머신 유량 및 압력</label>
+              <input id="visitFlowPressureInput" placeholder="예: 9bar / 247, 244.3, 239.8">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="visitRecipeInput">레시피</label>
+              <input id="visitRecipeInput" placeholder="예: Input 18g / Output 36g / Time 27s / TDS 10.3% / Ext 20.6%">
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="visitStoreFeatureInput">업장 및 상담특징</label>
+              <textarea id="visitStoreFeatureInput" placeholder="방문 목적, 업장 운영 특징, 상담 내용, 납품 관련 메모를 기록합니다."></textarea>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="visitBeverageQualityInput">음료퀄리티</label>
+              <textarea id="visitBeverageQualityInput" placeholder="추출 테스트 결과, 향미 상태, 레시피 변경 전후, 개선 필요 사항을 기록합니다."></textarea>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="visitEquipmentInput">기기장비 관리상태</label>
+              <textarea id="visitEquipmentInput" placeholder="머신, 그라인더, 디스플레이, 청소 상태, AS 필요 사항을 기록합니다."></textarea>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="visitExtraInput">기타</label>
+              <textarea id="visitExtraInput" placeholder="주차, 동선, 다음 방문 시 참고할 내용을 기록합니다."></textarea>
+            </div>
+            <button class="primary" type="submit" id="visitSubmitButton">방문일지 저장</button>
+          </form>
+          <div class="panel record-list scrollable-record-list" id="visitRecentList"></div>
+        </section>
+
         <section class="panel cupping-panel app-panel" data-app-panel="nonship">
           <div class="section-title">
             <div>
@@ -2668,6 +2764,8 @@
     const roastingBulkForm = document.querySelector("#roastingBulkForm");
     const espressoForm = document.querySelector("#espressoForm");
     const espressoSubmitButton = document.querySelector("#espressoSubmitButton");
+    const visitForm = document.querySelector("#visitForm");
+    const visitSubmitButton = document.querySelector("#visitSubmitButton");
     const nonShipResultForm = document.querySelector("#nonShipResultForm");
     const ratioNoticeForm = document.querySelector("#ratioNoticeForm");
     const correctionForm = document.querySelector("#correctionForm");
@@ -2692,6 +2790,7 @@
     const correctionPageButton = document.querySelector("[data-app-view='corrections']");
     const greenPageButton = document.querySelector("#greenPageButton");
     const espressoPageButton = document.querySelector("#espressoPageButton");
+    const visitPageButton = document.querySelector("#visitPageButton");
     const nonShipPageButton = document.querySelector("#nonShipPageButton");
     const authTabs = document.querySelectorAll("[data-auth-tab]");
     const authViews = {
@@ -2798,6 +2897,13 @@
     const espressoCalendarTodayButton = document.querySelector("#espressoCalendarTodayButton");
     const espressoCalendarNextButton = document.querySelector("#espressoCalendarNextButton");
     const espressoCalendarClearButton = document.querySelector("#espressoCalendarClearButton");
+    const visitCalendarTitle = document.querySelector("#visitCalendarTitle");
+    const visitCalendarSummary = document.querySelector("#visitCalendarSummary");
+    const visitCalendar = document.querySelector("#visitCalendar");
+    const visitCalendarPrevButton = document.querySelector("#visitCalendarPrevButton");
+    const visitCalendarTodayButton = document.querySelector("#visitCalendarTodayButton");
+    const visitCalendarNextButton = document.querySelector("#visitCalendarNextButton");
+    const visitCalendarClearButton = document.querySelector("#visitCalendarClearButton");
     const correctionCalendarTitle = document.querySelector("#correctionCalendarTitle");
     const correctionCalendarSummary = document.querySelector("#correctionCalendarSummary");
     const correctionCalendar = document.querySelector("#correctionCalendar");
@@ -2828,6 +2934,7 @@
     const cuppingRecentList = document.querySelector("#cuppingRecentList");
     const roastingRecentList = document.querySelector("#roastingRecentList");
     const espressoRecentList = document.querySelector("#espressoRecentList");
+    const visitRecentList = document.querySelector("#visitRecentList");
     const nonShipResultList = document.querySelector("#nonShipResultList");
     const blendSheetTabs = document.querySelector("#blendSheetTabs");
     const blendSheet = document.querySelector("#blendSheet");
@@ -2896,6 +3003,25 @@
       verdict: document.querySelector("#espressoVerdictInput"),
       note: document.querySelector("#espressoNoteInput")
     };
+    const visitFields = {
+      date: document.querySelector("#visitDateInput"),
+      customer: document.querySelector("#visitCustomerInput"),
+      store: document.querySelector("#visitStoreInput"),
+      manager: document.querySelector("#visitManagerInput"),
+      address: document.querySelector("#visitAddressInput"),
+      phone: document.querySelector("#visitPhoneInput"),
+      coffee: document.querySelector("#visitCoffeeInput"),
+      monthlyUsage: document.querySelector("#visitMonthlyUsageInput"),
+      machine: document.querySelector("#visitMachineInput"),
+      grinder: document.querySelector("#visitGrinderInput"),
+      basket: document.querySelector("#visitBasketInput"),
+      flowPressure: document.querySelector("#visitFlowPressureInput"),
+      recipe: document.querySelector("#visitRecipeInput"),
+      storeFeature: document.querySelector("#visitStoreFeatureInput"),
+      beverageQuality: document.querySelector("#visitBeverageQualityInput"),
+      equipment: document.querySelector("#visitEquipmentInput"),
+      extra: document.querySelector("#visitExtraInput")
+    };
     const nonShipFields = {
       blend: document.querySelector("#nonShipBlendInput"),
       date: document.querySelector("#nonShipDateInput"),
@@ -2920,6 +3046,8 @@
     let selectedCuppingDate = "";
     let espressoCalendarMonth = today().slice(0, 7);
     let selectedEspressoDate = "";
+    let visitCalendarMonth = today().slice(0, 7);
+    let selectedVisitDate = "";
     let correctionCalendarMonth = today().slice(0, 7);
     let selectedCorrectionDate = "";
     let selectedCuppingBatchIds = new Set();
@@ -2930,6 +3058,7 @@
     let editingGreenBeanId = "";
     let editingRoastingId = "";
     let editingEspressoId = "";
+    let editingVisitId = "";
 
     function canUseSharedStore() {
       return location.protocol === "http:" || location.protocol === "https:";
@@ -3185,7 +3314,8 @@
       ["roasting", "로스팅 데이터"],
       ["correction", "로스팅 프로파일 변경내용"],
       ["green", "생두 관리"],
-      ["espresso", "추출 평가"]
+      ["espresso", "추출 평가"],
+      ["visit", "거래처 방문일지"]
     ];
 
     function rolePermissions(role) {
@@ -3194,7 +3324,7 @@
       if (normalized === "cupper") return ["cupping"];
       if (normalized === "roaster") return ["roasting", "correction"];
       if (normalized === "green_manager") return ["green"];
-      if (normalized === "account_manager") return ["espresso"];
+      if (normalized === "account_manager") return ["espresso", "visit"];
       return [];
     }
 
@@ -3282,6 +3412,10 @@
       return hasPermission(user, "espresso");
     }
 
+    function canManageVisitLogs(user) {
+      return hasPermission(user, "visit");
+    }
+
     function canManageRatioNotices(user) {
       return hasPermission(user, "green");
     }
@@ -3311,6 +3445,7 @@
       if (isPrimaryAdmin(user)) return true;
       if (entry.entryType === "roasting") return canInputRoasting(user);
       if (entry.entryType === "espresso") return canInputEspresso(user);
+      if (entry.entryType === "visit") return canManageVisitLogs(user);
       if (entry.entryType === "correction") return canManageCorrections(user);
       return canInputCupping(user);
     }
@@ -3321,6 +3456,7 @@
       if (name === "corrections") return canManageCorrections(user);
       if (name === "green") return canManageGreenBeans(user);
       if (name === "espresso") return canInputEspresso(user);
+      if (name === "visit") return canManageVisitLogs(user);
       if (name === "nonship") return canManageNonShipResults(user);
       return true;
     }
@@ -3337,6 +3473,7 @@
       correctionPageButton.hidden = !canManageCorrections(user);
       greenPageButton.hidden = !canManageGreenBeans(user);
       espressoPageButton.hidden = !canInputEspresso(user);
+      visitPageButton.hidden = !canManageVisitLogs(user);
       nonShipPageButton.hidden = !canManageNonShipResults(user);
       resetButton.hidden = !canManageData(user);
       appShell.classList.add("viewer-mode");
@@ -3352,6 +3489,10 @@
       appPanels.forEach((panel) => {
         panel.hidden = panel.dataset.appPanel !== target;
       });
+      if (target === "visit") {
+        if (!visitFields.date.value) visitFields.date.value = today();
+        if (!visitFields.manager.value) visitFields.manager.value = userDisplayName(user);
+      }
       applyQcPermission(user);
       render();
     }
@@ -3641,6 +3782,7 @@
     function entryDisplayDate(entry) {
       if (entry.entryType === "roasting") return entry.roastDate || entry.createdAt || "";
       if (entry.entryType === "espresso") return entry.roastDate || entry.createdAt || "";
+      if (entry.entryType === "visit") return entry.visitDate || entry.createdAt || "";
       return entry.roastDate || entry.cuppingDate || entry.createdAt || "";
     }
 
@@ -3685,6 +3827,9 @@
       if (entry.entryType === "espresso") {
         return [entry.roastDate].filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")));
       }
+      if (entry.entryType === "visit") {
+        return [entry.visitDate].filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")));
+      }
       const values = [entry.roastDate || entry.cuppingDate];
       return Array.from(new Set(values.filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")))));
     }
@@ -3709,6 +3854,10 @@
       }
       if (type === "espresso") {
         return [type, entry.roastDate || "", blend, batch].join("|");
+      }
+      if (type === "visit") {
+        const visitData = entry.visitData || {};
+        return [type, entry.visitDate || "", normalizeText(visitData.store || ""), normalizeText(visitData.customer || "")].join("|");
       }
       if (type === "correction") return "";
       const evaluator = normalizeUserId(entry.createdBy || "") || normalizeText(entry.evaluatorName || entry.createdByName || "");
@@ -4184,6 +4333,10 @@
         editingEspressoId = "";
         espressoSubmitButton.textContent = "추출 평가 저장";
       }
+      if (!type || type === "visit") {
+        editingVisitId = "";
+        visitSubmitButton.textContent = "방문일지 저장";
+      }
     }
 
     function loadEntryForEdit(entry) {
@@ -4227,6 +4380,30 @@
         espressoFields.note.value = entry.note || "";
         espressoSubmitButton.textContent = "추출 평가 수정";
         setAppView("espresso");
+        return;
+      }
+      if (entry.entryType === "visit") {
+        const visitData = normalizedVisitData(entry);
+        editingVisitId = entry.id;
+        visitFields.date.value = entry.visitDate || today();
+        visitFields.customer.value = visitData.customer;
+        visitFields.store.value = visitData.store;
+        visitFields.manager.value = visitData.manager;
+        visitFields.address.value = visitData.address;
+        visitFields.phone.value = visitData.phone;
+        visitFields.coffee.value = visitData.coffee;
+        visitFields.monthlyUsage.value = visitData.monthlyUsage;
+        visitFields.machine.value = visitData.machine;
+        visitFields.grinder.value = visitData.grinder;
+        visitFields.basket.value = visitData.basket;
+        visitFields.flowPressure.value = visitData.flowPressure;
+        visitFields.recipe.value = visitData.recipe;
+        visitFields.storeFeature.value = visitData.storeFeature;
+        visitFields.beverageQuality.value = visitData.beverageQuality;
+        visitFields.equipment.value = visitData.equipment;
+        visitFields.extra.value = visitData.extra;
+        visitSubmitButton.textContent = "방문일지 수정";
+        setAppView("visit");
         return;
       }
       const scores = normalizedScores(entry);
@@ -4342,6 +4519,28 @@
       };
     }
 
+    function normalizedVisitData(entry) {
+      const visitData = entry.visitData || {};
+      return {
+        customer: visitData.customer || "",
+        store: visitData.store || "",
+        manager: visitData.manager || entry.createdByName || "",
+        address: visitData.address || "",
+        phone: visitData.phone || "",
+        coffee: visitData.coffee || "",
+        monthlyUsage: visitData.monthlyUsage || "",
+        machine: visitData.machine || "",
+        grinder: visitData.grinder || "",
+        basket: visitData.basket || "",
+        flowPressure: visitData.flowPressure || "",
+        recipe: visitData.recipe || "",
+        storeFeature: visitData.storeFeature || "",
+        beverageQuality: visitData.beverageQuality || "",
+        equipment: visitData.equipment || "",
+        extra: visitData.extra || ""
+      };
+    }
+
     function normalizedCuppingDetail(entry) {
       const detail = entry.cuppingDetail || {};
       return {
@@ -4379,7 +4578,7 @@
     }
 
     function isCuppingEntry(entry) {
-      return entry.entryType !== "roasting" && entry.entryType !== "espresso";
+      return entry.entryType !== "roasting" && entry.entryType !== "espresso" && entry.entryType !== "visit";
     }
 
     function batchNumberRange(batch) {
@@ -4661,20 +4860,23 @@
       const category = getBlendCategory(entry.blend);
       const verdict = normalizeVerdict(entry.verdict);
       const cuppingDetail = normalizedCuppingDetail(entry);
+      const visitData = normalizedVisitData(entry);
       const haystack = [
         category,
         entry.blend,
         entry.batch,
+        entry.visitDate,
         entry.cuppingDate,
         entry.roastLevel,
         verdict,
         verdictLabel(verdict),
         ...Object.values(normalizedRoastData(entry)),
         ...Object.values(normalizedEspressoData(entry)),
+        ...Object.values(visitData),
         cuppingDetail.flavorIssue,
         entryEvaluatorName(entry),
         isCuppingEntry(entry) ? cuppingDetail.flavorIssue : entry.note,
-        entry.tags.join(" ")
+        (entry.tags || []).join(" ")
       ].join(" ").toLowerCase();
       return (!query || haystack.includes(query))
         && (!includeDate || entryMatchesSelectedDate(entry))
@@ -4713,8 +4915,56 @@
       return "기타";
     }
 
+    function visitCardMarkup(entry, compact = false) {
+      const visitData = normalizedVisitData(entry);
+      const user = approvedSessionUser();
+      const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${escapeHtml(entry.id)}" data-edit-type="visit">수정</button>`;
+      const deleteButton = compact || !canDeleteEntry(entry, user) ? "" : `<button class="delete" data-delete="${escapeHtml(entry.id)}" title="방문일지 삭제">×</button>`;
+      const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
+      const noteBlocks = [
+        ["업장 및 상담특징", visitData.storeFeature],
+        ["음료퀄리티", visitData.beverageQuality],
+        ["기기장비 관리상태", visitData.equipment],
+        ["기타", visitData.extra]
+      ].filter(([, value]) => normalizeText(value));
+      return `
+        <article class="${compact ? "qc-card" : "record-item"}">
+          ${compact ? "" : `<div class="date">방문일<br>${escapeHtml(entry.visitDate || "-")}</div>`}
+          <div>
+            <div class="qc-head">
+              <h4 class="qc-title">${escapeHtml(visitData.store || "상호명 미기록")} ${visitData.customer ? `· ${escapeHtml(visitData.customer)}` : ""}</h4>
+              <span class="tag blue">방문일지</span>
+            </div>
+            <p class="qc-body">${escapeHtml(visitData.storeFeature || visitData.beverageQuality || "방문 내용 미기록")}</p>
+            <div class="meta">
+              <span class="tag">담당 ${escapeHtml(visitData.manager || "-")}</span>
+              <span class="tag">사용커피 ${escapeHtml(visitData.coffee || "-")}</span>
+              <span class="tag">월사용 ${escapeHtml(visitData.monthlyUsage || "-")}</span>
+              <span class="tag blue">머신 ${escapeHtml(visitData.machine || "-")}</span>
+              <span class="tag">그라인더 ${escapeHtml(visitData.grinder || "-")}</span>
+              <span class="tag amber">레시피 ${escapeHtml(visitData.recipe || "-")}</span>
+            </div>
+            ${compact ? "" : `
+              <div class="comment-field-block">
+                <strong>기본 정보</strong>
+                <p>${escapeHtml([visitData.address, visitData.phone, visitData.basket, visitData.flowPressure].filter(Boolean).join(" / ") || "기본 정보 미기록")}</p>
+              </div>
+              ${noteBlocks.map(([label, value]) => `
+                <div class="comment-field-block">
+                  <strong>${escapeHtml(label)}</strong>
+                  <p>${escapeHtml(value)}</p>
+                </div>
+              `).join("")}
+            `}
+          </div>
+          ${actions}
+        </article>
+      `;
+    }
+
     function cardMarkup(entry, compact = false) {
-      const tags = entry.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
+      if (entry.entryType === "visit") return visitCardMarkup(entry, compact);
+      const tags = (entry.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("");
       const avg = scoreAverage(entry).toFixed(1);
       const scores = normalizedScores(entry);
       const intensity = normalizedIntensity(entry);
@@ -5169,6 +5419,42 @@
       espressoCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
+    function renderVisitCalendar() {
+      const [year, month] = visitCalendarMonth.split("-").map(Number);
+      const firstDate = new Date(year, month - 1, 1);
+      const lastDate = new Date(year, month, 0);
+      const leadingEmptyDays = firstDate.getDay();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const visitEntries = entries.filter((entry) => entry.entryType === "visit");
+      const countByDate = visitEntries.reduce((acc, entry) => {
+        const value = entry.visitDate || "";
+        if (value.slice(0, 7) !== visitCalendarMonth) return acc;
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      }, {});
+      const dayButtons = [];
+      for (let index = 0; index < leadingEmptyDays; index += 1) {
+        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      }
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${visitCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const count = countByDate[dateValue] || 0;
+        dayButtons.push(`
+          <button type="button" class="calendar-day ${count ? "has-data" : ""} ${selectedVisitDate === dateValue ? "selected" : ""}" data-visit-date="${dateValue}">
+            <strong>${day}</strong>
+            ${count ? `<span>${count}개 방문</span>` : ""}
+          </button>
+        `);
+      }
+      const monthCount = Object.values(countByDate).reduce((sum, count) => sum + count, 0);
+      const selectedCount = selectedVisitDate ? visitEntries.filter((entry) => entry.visitDate === selectedVisitDate).length : 0;
+      visitCalendarTitle.textContent = `${monthLabel(visitCalendarMonth)} 방문일지 달력`;
+      visitCalendarSummary.innerHTML = selectedVisitDate
+        ? `<span>선택 방문일 ${escapeHtml(selectedVisitDate)}</span><span>방문일지 ${selectedCount}개</span>`
+        : `<span>날짜를 선택하지 않으면 ${monthLabel(visitCalendarMonth)} 전체 방문일지를 표시합니다.</span><span>월간 방문 ${monthCount}개</span>`;
+      visitCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
+    }
+
     function renderCuppingBatchPicker() {
       const roastDate = selectedCuppingRoastDate();
       const candidates = cuppingRoastingCandidates();
@@ -5459,6 +5745,7 @@
       renderRoastingCalendar();
       renderCuppingCalendar();
       renderEspressoCalendar();
+      renderVisitCalendar();
       renderCuppingBatchPicker();
       renderDashboardRecent(monthEntries);
       renderSummary(monthEntries);
@@ -5514,6 +5801,14 @@
       espressoRecentList.innerHTML = espressoEntries.length
         ? `<div class="list-summary"><span>${selectedEspressoDate ? selectedEspressoDate : monthLabel(espressoCalendarMonth)} 추출 평가 ${espressoEntries.length}개</span><span>${selectedEspressoDate ? "선택일" : "월간"}</span></div>${espressoEntries.map((entry) => cardMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 추출 평가가 없습니다.</div>`;
+      const visitEntries = entries.filter((entry) => {
+        if (entry.entryType !== "visit") return false;
+        if (selectedVisitDate) return entry.visitDate === selectedVisitDate;
+        return entry.visitDate?.slice(0, 7) === visitCalendarMonth;
+      });
+      visitRecentList.innerHTML = visitEntries.length
+        ? `<div class="list-summary"><span>${selectedVisitDate ? selectedVisitDate : monthLabel(visitCalendarMonth)} 방문일지 ${visitEntries.length}개</span><span>${selectedVisitDate ? "선택 방문일" : "월간"}</span></div>${visitEntries.map((entry) => visitCardMarkup(entry)).join("")}`
+        : `<div class="empty">아직 저장된 거래처 방문일지가 없습니다.</div>`;
     }
 
     quickCuppingForm.addEventListener("submit", (event) => {
@@ -5826,6 +6121,56 @@
       espressoFields.date.value = today();
       espressoFields.verdict.value = "pass";
       espressoFields.extractionYield.value = "";
+      render();
+    });
+
+    visitForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = approvedSessionUser();
+      if (!canManageVisitLogs(user)) return;
+      const visitData = {
+        customer: normalizeText(visitFields.customer.value),
+        store: normalizeText(visitFields.store.value),
+        manager: normalizeText(visitFields.manager.value) || userDisplayName(user),
+        address: normalizeText(visitFields.address.value),
+        phone: normalizeText(visitFields.phone.value),
+        coffee: normalizeText(visitFields.coffee.value),
+        monthlyUsage: normalizeText(visitFields.monthlyUsage.value),
+        machine: normalizeText(visitFields.machine.value),
+        grinder: normalizeText(visitFields.grinder.value),
+        basket: normalizeText(visitFields.basket.value),
+        flowPressure: normalizeText(visitFields.flowPressure.value),
+        recipe: normalizeText(visitFields.recipe.value),
+        storeFeature: normalizeText(visitFields.storeFeature.value),
+        beverageQuality: normalizeText(visitFields.beverageQuality.value),
+        equipment: normalizeText(visitFields.equipment.value),
+        extra: normalizeText(visitFields.extra.value)
+      };
+      const entry = {
+        id: editingVisitId || makeId(),
+        entryType: "visit",
+        visitDate: visitFields.date.value || today(),
+        blend: "",
+        roastDate: "",
+        batch: "",
+        roastLevel: "거래처 방문일지",
+        verdict: "pass",
+        visitData,
+        scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
+        intensity: { acidity: 0, sweetness: 0, bitterness: 0, body: 0 },
+        note: visitData.storeFeature || visitData.beverageQuality || "거래처 방문일지",
+        tags: normalizeTags(`거래처방문, ${visitData.store}, ${visitData.customer}, ${visitData.coffee}`),
+        createdByName: userDisplayName(user),
+        createdBy: user?.userId || "",
+        createdAt: today()
+      };
+      const upserted = saveOperationalEntry(entries, entry, editingVisitId);
+      entries = upserted.entries;
+      writeEntries(entries);
+      visitForm.reset();
+      resetEditingState("visit");
+      visitFields.date.value = today();
+      visitFields.manager.value = userDisplayName(user);
       render();
     });
 
@@ -6146,6 +6491,7 @@
     cuppingRecentList.addEventListener("click", handleEntryAction);
     roastingRecentList.addEventListener("click", handleEntryAction);
     espressoRecentList.addEventListener("click", handleEntryAction);
+    visitRecentList.addEventListener("click", handleEntryAction);
 
     cuppingBatchFields.list.addEventListener("change", (event) => {
       const input = event.target.closest("[data-cupping-roast-entry]");
@@ -6334,6 +6680,38 @@
       render();
     });
 
+    visitCalendar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-visit-date]");
+      if (!button) return;
+      selectedVisitDate = selectedVisitDate === button.dataset.visitDate ? "" : button.dataset.visitDate;
+      if (selectedVisitDate) visitFields.date.value = selectedVisitDate;
+      render();
+    });
+
+    visitCalendarPrevButton.addEventListener("click", () => {
+      visitCalendarMonth = shiftMonthKey(visitCalendarMonth, -1);
+      selectedVisitDate = "";
+      render();
+    });
+
+    visitCalendarTodayButton.addEventListener("click", () => {
+      visitCalendarMonth = today().slice(0, 7);
+      selectedVisitDate = "";
+      visitFields.date.value = today();
+      render();
+    });
+
+    visitCalendarNextButton.addEventListener("click", () => {
+      visitCalendarMonth = shiftMonthKey(visitCalendarMonth, 1);
+      selectedVisitDate = "";
+      render();
+    });
+
+    visitCalendarClearButton.addEventListener("click", () => {
+      selectedVisitDate = "";
+      render();
+    });
+
     cuppingCalendar.addEventListener("click", (event) => {
       const button = event.target.closest("[data-cupping-date]");
       if (!button) return;
@@ -6445,6 +6823,8 @@
     fields.roastDate.value = today();
     roastingFields.date.value = today();
     espressoFields.date.value = today();
+    visitFields.date.value = today();
+    visitFields.manager.value = userDisplayName(approvedSessionUser());
     nonShipFields.date.value = today();
     noticeFields.date.value = today();
     correctionFields.date.value = today();
