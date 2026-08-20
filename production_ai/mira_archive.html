@@ -893,10 +893,24 @@
       grid-template-columns: 180px 180px 1fr auto;
     }
 
+    .single-origin-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      grid-column: 1 / -1;
+      gap: 8px;
+    }
+
+    .single-origin-lineup-list,
+    .single-origin-club-list {
+      display: grid;
+      grid-column: 1 / -1;
+      gap: 8px;
+    }
+
     .single-origin-lineup {
       display: grid;
       grid-column: 1 / -1;
-      grid-template-columns: 1.4fr repeat(3, minmax(110px, 1fr));
+      grid-template-columns: 1.4fr repeat(3, minmax(110px, 1fr)) auto;
       gap: 8px;
       align-items: end;
       padding: 10px;
@@ -908,6 +922,20 @@
     .single-origin-lineup strong {
       grid-column: 1 / -1;
       font-size: 12px;
+    }
+
+    .calendar-day .calendar-mini {
+      display: grid;
+      gap: 3px;
+      margin-top: 8px;
+    }
+
+    .calendar-day .calendar-mini span {
+      display: block;
+      margin-top: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .notice-list {
@@ -2001,9 +2029,22 @@
           <div class="section-title" style="margin-bottom: 0;">
             <div>
               <h3>싱글오리진 스케줄</h3>
-              <p class="hint">2주 단위 싱글오리진 4종 라인업과 판매 가격을 공유합니다.</p>
+              <p class="hint">2주 단위 라인업과 수요일 커피클럽 싱글오리진을 달력으로 공유합니다.</p>
             </div>
           </div>
+          <div class="calendar-head">
+            <div>
+              <h3 id="singleOriginCalendarTitle">싱글오리진 달력</h3>
+            </div>
+            <div class="calendar-actions">
+              <button type="button" id="singleOriginCalendarPrevButton">이전 달</button>
+              <button type="button" id="singleOriginCalendarTodayButton">이번 달</button>
+              <button type="button" id="singleOriginCalendarNextButton">다음 달</button>
+              <button type="button" id="singleOriginCalendarClearButton">날짜 해제</button>
+            </div>
+          </div>
+          <div class="calendar-summary" id="singleOriginCalendarSummary"></div>
+          <div class="calendar-grid" id="singleOriginCalendar"></div>
           <form class="notice-form single-origin-form" id="singleOriginForm">
             <div class="field">
               <label for="singleOriginStartDateInput">시작일</label>
@@ -2018,82 +2059,12 @@
               <input id="singleOriginTitleInput" placeholder="예: 9월 1차 싱글오리진">
             </div>
             <button class="primary" type="submit" id="singleOriginSubmitButton">스케줄 저장</button>
-            <div class="single-origin-lineup" data-single-lineup-row>
-              <strong>라인업 1</strong>
-              <div class="field">
-                <label>생두</label>
-                <select data-single-bean></select>
-              </div>
-              <div class="field">
-                <label>도매가격</label>
-                <input data-single-wholesale inputmode="decimal">
-              </div>
-              <div class="field">
-                <label>소매가격</label>
-                <input data-single-retail inputmode="decimal">
-              </div>
-              <div class="field">
-                <label>브루잉 가격</label>
-                <input data-single-brewing inputmode="decimal">
-              </div>
+            <div class="single-origin-toolbar">
+              <button type="button" id="singleOriginAddLineupButton">라인업 추가</button>
+              <button type="button" id="singleOriginAddClubButton">커피클럽 수요일 추가</button>
             </div>
-            <div class="single-origin-lineup" data-single-lineup-row>
-              <strong>라인업 2</strong>
-              <div class="field">
-                <label>생두</label>
-                <select data-single-bean></select>
-              </div>
-              <div class="field">
-                <label>도매가격</label>
-                <input data-single-wholesale inputmode="decimal">
-              </div>
-              <div class="field">
-                <label>소매가격</label>
-                <input data-single-retail inputmode="decimal">
-              </div>
-              <div class="field">
-                <label>브루잉 가격</label>
-                <input data-single-brewing inputmode="decimal">
-              </div>
-            </div>
-            <div class="single-origin-lineup" data-single-lineup-row>
-              <strong>라인업 3</strong>
-              <div class="field">
-                <label>생두</label>
-                <select data-single-bean></select>
-              </div>
-              <div class="field">
-                <label>도매가격</label>
-                <input data-single-wholesale inputmode="decimal">
-              </div>
-              <div class="field">
-                <label>소매가격</label>
-                <input data-single-retail inputmode="decimal">
-              </div>
-              <div class="field">
-                <label>브루잉 가격</label>
-                <input data-single-brewing inputmode="decimal">
-              </div>
-            </div>
-            <div class="single-origin-lineup" data-single-lineup-row>
-              <strong>라인업 4</strong>
-              <div class="field">
-                <label>생두</label>
-                <select data-single-bean></select>
-              </div>
-              <div class="field">
-                <label>도매가격</label>
-                <input data-single-wholesale inputmode="decimal">
-              </div>
-              <div class="field">
-                <label>소매가격</label>
-                <input data-single-retail inputmode="decimal">
-              </div>
-              <div class="field">
-                <label>브루잉 가격</label>
-                <input data-single-brewing inputmode="decimal">
-              </div>
-            </div>
+            <div class="single-origin-lineup-list" id="singleOriginLineupList"></div>
+            <div class="single-origin-club-list" id="singleOriginClubList"></div>
             <div class="field" style="grid-column: 1 / -1;">
               <label for="singleOriginNoteInput">메모</label>
               <textarea id="singleOriginNoteInput" placeholder="출시 메모, 품절 예정, 안내 사항 등을 남깁니다."></textarea>
@@ -3107,6 +3078,13 @@
     const correctionCalendarTodayButton = document.querySelector("#correctionCalendarTodayButton");
     const correctionCalendarNextButton = document.querySelector("#correctionCalendarNextButton");
     const correctionCalendarClearButton = document.querySelector("#correctionCalendarClearButton");
+    const singleOriginCalendarTitle = document.querySelector("#singleOriginCalendarTitle");
+    const singleOriginCalendarSummary = document.querySelector("#singleOriginCalendarSummary");
+    const singleOriginCalendar = document.querySelector("#singleOriginCalendar");
+    const singleOriginCalendarPrevButton = document.querySelector("#singleOriginCalendarPrevButton");
+    const singleOriginCalendarTodayButton = document.querySelector("#singleOriginCalendarTodayButton");
+    const singleOriginCalendarNextButton = document.querySelector("#singleOriginCalendarNextButton");
+    const singleOriginCalendarClearButton = document.querySelector("#singleOriginCalendarClearButton");
     const filters = {
       search: document.querySelector("#searchInput"),
       category: document.querySelector("#categoryFilter"),
@@ -3147,13 +3125,16 @@
     };
     const singleOriginForm = document.querySelector("#singleOriginForm");
     const singleOriginSubmitButton = document.querySelector("#singleOriginSubmitButton");
+    const singleOriginAddLineupButton = document.querySelector("#singleOriginAddLineupButton");
+    const singleOriginAddClubButton = document.querySelector("#singleOriginAddClubButton");
     const singleOriginFields = {
       startDate: document.querySelector("#singleOriginStartDateInput"),
       endDate: document.querySelector("#singleOriginEndDateInput"),
       title: document.querySelector("#singleOriginTitleInput"),
       note: document.querySelector("#singleOriginNoteInput"),
       message: document.querySelector("#singleOriginMessage"),
-      rows: Array.from(document.querySelectorAll("[data-single-lineup-row]"))
+      lineupList: document.querySelector("#singleOriginLineupList"),
+      clubList: document.querySelector("#singleOriginClubList")
     };
     const correctionFields = {
       blend: document.querySelector("#correctionBlendInput"),
@@ -3267,6 +3248,8 @@
     let selectedVisitDate = "";
     let correctionCalendarMonth = today().slice(0, 7);
     let selectedCorrectionDate = "";
+    let singleOriginCalendarMonth = today().slice(0, 7);
+    let selectedSingleOriginDate = "";
     let selectedCuppingBatchIds = new Set();
     let ratioCalendarMonth = today().slice(0, 7);
     let selectedRatioDate = "";
@@ -5165,8 +5148,14 @@
         select.innerHTML = markup;
         if (current && selectHasValue(select, current)) select.value = current;
       });
-      singleOriginFields.rows.forEach((row) => {
+      getSingleOriginLineupRows().forEach((row) => {
         const select = row.querySelector("[data-single-bean]");
+        const current = select.value;
+        select.innerHTML = markup;
+        if (current && selectHasValue(select, current)) select.value = current;
+      });
+      getSingleOriginClubRows().forEach((row) => {
+        const select = row.querySelector("[data-single-club-bean]");
         const current = select.value;
         select.innerHTML = markup;
         if (current && selectHasValue(select, current)) select.value = current;
@@ -5191,8 +5180,107 @@
       return (composition || []).map((item) => `${item.beanName}${item.process ? ` (${item.process})` : ""} ${item.percent}%`).join(" / ");
     }
 
+    function getSingleOriginLineupRows() {
+      return Array.from(singleOriginFields.lineupList.querySelectorAll("[data-single-lineup-row]"));
+    }
+
+    function getSingleOriginClubRows() {
+      return Array.from(singleOriginFields.clubList.querySelectorAll("[data-single-club-row]"));
+    }
+
+    function isWednesday(value) {
+      const date = parseDateInput(value);
+      return Boolean(date && date.getDay() === 3);
+    }
+
+    function nextWednesday(value = today()) {
+      const date = parseDateInput(value) || parseDateInput(today());
+      const offset = (3 - date.getDay() + 7) % 7;
+      date.setDate(date.getDate() + offset);
+      return formatDateInput(date);
+    }
+
+    function singleOriginLineupRowMarkup(index, lineup = {}) {
+      return `
+        <div class="single-origin-lineup" data-single-lineup-row>
+          <strong>라인업 ${index + 1}</strong>
+          <div class="field">
+            <label>생두</label>
+            <select data-single-bean>${greenBeanOptionMarkup()}</select>
+          </div>
+          <div class="field">
+            <label>도매가격</label>
+            <input data-single-wholesale inputmode="decimal" value="${escapeHtml(lineup.wholesalePrice || "")}">
+          </div>
+          <div class="field">
+            <label>소매가격</label>
+            <input data-single-retail inputmode="decimal" value="${escapeHtml(lineup.retailPrice || "")}">
+          </div>
+          <div class="field">
+            <label>브루잉 가격</label>
+            <input data-single-brewing inputmode="decimal" value="${escapeHtml(lineup.brewingPrice || "")}">
+          </div>
+          <button class="delete" type="button" data-remove-single-lineup title="라인업 삭제">×</button>
+        </div>
+      `;
+    }
+
+    function singleOriginClubRowMarkup(index, club = {}) {
+      return `
+        <div class="single-origin-lineup" data-single-club-row>
+          <strong>커피클럽 수요일 ${index + 1}</strong>
+          <div class="field">
+            <label>수요일</label>
+            <input type="date" data-single-club-date value="${escapeHtml(club.date || nextWednesday(singleOriginFields.startDate.value || today()))}">
+          </div>
+          <div class="field">
+            <label>생두</label>
+            <select data-single-club-bean>${greenBeanOptionMarkup()}</select>
+          </div>
+          <div class="field">
+            <label>메모</label>
+            <input data-single-club-note value="${escapeHtml(club.note || "")}">
+          </div>
+          <button class="delete" type="button" data-remove-single-club title="커피클럽 삭제">×</button>
+        </div>
+      `;
+    }
+
+    function refreshSingleOriginLineupLabels() {
+      getSingleOriginLineupRows().forEach((row, index) => {
+        const label = row.querySelector("strong");
+        if (label) label.textContent = `라인업 ${index + 1}`;
+      });
+      getSingleOriginClubRows().forEach((row, index) => {
+        const label = row.querySelector("strong");
+        if (label) label.textContent = `커피클럽 수요일 ${index + 1}`;
+      });
+    }
+
+    function addSingleOriginLineupRow(lineup = {}) {
+      singleOriginFields.lineupList.insertAdjacentHTML("beforeend", singleOriginLineupRowMarkup(getSingleOriginLineupRows().length, lineup));
+      const row = getSingleOriginLineupRows().at(-1);
+      if (row && lineup.beanId) row.querySelector("[data-single-bean]").value = lineup.beanId;
+      refreshSingleOriginLineupLabels();
+    }
+
+    function addSingleOriginClubRow(club = {}) {
+      singleOriginFields.clubList.insertAdjacentHTML("beforeend", singleOriginClubRowMarkup(getSingleOriginClubRows().length, club));
+      const row = getSingleOriginClubRows().at(-1);
+      if (row && club.beanId) row.querySelector("[data-single-club-bean]").value = club.beanId;
+      refreshSingleOriginLineupLabels();
+    }
+
+    function resetSingleOriginRows(lineups = [{}, {}, {}, {}], coffeeClub = []) {
+      singleOriginFields.lineupList.innerHTML = "";
+      singleOriginFields.clubList.innerHTML = "";
+      const sourceLineups = lineups.length ? lineups : [{}];
+      sourceLineups.forEach((lineup) => addSingleOriginLineupRow(lineup));
+      coffeeClub.forEach((club) => addSingleOriginClubRow(club));
+    }
+
     function selectedSingleOriginLineups() {
-      return singleOriginFields.rows.map((row, index) => {
+      return getSingleOriginLineupRows().map((row, index) => {
         const beanId = row.querySelector("[data-single-bean]")?.value || "";
         const bean = greenBeans.find((item) => item.id === beanId);
         if (!bean) return null;
@@ -5210,6 +5298,24 @@
       }).filter(Boolean);
     }
 
+    function selectedSingleOriginCoffeeClub() {
+      return getSingleOriginClubRows().map((row) => {
+        const beanId = row.querySelector("[data-single-club-bean]")?.value || "";
+        const bean = greenBeans.find((item) => item.id === beanId);
+        if (!bean) return null;
+        const date = row.querySelector("[data-single-club-date]")?.value || nextWednesday(singleOriginFields.startDate.value || today());
+        return {
+          date,
+          beanId: bean.id,
+          beanName: bean.name || "",
+          origin: bean.origin || "",
+          process: bean.process || "",
+          krwPerKg: bean.krwPerKg || "",
+          note: normalizeText(row.querySelector("[data-single-club-note]")?.value || "")
+        };
+      }).filter(Boolean);
+    }
+
     function singleOriginLineupWithBean(lineup) {
       const bean = greenBeans.find((item) => item.id === lineup.beanId);
       return {
@@ -5221,9 +5327,14 @@
       };
     }
 
+    function singleOriginScheduleOnDate(schedule, value) {
+      return dateTimestamp(schedule.startDate) <= dateTimestamp(value) && dateTimestamp(value) <= dateTimestamp(schedule.endDate || schedule.startDate);
+    }
+
     function singleOriginScheduleMarkup(schedule) {
       const editable = canManageSingleOriginSchedules(approvedSessionUser());
       const lineups = (schedule.lineups || []).map(singleOriginLineupWithBean);
+      const coffeeClub = (schedule.coffeeClub || []).map(singleOriginLineupWithBean);
       return `
         <article class="notice-item">
           <div>
@@ -5231,6 +5342,7 @@
             <div class="meta">
               <span class="tag blue">${escapeHtml(schedule.startDate || "-")} ~ ${escapeHtml(schedule.endDate || "-")}</span>
               <span class="tag">라인업 ${lineups.length}종</span>
+              ${coffeeClub.length ? `<span class="tag amber">커피클럽 ${coffeeClub.length}종</span>` : ""}
             </div>
           </div>
           <div>
@@ -5254,6 +5366,26 @@
                 </article>
               `).join("")}
             </div>
+            ${coffeeClub.length ? `
+              <div class="comment-compare-grid" style="margin-top: 8px;">
+                ${coffeeClub.map((club) => `
+                  <article class="comment-item">
+                    <div class="comment-date">${escapeHtml(club.date || "수요일")}</div>
+                    <div>
+                      <div class="qc-head">
+                        <h4 class="qc-title">커피클럽 ${escapeHtml(club.beanName || "-")}</h4>
+                        <span class="tag green">kg당 ₩ ${escapeHtml(club.krwPerKg || "-")}</span>
+                      </div>
+                      <div class="meta">
+                        <span class="tag blue">${escapeHtml(club.origin || "-")}</span>
+                        <span class="tag">${escapeHtml(club.process || "-")}</span>
+                        ${club.note ? `<span class="tag amber">${escapeHtml(club.note)}</span>` : ""}
+                      </div>
+                    </div>
+                  </article>
+                `).join("")}
+              </div>
+            ` : ""}
             ${schedule.note ? `<p>${escapeHtml(schedule.note)}</p>` : ""}
           </div>
           ${editable ? `<div class="entry-actions"><button type="button" data-edit-single-origin="${escapeHtml(schedule.id)}">수정</button><button class="delete" type="button" data-delete-single-origin="${escapeHtml(schedule.id)}" title="스케줄 삭제">×</button></div>` : ""}
@@ -6142,9 +6274,56 @@
         : `<div class="empty">아직 등록된 생두가 없습니다.</div>`;
     }
 
+    function renderSingleOriginCalendar() {
+      const [year, month] = singleOriginCalendarMonth.split("-").map(Number);
+      const firstDate = new Date(year, month - 1, 1);
+      const lastDate = new Date(year, month, 0);
+      const leadingEmptyDays = firstDate.getDay();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const scheduleByDate = {};
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${singleOriginCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const activeSchedules = singleOriginSchedules.filter((schedule) => singleOriginScheduleOnDate(schedule, dateValue));
+        if (activeSchedules.length) scheduleByDate[dateValue] = activeSchedules;
+      }
+      const dayButtons = [];
+      for (let index = 0; index < leadingEmptyDays; index += 1) {
+        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      }
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${singleOriginCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const activeSchedules = scheduleByDate[dateValue] || [];
+        const coffeeClub = activeSchedules.flatMap((schedule) => (schedule.coffeeClub || []).filter((club) => club.date === dateValue));
+        dayButtons.push(`
+          <button type="button" class="calendar-day ${activeSchedules.length ? "has-data" : ""} ${selectedSingleOriginDate === dateValue ? "selected" : ""}" data-single-origin-date="${dateValue}">
+            <strong>${day}</strong>
+            ${activeSchedules.length ? `
+              <div class="calendar-mini">
+                <span>${activeSchedules.length}개 스케줄</span>
+                ${coffeeClub.length ? `<span>커피클럽 ${coffeeClub.length}종</span>` : ""}
+              </div>
+            ` : ""}
+          </button>
+        `);
+      }
+      const monthSchedules = singleOriginSchedules.filter((schedule) => {
+        const start = schedule.startDate || "";
+        const end = schedule.endDate || start;
+        return start.slice(0, 7) === singleOriginCalendarMonth || end.slice(0, 7) === singleOriginCalendarMonth || Object.keys(scheduleByDate).some((dateValue) => singleOriginScheduleOnDate(schedule, dateValue));
+      });
+      singleOriginCalendarTitle.textContent = `${monthLabel(singleOriginCalendarMonth)} 싱글오리진 달력`;
+      singleOriginCalendarSummary.innerHTML = selectedSingleOriginDate
+        ? `<span>선택 날짜 ${escapeHtml(selectedSingleOriginDate)}</span><span>진행 스케줄 ${singleOriginSchedules.filter((schedule) => singleOriginScheduleOnDate(schedule, selectedSingleOriginDate)).length}개</span>`
+        : `<span>날짜를 선택하면 해당 날짜에 진행 중인 라인업만 표시합니다.</span><span>${monthLabel(singleOriginCalendarMonth)} 스케줄 ${monthSchedules.length}개</span>`;
+      singleOriginCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
+    }
+
     function renderSingleOriginSchedules() {
-      singleOriginScheduleList.innerHTML = singleOriginSchedules.length
-        ? `<div class="list-summary"><span>싱글오리진 스케줄 ${singleOriginSchedules.length}개</span><span>시작일 최신순</span></div>${singleOriginSchedules.map((schedule) => singleOriginScheduleMarkup(schedule)).join("")}`
+      const visibleSchedules = singleOriginSchedules.filter((schedule) => selectedSingleOriginDate
+        ? singleOriginScheduleOnDate(schedule, selectedSingleOriginDate)
+        : (schedule.startDate || "").slice(0, 7) === singleOriginCalendarMonth || (schedule.endDate || schedule.startDate || "").slice(0, 7) === singleOriginCalendarMonth);
+      singleOriginScheduleList.innerHTML = visibleSchedules.length
+        ? `<div class="list-summary"><span>${selectedSingleOriginDate || monthLabel(singleOriginCalendarMonth)} 싱글오리진 스케줄 ${visibleSchedules.length}개</span><span>${selectedSingleOriginDate ? "선택일" : "월간"}</span></div>${visibleSchedules.map((schedule) => singleOriginScheduleMarkup(schedule)).join("")}`
         : `<div class="empty">아직 등록된 싱글오리진 스케줄이 없습니다.</div>`;
     }
 
@@ -6155,14 +6334,7 @@
       singleOriginFields.endDate.value = schedule.endDate || shiftDateInput(schedule.startDate || today(), 13);
       singleOriginFields.title.value = schedule.title || "";
       singleOriginFields.note.value = schedule.note || "";
-      const lineups = schedule.lineups || [];
-      singleOriginFields.rows.forEach((row, index) => {
-        const lineup = lineups[index] || {};
-        row.querySelector("[data-single-bean]").value = lineup.beanId || "";
-        row.querySelector("[data-single-wholesale]").value = lineup.wholesalePrice || "";
-        row.querySelector("[data-single-retail]").value = lineup.retailPrice || "";
-        row.querySelector("[data-single-brewing]").value = lineup.brewingPrice || "";
-      });
+      resetSingleOriginRows(schedule.lineups || [], schedule.coffeeClub || []);
       singleOriginFields.message.textContent = "";
       singleOriginSubmitButton.textContent = "스케줄 수정";
       setAppView("single-origin");
@@ -6203,6 +6375,7 @@
       renderBlendSheetTabs();
       renderBlendSheet();
       renderGreenBeans();
+      renderSingleOriginCalendar();
       renderSingleOriginSchedules();
       renderNonShipResults();
       Object.keys(lanes).forEach((verdict) => {
@@ -6414,6 +6587,11 @@
         singleOriginFields.message.textContent = "싱글오리진 생두를 하나 이상 선택해주세요.";
         return;
       }
+      const coffeeClub = selectedSingleOriginCoffeeClub();
+      if (coffeeClub.some((club) => !isWednesday(club.date))) {
+        singleOriginFields.message.textContent = "커피클럽 싱글오리진 날짜는 수요일로 입력해주세요.";
+        return;
+      }
       const startDate = singleOriginFields.startDate.value || today();
       const schedule = {
         id: editingSingleOriginId || makeId(),
@@ -6421,6 +6599,7 @@
         endDate: singleOriginFields.endDate.value || shiftDateInput(startDate, 13),
         title: normalizeText(singleOriginFields.title.value),
         lineups,
+        coffeeClub,
         note: normalizeText(singleOriginFields.note.value),
         createdAt: today(),
         createdBy: userDisplayName(user)
@@ -6433,6 +6612,7 @@
       resetEditingState("single-origin");
       singleOriginFields.startDate.value = today();
       singleOriginFields.endDate.value = shiftDateInput(today(), 13);
+      resetSingleOriginRows();
       singleOriginFields.message.textContent = "싱글오리진 스케줄을 저장했습니다.";
       populateGreenBeanRatioControls();
       render();
@@ -7010,6 +7190,72 @@
       render();
     });
 
+    singleOriginCalendar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-single-origin-date]");
+      if (!button) return;
+      selectedSingleOriginDate = selectedSingleOriginDate === button.dataset.singleOriginDate ? "" : button.dataset.singleOriginDate;
+      if (selectedSingleOriginDate) {
+        singleOriginFields.startDate.value = selectedSingleOriginDate;
+        singleOriginFields.endDate.value = shiftDateInput(selectedSingleOriginDate, 13);
+      }
+      render();
+    });
+
+    singleOriginCalendarPrevButton.addEventListener("click", () => {
+      singleOriginCalendarMonth = shiftMonthKey(singleOriginCalendarMonth, -1);
+      selectedSingleOriginDate = "";
+      render();
+    });
+
+    singleOriginCalendarTodayButton.addEventListener("click", () => {
+      singleOriginCalendarMonth = today().slice(0, 7);
+      selectedSingleOriginDate = "";
+      singleOriginFields.startDate.value = today();
+      singleOriginFields.endDate.value = shiftDateInput(today(), 13);
+      render();
+    });
+
+    singleOriginCalendarNextButton.addEventListener("click", () => {
+      singleOriginCalendarMonth = shiftMonthKey(singleOriginCalendarMonth, 1);
+      selectedSingleOriginDate = "";
+      render();
+    });
+
+    singleOriginCalendarClearButton.addEventListener("click", () => {
+      selectedSingleOriginDate = "";
+      render();
+    });
+
+    singleOriginAddLineupButton.addEventListener("click", () => {
+      if (!canManageSingleOriginSchedules(approvedSessionUser())) return;
+      addSingleOriginLineupRow();
+      populateGreenBeanRatioControls();
+    });
+
+    singleOriginAddClubButton.addEventListener("click", () => {
+      if (!canManageSingleOriginSchedules(approvedSessionUser())) return;
+      addSingleOriginClubRow({ date: nextWednesday(singleOriginFields.startDate.value || today()) });
+      populateGreenBeanRatioControls();
+    });
+
+    singleOriginFields.lineupList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-single-lineup]");
+      if (!button || !canManageSingleOriginSchedules(approvedSessionUser())) return;
+      if (getSingleOriginLineupRows().length <= 1) {
+        singleOriginFields.message.textContent = "라인업은 최소 1개 이상 필요합니다.";
+        return;
+      }
+      button.closest("[data-single-lineup-row]")?.remove();
+      refreshSingleOriginLineupLabels();
+    });
+
+    singleOriginFields.clubList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-single-club]");
+      if (!button || !canManageSingleOriginSchedules(approvedSessionUser())) return;
+      button.closest("[data-single-club-row]")?.remove();
+      refreshSingleOriginLineupLabels();
+    });
+
     cuppingBatchFields.list.addEventListener("change", (event) => {
       const input = event.target.closest("[data-cupping-roast-entry]");
       if (!input) return;
@@ -7346,6 +7592,12 @@
       }
     });
 
+    singleOriginFields.clubList.addEventListener("change", (event) => {
+      const input = event.target.closest("[data-single-club-date]");
+      if (!input || !input.value) return;
+      singleOriginFields.message.textContent = isWednesday(input.value) ? "" : "커피클럽 날짜는 수요일 기준으로 입력해주세요.";
+    });
+
     document.querySelector("#exportButton").addEventListener("click", () => {
       const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -7374,6 +7626,7 @@
     greenBeanFields.receivedDate.value = today();
     singleOriginFields.startDate.value = today();
     singleOriginFields.endDate.value = shiftDateInput(today(), 13);
+    resetSingleOriginRows();
     appShell.style.display = "none";
     enforcePrimaryAdmin();
     populateProductControls();
