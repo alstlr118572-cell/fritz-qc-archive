@@ -2704,10 +2704,27 @@
               <p class="hint">ISSUE 배치가 내부 사용, 폐기, 재작업 등으로 어떻게 처리되었는지 기록합니다.</p>
             </div>
           </div>
+          <div class="calendar-head">
+            <div>
+              <h3 id="nonShipCalendarTitle">ISSUE 배치 달력</h3>
+            </div>
+            <div class="calendar-actions">
+              <button type="button" id="nonShipCalendarPrevButton">이전 달</button>
+              <button type="button" id="nonShipCalendarTodayButton">이번 달</button>
+              <button type="button" id="nonShipCalendarNextButton">다음 달</button>
+              <button type="button" id="nonShipCalendarClearButton">날짜 해제</button>
+            </div>
+          </div>
+          <div class="calendar-summary" id="nonShipCalendarSummary"></div>
+          <div class="calendar-grid" id="nonShipCalendar"></div>
           <form class="notice-form" id="nonShipResultForm">
             <div class="field">
               <label for="nonShipBlendInput">블렌드</label>
               <select id="nonShipBlendInput"></select>
+            </div>
+            <div class="field">
+              <label for="nonShipRoastDateInput">로스팅일</label>
+              <input id="nonShipRoastDateInput" type="date" required>
             </div>
             <div class="field">
               <label for="nonShipDateInput">처리일</label>
@@ -2731,7 +2748,7 @@
               <label for="nonShipNoteInput">처리 결과</label>
               <textarea id="nonShipNoteInput" required placeholder="예: 교육용으로 소진 / 재블렌딩 테스트 사용 / 폐기 사유 기록"></textarea>
             </div>
-            <button class="primary" type="submit">결과 저장</button>
+            <button class="primary" type="submit" id="nonShipSubmitButton">결과 저장</button>
           </form>
           <div class="panel record-list scrollable-record-list" id="nonShipResultList"></div>
         </section>
@@ -3126,6 +3143,13 @@
     const visitCalendarNextButton = document.querySelector("#visitCalendarNextButton");
     const visitCalendarClearButton = document.querySelector("#visitCalendarClearButton");
     const visitSearchInput = document.querySelector("#visitSearchInput");
+    const nonShipCalendarTitle = document.querySelector("#nonShipCalendarTitle");
+    const nonShipCalendarSummary = document.querySelector("#nonShipCalendarSummary");
+    const nonShipCalendar = document.querySelector("#nonShipCalendar");
+    const nonShipCalendarPrevButton = document.querySelector("#nonShipCalendarPrevButton");
+    const nonShipCalendarTodayButton = document.querySelector("#nonShipCalendarTodayButton");
+    const nonShipCalendarNextButton = document.querySelector("#nonShipCalendarNextButton");
+    const nonShipCalendarClearButton = document.querySelector("#nonShipCalendarClearButton");
     const correctionCalendarTitle = document.querySelector("#correctionCalendarTitle");
     const correctionCalendarSummary = document.querySelector("#correctionCalendarSummary");
     const correctionCalendar = document.querySelector("#correctionCalendar");
@@ -3161,6 +3185,7 @@
     const roastingCorrectionList = document.querySelector("#roastingCorrectionList");
     const greenBeanList = document.querySelector("#greenBeanList");
     const singleOriginScheduleList = document.querySelector("#singleOriginScheduleList");
+    const nonShipSubmitButton = document.querySelector("#nonShipSubmitButton");
     const cuppingRecentList = document.querySelector("#cuppingRecentList");
     const roastingRecentList = document.querySelector("#roastingRecentList");
     const espressoRecentList = document.querySelector("#espressoRecentList");
@@ -3277,6 +3302,7 @@
     };
     const nonShipFields = {
       blend: document.querySelector("#nonShipBlendInput"),
+      roastDate: document.querySelector("#nonShipRoastDateInput"),
       date: document.querySelector("#nonShipDateInput"),
       batch: document.querySelector("#nonShipBatchInput"),
       method: document.querySelector("#nonShipMethodInput"),
@@ -3301,6 +3327,8 @@
     let selectedEspressoDate = "";
     let visitCalendarMonth = today().slice(0, 7);
     let selectedVisitDate = "";
+    let nonShipCalendarMonth = today().slice(0, 7);
+    let selectedNonShipDate = "";
     let correctionCalendarMonth = today().slice(0, 7);
     let selectedCorrectionDate = "";
     let singleOriginCalendarMonth = today().slice(0, 7);
@@ -3314,6 +3342,7 @@
     let editingRoastingId = "";
     let editingEspressoId = "";
     let editingVisitId = "";
+    let editingNonShipId = "";
     let editingSingleOriginId = "";
 
     function canUseSharedStore() {
@@ -3656,6 +3685,10 @@
       return isPrimaryAdmin(user) || normalizePermissions(user).includes(permission);
     }
 
+    function hasAnyOperationalPermission(user) {
+      return isPrimaryAdmin(user) || normalizePermissions(user).length > 0;
+    }
+
     function canInputCupping(user) {
       return hasPermission(user, "cupping");
     }
@@ -3689,7 +3722,7 @@
     }
 
     function canManageNonShipResults(user) {
-      return isPrimaryAdmin(user);
+      return hasAnyOperationalPermission(user);
     }
 
     function canManageData(user) {
@@ -4088,6 +4121,15 @@
       return [...value].sort((left, right) => dateTimestamp(right.resultDate) - dateTimestamp(left.resultDate));
     }
 
+    function nonShipResultLocksEntry(entry) {
+      if (!entry || entry.entryType !== "roasting") return false;
+      return nonShipResults.some((result) => (
+        canonicalBlendName(result.blend) === canonicalBlendName(entry.blend)
+        && (result.roastDate || result.resultDate || "") === (entry.roastDate || "")
+        && batchesOverlap(result.batch, entry.batch)
+      ));
+    }
+
     function currentMonthKey() {
       return today().slice(0, 7);
     }
@@ -4237,6 +4279,11 @@
       let updated = 0;
       const result = collection.map((entry) => {
         if (entry.entryType !== "roasting") return entry;
+        if (nonShipResultLocksEntry(entry)) {
+          if (normalizeVerdict(entry.verdict) === "no_ship") return entry;
+          updated += 1;
+          return { ...entry, verdict: "no_ship", issueLocked: true, updatedAt: today() };
+        }
         const shouldSync = targets.some((cuppingEntry) => (
           cuppingEntry.blend === entry.blend
           && cuppingEntry.roastDate === entry.roastDate
@@ -4684,6 +4731,10 @@
       if (!type || type === "visit") {
         editingVisitId = "";
         visitSubmitButton.textContent = "방문일지 저장";
+      }
+      if (!type || type === "nonship") {
+        editingNonShipId = "";
+        nonShipSubmitButton.textContent = "결과 저장";
       }
       if (!type || type === "single-origin") {
         editingSingleOriginId = "";
@@ -6294,7 +6345,7 @@
       const editable = canManageNonShipResults(approvedSessionUser());
       return `
         <article class="record-item">
-          <div class="date">${escapeHtml(result.resultDate || "-")}<br>${escapeHtml(result.batch || "배치 미기록")}</div>
+          <div class="date">로스팅 ${escapeHtml(result.roastDate || result.resultDate || "-")}<br>처리 ${escapeHtml(result.resultDate || "-")}</div>
           <div>
             <div class="qc-head">
               <h4 class="qc-title">${escapeHtml(result.blend || "-")}</h4>
@@ -6303,10 +6354,11 @@
             <p class="qc-body">${escapeHtml(result.note || "처리 결과 미기록")}</p>
             <div class="meta">
               <span class="tag blue">ISSUE</span>
+              <span class="tag">${escapeHtml(result.batch || "배치 미기록")}</span>
               <span class="tag">${escapeHtml(result.createdBy || "-")}</span>
             </div>
           </div>
-          ${editable ? `<div class="entry-actions"><button class="delete" type="button" data-delete-nonship="${escapeHtml(result.id)}" title="소진 결과 삭제">×</button></div>` : ""}
+          ${editable ? `<div class="entry-actions"><button type="button" data-edit-nonship="${escapeHtml(result.id)}">수정</button><button class="delete" type="button" data-delete-nonship="${escapeHtml(result.id)}" title="소진 결과 삭제">×</button></div>` : ""}
         </article>
       `;
     }
@@ -6418,16 +6470,88 @@
       setAppView("single-origin");
     }
 
+    function issueEntriesForNonShipCalendar() {
+      return entries.filter((entry) => (
+        entry.entryType === "roasting"
+        && normalizeVerdict(entry.verdict) === "no_ship"
+        && (entry.roastDate || "").slice(0, 7) === nonShipCalendarMonth
+      ));
+    }
+
+    function renderNonShipCalendar() {
+      const [year, month] = nonShipCalendarMonth.split("-").map(Number);
+      const firstDate = new Date(year, month - 1, 1);
+      const lastDate = new Date(year, month, 0);
+      const leadingEmptyDays = firstDate.getDay();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const issueEntries = issueEntriesForNonShipCalendar();
+      const countByDate = issueEntries.reduce((acc, entry) => {
+        const value = entry.roastDate || "";
+        acc[value] = (acc[value] || 0) + 1;
+        return acc;
+      }, {});
+      const dayButtons = [];
+      for (let index = 0; index < leadingEmptyDays; index += 1) {
+        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      }
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${nonShipCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const count = countByDate[dateValue] || 0;
+        dayButtons.push(`
+          <button type="button" class="calendar-day ${count ? "has-data" : ""} ${selectedNonShipDate === dateValue ? "selected" : ""}" data-nonship-date="${dateValue}">
+            <strong>${day}</strong>
+            ${count ? `<span>${count}개 ISSUE</span>` : ""}
+          </button>
+        `);
+      }
+      nonShipCalendarTitle.textContent = `${monthLabel(nonShipCalendarMonth)} ISSUE 배치 달력`;
+      nonShipCalendarSummary.innerHTML = selectedNonShipDate
+        ? `<span>선택 로스팅일 ${escapeHtml(selectedNonShipDate)}</span><span>ISSUE 배치 ${issueEntries.filter((entry) => entry.roastDate === selectedNonShipDate).length}개</span>`
+        : `<span>달력에서 ISSUE 로스팅일을 선택해 소진 결과를 기록합니다.</span><span>${monthLabel(nonShipCalendarMonth)} ISSUE 배치 ${issueEntries.length}개</span>`;
+      nonShipCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
+    }
+
+    function syncNonShipLockedEntries() {
+      let updated = 0;
+      entries = entries.map((entry) => {
+        if (!nonShipResultLocksEntry(entry) || normalizeVerdict(entry.verdict) === "no_ship") return entry;
+        updated += 1;
+        return { ...entry, verdict: "no_ship", issueLocked: true, updatedAt: today() };
+      });
+      if (updated) writeEntries(entries);
+      return updated;
+    }
+
+    function loadNonShipResultForEdit(result) {
+      if (!result || !canManageNonShipResults(approvedSessionUser())) return;
+      editingNonShipId = result.id;
+      nonShipFields.blend.value = canonicalBlendName(result.blend || "올드독");
+      nonShipFields.roastDate.value = result.roastDate || result.resultDate || today();
+      nonShipFields.date.value = result.resultDate || today();
+      nonShipFields.batch.value = result.batch || "";
+      nonShipFields.method.value = result.method || "내부 소진";
+      nonShipFields.note.value = result.note || "";
+      nonShipSubmitButton.textContent = "결과 수정";
+      setAppView("nonship");
+    }
+
     function renderNonShipResults() {
       if (!canManageNonShipResults(approvedSessionUser())) {
         nonShipResultList.innerHTML = "";
         return;
       }
-      const visibleResults = sortNonShipResults(nonShipResults.filter((result) => String(result.resultDate || "").slice(0, 7) === currentMonthKey()));
-      const noShipEntries = entries.filter((entry) => normalizeVerdict(entry.verdict) === "no_ship" && isEntryInMonth(entry));
+      const visibleResults = sortNonShipResults(nonShipResults.filter((result) => {
+        const resultRoastDate = result.roastDate || result.resultDate || "";
+        return selectedNonShipDate ? resultRoastDate === selectedNonShipDate : resultRoastDate.slice(0, 7) === nonShipCalendarMonth;
+      }));
+      const noShipEntries = entries.filter((entry) => (
+        normalizeVerdict(entry.verdict) === "no_ship"
+        && entry.entryType === "roasting"
+        && (selectedNonShipDate ? entry.roastDate === selectedNonShipDate : (entry.roastDate || "").slice(0, 7) === nonShipCalendarMonth)
+      ));
       const entryHints = noShipEntries.length
-        ? `<div class="list-summary"><span>이번 달 ISSUE 판정 ${noShipEntries.length}개</span><span>소진 결과 ${visibleResults.length}개</span></div>`
-        : `<div class="list-summary"><span>이번 달 ISSUE 판정 0개</span><span>소진 결과 ${visibleResults.length}개</span></div>`;
+        ? `<div class="list-summary"><span>${selectedNonShipDate || monthLabel(nonShipCalendarMonth)} ISSUE 판정 ${noShipEntries.length}개</span><span>소진 결과 ${visibleResults.length}개</span></div>${noShipEntries.map((entry) => `<article class="record-item"><div class="date">${escapeHtml(entry.roastDate || "-")}<br>${escapeHtml(entry.batch || "-")}</div><div><div class="qc-head"><h4 class="qc-title">${escapeHtml(entry.blend || "-")}</h4><span class="tag red">ISSUE</span></div><p class="qc-body">${escapeHtml(entry.note || entry.roastNote || "ISSUE 판정 배치")}</p></div></article>`).join("")}`
+        : `<div class="list-summary"><span>${selectedNonShipDate || monthLabel(nonShipCalendarMonth)} ISSUE 판정 0개</span><span>소진 결과 ${visibleResults.length}개</span></div>`;
       nonShipResultList.innerHTML = visibleResults.length
         ? `${entryHints}${visibleResults.map((result) => nonShipResultMarkup(result)).join("")}`
         : `${entryHints}<div class="empty">아직 저장된 ISSUE 소진 결과가 없습니다.</div>`;
@@ -6435,6 +6559,7 @@
 
     function render() {
       entries = unifiedOperationalEntries(entries);
+      syncNonShipLockedEntries();
       const monthKey = currentMonthKey();
       const monthEntries = entries.filter((entry) => isEntryInMonth(entry, monthKey));
       const visible = activeAppView === "search" ? entries.filter(matchesFilters) : monthEntries;
@@ -6455,6 +6580,7 @@
       renderGreenBeans();
       renderSingleOriginCalendar();
       renderSingleOriginSchedules();
+      renderNonShipCalendar();
       renderNonShipResults();
       Object.keys(lanes).forEach((verdict) => {
         const laneEntries = visibleCupping.filter((entry) => normalizeVerdict(entry.verdict) === verdict);
@@ -6940,8 +7066,9 @@
       const user = approvedSessionUser();
       if (!canManageNonShipResults(user)) return;
       const result = {
-        id: makeId(),
+        id: editingNonShipId || makeId(),
         blend: nonShipFields.blend.value,
+        roastDate: nonShipFields.roastDate.value || selectedNonShipDate || today(),
         resultDate: nonShipFields.date.value || today(),
         batch: normalizeBatchRange(nonShipFields.batch.value),
         method: nonShipFields.method.value,
@@ -6949,10 +7076,15 @@
         createdAt: today(),
         createdBy: user?.userId || ""
       };
-      nonShipResults = [result, ...nonShipResults];
+      nonShipResults = editingNonShipId
+        ? nonShipResults.map((item) => item.id === editingNonShipId ? { ...item, ...result, createdAt: item.createdAt || result.createdAt, updatedAt: today() } : item)
+        : [result, ...nonShipResults];
       writeNonShipResults(nonShipResults);
+      syncNonShipLockedEntries();
       nonShipResultForm.reset();
+      resetEditingState("nonship");
       nonShipFields.blend.value = "올드독";
+      nonShipFields.roastDate.value = selectedNonShipDate || today();
       nonShipFields.date.value = today();
       render();
     });
@@ -7391,11 +7523,51 @@
     });
 
     nonShipResultList.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-edit-nonship]");
+      if (editButton) {
+        const result = nonShipResults.find((item) => item.id === editButton.dataset.editNonship);
+        if (result) loadNonShipResultForEdit(result);
+        return;
+      }
       const button = event.target.closest("[data-delete-nonship]");
       if (!button) return;
       if (!canManageNonShipResults(approvedSessionUser())) return;
       nonShipResults = nonShipResults.filter((result) => result.id !== button.dataset.deleteNonship);
       writeNonShipResults(nonShipResults);
+      render();
+    });
+
+    nonShipCalendar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-nonship-date]");
+      if (!button) return;
+      selectedNonShipDate = selectedNonShipDate === button.dataset.nonshipDate ? "" : button.dataset.nonshipDate;
+      if (selectedNonShipDate) {
+        nonShipFields.roastDate.value = selectedNonShipDate;
+      }
+      render();
+    });
+
+    nonShipCalendarPrevButton.addEventListener("click", () => {
+      nonShipCalendarMonth = shiftMonthKey(nonShipCalendarMonth, -1);
+      selectedNonShipDate = "";
+      render();
+    });
+
+    nonShipCalendarTodayButton.addEventListener("click", () => {
+      nonShipCalendarMonth = today().slice(0, 7);
+      selectedNonShipDate = "";
+      nonShipFields.roastDate.value = today();
+      render();
+    });
+
+    nonShipCalendarNextButton.addEventListener("click", () => {
+      nonShipCalendarMonth = shiftMonthKey(nonShipCalendarMonth, 1);
+      selectedNonShipDate = "";
+      render();
+    });
+
+    nonShipCalendarClearButton.addEventListener("click", () => {
+      selectedNonShipDate = "";
       render();
     });
 
@@ -7699,6 +7871,7 @@
     visitFields.date.value = today();
     visitFields.manager.value = userDisplayName(approvedSessionUser());
     nonShipFields.date.value = today();
+    nonShipFields.roastDate.value = today();
     noticeFields.date.value = today();
     correctionFields.date.value = today();
     greenBeanFields.receivedDate.value = today();
