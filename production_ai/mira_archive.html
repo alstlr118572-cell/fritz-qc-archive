@@ -2389,6 +2389,12 @@
               <p class="hint">방문 매장 정보, 사용 원두, 추출 레시피, 상담 내용을 한 번에 기록합니다.</p>
             </div>
           </div>
+          <div class="toolbar" style="margin-bottom: 12px;">
+            <div class="field" style="margin: 0;">
+              <label for="visitSearchInput">방문일지 검색</label>
+              <input id="visitSearchInput" placeholder="상호명 또는 고객명 검색">
+            </div>
+          </div>
           <div class="calendar-head">
             <div>
               <h3 id="visitCalendarTitle">방문일지 달력</h3>
@@ -2920,6 +2926,7 @@
     const visitCalendarTodayButton = document.querySelector("#visitCalendarTodayButton");
     const visitCalendarNextButton = document.querySelector("#visitCalendarNextButton");
     const visitCalendarClearButton = document.querySelector("#visitCalendarClearButton");
+    const visitSearchInput = document.querySelector("#visitSearchInput");
     const correctionCalendarTitle = document.querySelector("#correctionCalendarTitle");
     const correctionCalendarSummary = document.querySelector("#correctionCalendarSummary");
     const correctionCalendar = document.querySelector("#correctionCalendar");
@@ -5455,13 +5462,20 @@
       espressoCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
+    function matchesVisitSearch(entry) {
+      const query = normalizeText(visitSearchInput.value).toLowerCase();
+      if (!query) return true;
+      const visitData = normalizedVisitData(entry);
+      return [visitData.store, visitData.customer].join(" ").toLowerCase().includes(query);
+    }
+
     function renderVisitCalendar() {
       const [year, month] = visitCalendarMonth.split("-").map(Number);
       const firstDate = new Date(year, month - 1, 1);
       const lastDate = new Date(year, month, 0);
       const leadingEmptyDays = firstDate.getDay();
       const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-      const visitEntries = entries.filter((entry) => entry.entryType === "visit");
+      const visitEntries = entries.filter((entry) => entry.entryType === "visit" && matchesVisitSearch(entry));
       const countByDate = visitEntries.reduce((acc, entry) => {
         const value = entry.visitDate || "";
         if (value.slice(0, 7) !== visitCalendarMonth) return acc;
@@ -5484,10 +5498,11 @@
       }
       const monthCount = Object.values(countByDate).reduce((sum, count) => sum + count, 0);
       const selectedCount = selectedVisitDate ? visitEntries.filter((entry) => entry.visitDate === selectedVisitDate).length : 0;
+      const searchText = normalizeText(visitSearchInput.value);
       visitCalendarTitle.textContent = `${monthLabel(visitCalendarMonth)} 방문일지 달력`;
       visitCalendarSummary.innerHTML = selectedVisitDate
-        ? `<span>선택 방문일 ${escapeHtml(selectedVisitDate)}</span><span>방문일지 ${selectedCount}개</span>`
-        : `<span>날짜를 선택하지 않으면 ${monthLabel(visitCalendarMonth)} 전체 방문일지를 표시합니다.</span><span>월간 방문 ${monthCount}개</span>`;
+        ? `<span>선택 방문일 ${escapeHtml(selectedVisitDate)}</span><span>${searchText ? "검색 결과 " : ""}방문일지 ${selectedCount}개</span>`
+        : `<span>${searchText ? `검색어 ${escapeHtml(searchText)}` : "날짜를 선택하지 않으면 월 전체 방문일지를 표시합니다."}</span><span>${monthLabel(visitCalendarMonth)} 방문 ${monthCount}개</span>`;
       visitCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
@@ -5839,11 +5854,12 @@
         : `<div class="empty">아직 저장된 추출 평가가 없습니다.</div>`;
       const visitEntries = entries.filter((entry) => {
         if (entry.entryType !== "visit") return false;
+        if (!matchesVisitSearch(entry)) return false;
         if (selectedVisitDate) return entry.visitDate === selectedVisitDate;
         return entry.visitDate?.slice(0, 7) === visitCalendarMonth;
       });
       visitRecentList.innerHTML = visitEntries.length
-        ? `<div class="list-summary"><span>${selectedVisitDate ? selectedVisitDate : monthLabel(visitCalendarMonth)} 방문일지 ${visitEntries.length}개</span><span>${selectedVisitDate ? "선택 방문일" : "월간"}</span></div>${visitEntries.map((entry) => visitCardMarkup(entry)).join("")}`
+        ? `<div class="list-summary"><span>${selectedVisitDate ? selectedVisitDate : monthLabel(visitCalendarMonth)} 방문일지 ${visitEntries.length}개</span><span>${visitSearchInput.value.trim() ? "검색 결과" : selectedVisitDate ? "선택 방문일" : "월간"}</span></div>${visitEntries.map((entry) => visitCardMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 거래처 방문일지가 없습니다.</div>`;
     }
 
@@ -6749,6 +6765,11 @@
     });
 
     visitCalendarClearButton.addEventListener("click", () => {
+      selectedVisitDate = "";
+      render();
+    });
+
+    visitSearchInput.addEventListener("input", () => {
       selectedVisitDate = "";
       render();
     });
