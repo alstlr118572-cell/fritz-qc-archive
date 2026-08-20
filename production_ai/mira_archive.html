@@ -2346,20 +2346,20 @@
               <input id="espressoTimeInput" placeholder="예: 27초">
             </div>
             <div class="field">
-              <label for="espressoBasketInput">바스켓 종류</label>
-              <input id="espressoBasketInput" placeholder="예: VST 18g / IMS">
-            </div>
-            <div class="field">
-              <label for="espressoGrindInput">분쇄도</label>
-              <input id="espressoGrindInput" placeholder="예: 기준 / 미세 조정">
-            </div>
-            <div class="field">
               <label for="espressoTdsInput">TDS</label>
               <input id="espressoTdsInput" inputmode="decimal" placeholder="예: 8.5%">
             </div>
             <div class="field">
               <label for="espressoExtractionYieldInput">수율</label>
               <input id="espressoExtractionYieldInput" inputmode="decimal" placeholder="자동 계산" readonly>
+            </div>
+            <div class="field">
+              <label for="espressoBasketInput">바스켓 종류</label>
+              <input id="espressoBasketInput" placeholder="예: VST 18g / IMS">
+            </div>
+            <div class="field">
+              <label for="espressoGrindInput">분쇄도</label>
+              <input id="espressoGrindInput" placeholder="예: 기준 / 미세 조정">
             </div>
             <div class="field">
               <label for="espressoFlowInput">머신 유량</label>
@@ -2410,51 +2410,67 @@
             </div>
             <div class="field">
               <label for="visitCustomerInput">고객명</label>
-              <input id="visitCustomerInput" required placeholder="예: 김민석">
+              <input id="visitCustomerInput" required>
             </div>
             <div class="field">
               <label for="visitStoreInput">상호명</label>
-              <input id="visitStoreInput" required placeholder="예: 송베이">
+              <input id="visitStoreInput" required>
             </div>
             <div class="field">
               <label for="visitManagerInput">방문 담당자</label>
-              <input id="visitManagerInput" placeholder="예: 엄민식">
+              <input id="visitManagerInput">
             </div>
             <div class="field" style="grid-column: 1 / -1;">
               <label for="visitAddressInput">주소</label>
-              <input id="visitAddressInput" placeholder="예: 인천 연수구 아카데미로...">
+              <input id="visitAddressInput">
             </div>
             <div class="field">
               <label for="visitPhoneInput">전화번호</label>
-              <input id="visitPhoneInput" placeholder="예: 010-0000-0000">
+              <input id="visitPhoneInput">
             </div>
             <div class="field">
               <label for="visitCoffeeInput">사용커피</label>
-              <input id="visitCoffeeInput" placeholder="예: 잘되어가시나, 서울시네마">
+              <input id="visitCoffeeInput">
             </div>
             <div class="field">
               <label for="visitMonthlyUsageInput">월평균사용량</label>
-              <input id="visitMonthlyUsageInput" placeholder="예: 55kg">
+              <input id="visitMonthlyUsageInput">
             </div>
             <div class="field">
               <label for="visitMachineInput">머신</label>
-              <input id="visitMachineInput" placeholder="예: 엘로치오 디그니티 3gr">
+              <input id="visitMachineInput">
             </div>
             <div class="field">
               <label for="visitGrinderInput">그라인더</label>
-              <input id="visitGrinderInput" placeholder="예: 메저 메이저, 안핌 슈퍼">
+              <input id="visitGrinderInput">
             </div>
             <div class="field">
               <label for="visitBasketInput">바스켓</label>
-              <input id="visitBasketInput" placeholder="예: IMS 20g">
+              <input id="visitBasketInput">
             </div>
             <div class="field">
               <label for="visitFlowPressureInput">머신 유량 및 압력</label>
-              <input id="visitFlowPressureInput" placeholder="예: 9bar / 247, 244.3, 239.8">
+              <input id="visitFlowPressureInput">
             </div>
-            <div class="field" style="grid-column: 1 / -1;">
-              <label for="visitRecipeInput">레시피</label>
-              <input id="visitRecipeInput" placeholder="예: Input 18g / Output 36g / Time 27s / TDS 10.3% / Ext 20.6%">
+            <div class="field">
+              <label for="visitDoseInput">도징량</label>
+              <input id="visitDoseInput" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="visitYieldInput">추출량</label>
+              <input id="visitYieldInput" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="visitTimeInput">시간</label>
+              <input id="visitTimeInput">
+            </div>
+            <div class="field">
+              <label for="visitTdsInput">TDS</label>
+              <input id="visitTdsInput" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="visitExtractionYieldInput">수율</label>
+              <input id="visitExtractionYieldInput" inputmode="decimal" placeholder="자동 계산" readonly>
             </div>
             <div class="field" style="grid-column: 1 / -1;">
               <label for="visitStoreFeatureInput">업장 및 상담특징</label>
@@ -3016,7 +3032,11 @@
       grinder: document.querySelector("#visitGrinderInput"),
       basket: document.querySelector("#visitBasketInput"),
       flowPressure: document.querySelector("#visitFlowPressureInput"),
-      recipe: document.querySelector("#visitRecipeInput"),
+      dose: document.querySelector("#visitDoseInput"),
+      yield: document.querySelector("#visitYieldInput"),
+      time: document.querySelector("#visitTimeInput"),
+      tds: document.querySelector("#visitTdsInput"),
+      extractionYield: document.querySelector("#visitExtractionYieldInput"),
       storeFeature: document.querySelector("#visitStoreFeatureInput"),
       beverageQuality: document.querySelector("#visitBeverageQualityInput"),
       equipment: document.querySelector("#visitEquipmentInput"),
@@ -4397,7 +4417,11 @@
         visitFields.grinder.value = visitData.grinder;
         visitFields.basket.value = visitData.basket;
         visitFields.flowPressure.value = visitData.flowPressure;
-        visitFields.recipe.value = visitData.recipe;
+        visitFields.dose.value = visitData.dose;
+        visitFields.yield.value = visitData.yield;
+        visitFields.time.value = visitData.time;
+        visitFields.tds.value = visitData.tds;
+        visitFields.extractionYield.value = visitData.extractionYield || calculateExtractionYield(visitData.dose, visitData.yield, visitData.tds);
         visitFields.storeFeature.value = visitData.storeFeature;
         visitFields.beverageQuality.value = visitData.beverageQuality;
         visitFields.equipment.value = visitData.equipment;
@@ -4534,6 +4558,11 @@
         basket: visitData.basket || "",
         flowPressure: visitData.flowPressure || "",
         recipe: visitData.recipe || "",
+        dose: visitData.dose || "",
+        yield: visitData.yield || "",
+        time: visitData.time || "",
+        tds: visitData.tds || "",
+        extractionYield: visitData.extractionYield || calculateExtractionYield(visitData.dose, visitData.yield, visitData.tds),
         storeFeature: visitData.storeFeature || "",
         beverageQuality: visitData.beverageQuality || "",
         equipment: visitData.equipment || "",
@@ -4918,6 +4947,13 @@
     function visitCardMarkup(entry, compact = false) {
       const visitData = normalizedVisitData(entry);
       const user = approvedSessionUser();
+      const recipeText = visitData.recipe || [
+        visitData.dose ? `도징 ${visitData.dose}` : "",
+        visitData.yield ? `추출량 ${visitData.yield}` : "",
+        visitData.time ? `시간 ${visitData.time}` : "",
+        visitData.tds ? `TDS ${visitData.tds}` : "",
+        visitData.extractionYield ? `수율 ${visitData.extractionYield}` : ""
+      ].filter(Boolean).join(" / ");
       const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${escapeHtml(entry.id)}" data-edit-type="visit">수정</button>`;
       const deleteButton = compact || !canDeleteEntry(entry, user) ? "" : `<button class="delete" data-delete="${escapeHtml(entry.id)}" title="방문일지 삭제">×</button>`;
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
@@ -4942,7 +4978,7 @@
               <span class="tag">월사용 ${escapeHtml(visitData.monthlyUsage || "-")}</span>
               <span class="tag blue">머신 ${escapeHtml(visitData.machine || "-")}</span>
               <span class="tag">그라인더 ${escapeHtml(visitData.grinder || "-")}</span>
-              <span class="tag amber">레시피 ${escapeHtml(visitData.recipe || "-")}</span>
+              <span class="tag amber">레시피 ${escapeHtml(recipeText || "-")}</span>
             </div>
             ${compact ? "" : `
               <div class="comment-field-block">
@@ -6140,7 +6176,11 @@
         grinder: normalizeText(visitFields.grinder.value),
         basket: normalizeText(visitFields.basket.value),
         flowPressure: normalizeText(visitFields.flowPressure.value),
-        recipe: normalizeText(visitFields.recipe.value),
+        dose: normalizeText(visitFields.dose.value),
+        yield: normalizeText(visitFields.yield.value),
+        time: normalizeText(visitFields.time.value),
+        tds: normalizeText(visitFields.tds.value),
+        extractionYield: calculateExtractionYield(visitFields.dose.value, visitFields.yield.value, visitFields.tds.value),
         storeFeature: normalizeText(visitFields.storeFeature.value),
         beverageQuality: normalizeText(visitFields.beverageQuality.value),
         equipment: normalizeText(visitFields.equipment.value),
@@ -6171,6 +6211,7 @@
       resetEditingState("visit");
       visitFields.date.value = today();
       visitFields.manager.value = userDisplayName(user);
+      visitFields.extractionYield.value = "";
       render();
     });
 
@@ -6801,6 +6842,15 @@
     [espressoFields.dose, espressoFields.yield, espressoFields.tds].forEach((input) => {
       input.addEventListener("input", updateEspressoExtractionYield);
       input.addEventListener("change", updateEspressoExtractionYield);
+    });
+
+    function updateVisitExtractionYield() {
+      visitFields.extractionYield.value = calculateExtractionYield(visitFields.dose.value, visitFields.yield.value, visitFields.tds.value);
+    }
+
+    [visitFields.dose, visitFields.yield, visitFields.tds].forEach((input) => {
+      input.addEventListener("input", updateVisitExtractionYield);
+      input.addEventListener("change", updateVisitExtractionYield);
     });
 
     document.querySelector("#exportButton").addEventListener("click", () => {
