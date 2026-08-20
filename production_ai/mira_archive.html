@@ -938,6 +938,61 @@
       white-space: nowrap;
     }
 
+    #singleOriginCalendar {
+      grid-template-columns: 58px repeat(5, minmax(0, 1fr));
+    }
+
+    .calendar-week-label {
+      display: grid;
+      place-items: center;
+      min-height: 82px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ede7dc;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .single-origin-chip {
+      display: block;
+      margin-top: 5px;
+      padding: 4px 6px;
+      overflow: hidden;
+      border-radius: 6px;
+      color: #17313a;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.25;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .single-origin-chip.color-1 {
+      background: rgba(31, 111, 120, 0.16);
+    }
+
+    .single-origin-chip.color-2 {
+      background: rgba(174, 131, 46, 0.18);
+    }
+
+    .single-origin-chip.color-3 {
+      background: rgba(83, 124, 81, 0.18);
+    }
+
+    .single-origin-chip.color-4 {
+      background: rgba(59, 95, 143, 0.16);
+    }
+
+    .single-origin-chip.color-5 {
+      background: rgba(139, 82, 62, 0.16);
+    }
+
+    .single-origin-chip.club {
+      border: 1px solid rgba(174, 131, 46, 0.35);
+      background: #fff4cf;
+    }
+
     .notice-list {
       display: grid;
       gap: 8px;
@@ -5331,6 +5386,25 @@
       return dateTimestamp(schedule.startDate) <= dateTimestamp(value) && dateTimestamp(value) <= dateTimestamp(schedule.endDate || schedule.startDate);
     }
 
+    function singleOriginItemsOnDate(value) {
+      return singleOriginSchedules.flatMap((schedule) => {
+        if (!singleOriginScheduleOnDate(schedule, value)) return [];
+        const lineups = (schedule.lineups || []).map(singleOriginLineupWithBean).map((lineup, index) => ({
+          label: lineup.beanName || "-",
+          detail: schedule.title || "싱글오리진",
+          color: `color-${((lineup.slot || index + 1) - 1) % 5 + 1}`,
+          isClub: false
+        }));
+        const coffeeClub = (schedule.coffeeClub || []).filter((club) => club.date === value).map(singleOriginLineupWithBean).map((club) => ({
+          label: `클럽 ${club.beanName || "-"}`,
+          detail: club.note || "커피클럽",
+          color: "club",
+          isClub: true
+        }));
+        return [...lineups, ...coffeeClub];
+      });
+    }
+
     function singleOriginScheduleMarkup(schedule) {
       const editable = canManageSingleOriginSchedules(approvedSessionUser());
       const lineups = (schedule.lineups || []).map(singleOriginLineupWithBean);
@@ -6276,36 +6350,40 @@
 
     function renderSingleOriginCalendar() {
       const [year, month] = singleOriginCalendarMonth.split("-").map(Number);
-      const firstDate = new Date(year, month - 1, 1);
       const lastDate = new Date(year, month, 0);
-      const leadingEmptyDays = firstDate.getDay();
-      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
       const scheduleByDate = {};
       for (let day = 1; day <= lastDate.getDate(); day += 1) {
         const dateValue = `${singleOriginCalendarMonth}-${String(day).padStart(2, "0")}`;
-        const activeSchedules = singleOriginSchedules.filter((schedule) => singleOriginScheduleOnDate(schedule, dateValue));
-        if (activeSchedules.length) scheduleByDate[dateValue] = activeSchedules;
+        const activeItems = singleOriginItemsOnDate(dateValue);
+        if (activeItems.length) scheduleByDate[dateValue] = activeItems;
       }
-      const dayButtons = [];
-      for (let index = 0; index < leadingEmptyDays; index += 1) {
-        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
-      }
+      const weekdays = ["주차", "월", "화", "수", "목", "금"];
+      const rows = [];
+      let weekIndex = 1;
       for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const cursor = new Date(year, month - 1, day);
+        if (cursor.getDay() === 0 || cursor.getDay() === 6) continue;
+        if (cursor.getDay() === 1 || !rows.length) {
+          rows.push([`<div class="calendar-week-label">${weekIndex}주차</div>`]);
+          if (cursor.getDay() > 1) {
+            for (let emptyIndex = 1; emptyIndex < cursor.getDay(); emptyIndex += 1) {
+              rows.at(-1).push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+            }
+          }
+          weekIndex += 1;
+        }
         const dateValue = `${singleOriginCalendarMonth}-${String(day).padStart(2, "0")}`;
-        const activeSchedules = scheduleByDate[dateValue] || [];
-        const coffeeClub = activeSchedules.flatMap((schedule) => (schedule.coffeeClub || []).filter((club) => club.date === dateValue));
-        dayButtons.push(`
-          <button type="button" class="calendar-day ${activeSchedules.length ? "has-data" : ""} ${selectedSingleOriginDate === dateValue ? "selected" : ""}" data-single-origin-date="${dateValue}">
+        const activeItems = scheduleByDate[dateValue] || [];
+        rows.at(-1).push(`
+          <button type="button" class="calendar-day ${activeItems.length ? "has-data" : ""} ${selectedSingleOriginDate === dateValue ? "selected" : ""}" data-single-origin-date="${dateValue}">
             <strong>${day}</strong>
-            ${activeSchedules.length ? `
-              <div class="calendar-mini">
-                <span>${activeSchedules.length}개 스케줄</span>
-                ${coffeeClub.length ? `<span>커피클럽 ${coffeeClub.length}종</span>` : ""}
-              </div>
-            ` : ""}
+            ${activeItems.map((item) => `<span class="single-origin-chip ${escapeHtml(item.color)}" title="${escapeHtml(item.detail)}">${escapeHtml(item.label)}</span>`).join("")}
           </button>
         `);
       }
+      rows.forEach((row) => {
+        while (row.length < 6) row.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      });
       const monthSchedules = singleOriginSchedules.filter((schedule) => {
         const start = schedule.startDate || "";
         const end = schedule.endDate || start;
@@ -6313,9 +6391,9 @@
       });
       singleOriginCalendarTitle.textContent = `${monthLabel(singleOriginCalendarMonth)} 싱글오리진 달력`;
       singleOriginCalendarSummary.innerHTML = selectedSingleOriginDate
-        ? `<span>선택 날짜 ${escapeHtml(selectedSingleOriginDate)}</span><span>진행 스케줄 ${singleOriginSchedules.filter((schedule) => singleOriginScheduleOnDate(schedule, selectedSingleOriginDate)).length}개</span>`
-        : `<span>날짜를 선택하면 해당 날짜에 진행 중인 라인업만 표시합니다.</span><span>${monthLabel(singleOriginCalendarMonth)} 스케줄 ${monthSchedules.length}개</span>`;
-      singleOriginCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
+        ? `<span>선택 날짜 ${escapeHtml(selectedSingleOriginDate)}</span><span>표시 싱글오리진 ${singleOriginItemsOnDate(selectedSingleOriginDate).length}종</span>`
+        : `<span>월~금 기준으로 라인업 전체를 표시합니다.</span><span>${monthLabel(singleOriginCalendarMonth)} 스케줄 ${monthSchedules.length}개</span>`;
+      singleOriginCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${rows.flat().join("")}`;
     }
 
     function renderSingleOriginSchedules() {
