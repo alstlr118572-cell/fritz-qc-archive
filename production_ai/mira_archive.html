@@ -3971,8 +3971,6 @@
       };
     }
 
-    let entries = readEntries();
-
     function readNonShipResults() {
       const parsed = readStoreValue(nonShipResultsKey);
       if (!parsed) return [];
@@ -3988,6 +3986,7 @@
     }
 
     let nonShipResults = readNonShipResults();
+    let entries = readEntries();
 
     function readCorrectionIndicators() {
       const parsed = readStoreValue(correctionIndicatorsKey);
