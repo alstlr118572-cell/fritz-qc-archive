@@ -889,6 +889,27 @@
       min-height: 0;
     }
 
+    .single-origin-form {
+      grid-template-columns: 180px 180px 1fr auto;
+    }
+
+    .single-origin-lineup {
+      display: grid;
+      grid-column: 1 / -1;
+      grid-template-columns: 1.4fr repeat(3, minmax(110px, 1fr));
+      gap: 8px;
+      align-items: end;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffefa;
+    }
+
+    .single-origin-lineup strong {
+      grid-column: 1 / -1;
+      font-size: 12px;
+    }
+
     .notice-list {
       display: grid;
       gap: 8px;
@@ -1319,6 +1340,11 @@
       .green-bean-form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+
+      .single-origin-form,
+      .single-origin-lineup {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     @media (max-width: 760px) {
@@ -1354,6 +1380,8 @@
       .comment-item,
       .notice-form,
       .green-bean-form,
+      .single-origin-form,
+      .single-origin-lineup,
       .notice-item,
       .roadmap,
       .admin-grid,
@@ -1666,6 +1694,7 @@
         <button type="button" data-app-view="corrections">로스팅 프로파일 변경내용</button>
         <button type="button" data-app-view="green" id="greenPageButton">생두 관리</button>
         <button type="button" data-app-view="ratios">생두 비율 이력</button>
+        <button type="button" data-app-view="single-origin">싱글오리진 스케줄</button>
         <button type="button" data-app-view="roasting" id="roastingPageButton">로스팅 입력</button>
         <button type="button" data-app-view="cupping" id="cuppingPageButton">커핑 입력</button>
         <button type="button" data-app-view="espresso" id="espressoPageButton">추출 평가</button>
@@ -1966,6 +1995,112 @@
             </div>
           </form>
           <div class="notice-list" id="ratioNoticeList"></div>
+        </section>
+
+        <section class="panel notice-panel app-panel" data-app-panel="single-origin">
+          <div class="section-title" style="margin-bottom: 0;">
+            <div>
+              <h3>싱글오리진 스케줄</h3>
+              <p class="hint">2주 단위 싱글오리진 4종 라인업과 판매 가격을 공유합니다.</p>
+            </div>
+          </div>
+          <form class="notice-form single-origin-form" id="singleOriginForm">
+            <div class="field">
+              <label for="singleOriginStartDateInput">시작일</label>
+              <input id="singleOriginStartDateInput" type="date" required>
+            </div>
+            <div class="field">
+              <label for="singleOriginEndDateInput">종료일</label>
+              <input id="singleOriginEndDateInput" type="date" required>
+            </div>
+            <div class="field">
+              <label for="singleOriginTitleInput">스케줄명</label>
+              <input id="singleOriginTitleInput" placeholder="예: 9월 1차 싱글오리진">
+            </div>
+            <button class="primary" type="submit" id="singleOriginSubmitButton">스케줄 저장</button>
+            <div class="single-origin-lineup" data-single-lineup-row>
+              <strong>라인업 1</strong>
+              <div class="field">
+                <label>생두</label>
+                <select data-single-bean></select>
+              </div>
+              <div class="field">
+                <label>도매가격</label>
+                <input data-single-wholesale inputmode="decimal">
+              </div>
+              <div class="field">
+                <label>소매가격</label>
+                <input data-single-retail inputmode="decimal">
+              </div>
+              <div class="field">
+                <label>브루잉 가격</label>
+                <input data-single-brewing inputmode="decimal">
+              </div>
+            </div>
+            <div class="single-origin-lineup" data-single-lineup-row>
+              <strong>라인업 2</strong>
+              <div class="field">
+                <label>생두</label>
+                <select data-single-bean></select>
+              </div>
+              <div class="field">
+                <label>도매가격</label>
+                <input data-single-wholesale inputmode="decimal">
+              </div>
+              <div class="field">
+                <label>소매가격</label>
+                <input data-single-retail inputmode="decimal">
+              </div>
+              <div class="field">
+                <label>브루잉 가격</label>
+                <input data-single-brewing inputmode="decimal">
+              </div>
+            </div>
+            <div class="single-origin-lineup" data-single-lineup-row>
+              <strong>라인업 3</strong>
+              <div class="field">
+                <label>생두</label>
+                <select data-single-bean></select>
+              </div>
+              <div class="field">
+                <label>도매가격</label>
+                <input data-single-wholesale inputmode="decimal">
+              </div>
+              <div class="field">
+                <label>소매가격</label>
+                <input data-single-retail inputmode="decimal">
+              </div>
+              <div class="field">
+                <label>브루잉 가격</label>
+                <input data-single-brewing inputmode="decimal">
+              </div>
+            </div>
+            <div class="single-origin-lineup" data-single-lineup-row>
+              <strong>라인업 4</strong>
+              <div class="field">
+                <label>생두</label>
+                <select data-single-bean></select>
+              </div>
+              <div class="field">
+                <label>도매가격</label>
+                <input data-single-wholesale inputmode="decimal">
+              </div>
+              <div class="field">
+                <label>소매가격</label>
+                <input data-single-retail inputmode="decimal">
+              </div>
+              <div class="field">
+                <label>브루잉 가격</label>
+                <input data-single-brewing inputmode="decimal">
+              </div>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="singleOriginNoteInput">메모</label>
+              <textarea id="singleOriginNoteInput" placeholder="출시 메모, 품절 예정, 안내 사항 등을 남깁니다."></textarea>
+            </div>
+            <p id="singleOriginMessage"></p>
+          </form>
+          <div class="notice-list" id="singleOriginScheduleList"></div>
         </section>
 
         <section class="app-panel" data-app-panel="dashboard">
@@ -2637,6 +2772,7 @@
     const nonShipResultsKey = "mira_blend_qc_non_ship_results_v1";
     const correctionIndicatorsKey = "mira_blend_qc_correction_indicators_v1";
     const greenBeansKey = "mira_blend_qc_green_beans_v1";
+    const singleOriginSchedulesKey = "mira_blend_qc_single_origin_schedules_v1";
     const usersKey = "mira_blend_qc_users_v1";
     const sessionKey = "mira_blend_qc_session_v1";
     const savedIdKey = "mira_blend_qc_saved_user_id_v1";
@@ -2991,6 +3127,7 @@
     const cuppingCommentList = document.querySelector("#cuppingCommentList");
     const roastingCorrectionList = document.querySelector("#roastingCorrectionList");
     const greenBeanList = document.querySelector("#greenBeanList");
+    const singleOriginScheduleList = document.querySelector("#singleOriginScheduleList");
     const cuppingRecentList = document.querySelector("#cuppingRecentList");
     const roastingRecentList = document.querySelector("#roastingRecentList");
     const espressoRecentList = document.querySelector("#espressoRecentList");
@@ -3007,6 +3144,16 @@
       reason: document.querySelector("#noticeReasonInput"),
       ratioBeans: Array.from(document.querySelectorAll("[data-ratio-bean]")),
       ratioPercents: Array.from(document.querySelectorAll("[data-ratio-percent]"))
+    };
+    const singleOriginForm = document.querySelector("#singleOriginForm");
+    const singleOriginSubmitButton = document.querySelector("#singleOriginSubmitButton");
+    const singleOriginFields = {
+      startDate: document.querySelector("#singleOriginStartDateInput"),
+      endDate: document.querySelector("#singleOriginEndDateInput"),
+      title: document.querySelector("#singleOriginTitleInput"),
+      note: document.querySelector("#singleOriginNoteInput"),
+      message: document.querySelector("#singleOriginMessage"),
+      rows: Array.from(document.querySelectorAll("[data-single-lineup-row]"))
     };
     const correctionFields = {
       blend: document.querySelector("#correctionBlendInput"),
@@ -3129,6 +3276,7 @@
     let editingRoastingId = "";
     let editingEspressoId = "";
     let editingVisitId = "";
+    let editingSingleOriginId = "";
 
     function canUseSharedStore() {
       return location.protocol === "http:" || location.protocol === "https:";
@@ -3494,6 +3642,10 @@
       return hasPermission(user, "green");
     }
 
+    function canManageSingleOriginSchedules(user) {
+      return isPrimaryAdmin(user) || canManageGreenBeans(user);
+    }
+
     function canManageCorrections(user) {
       return hasPermission(user, "correction");
     }
@@ -3538,6 +3690,7 @@
       ratioNoticeForm.hidden = !canManageRatioNotices(user);
       correctionForm.hidden = !canManageCorrections(user);
       greenBeanForm.hidden = !canManageGreenBeans(user);
+      singleOriginForm.hidden = !canManageSingleOriginSchedules(user);
       roastingPageButton.hidden = !canInputRoasting(user);
       cuppingPageButton.hidden = !canInputCupping(user);
       correctionPageButton.hidden = !canManageCorrections(user);
@@ -3804,6 +3957,26 @@
     }
 
     let greenBeans = readGreenBeans();
+
+    function sortSingleOriginSchedules(value) {
+      return [...value].sort((left, right) => dateTimestamp(right.startDate) - dateTimestamp(left.startDate));
+    }
+
+    function readSingleOriginSchedules() {
+      const parsed = readStoreValue(singleOriginSchedulesKey);
+      if (!parsed) return [];
+      try {
+        return Array.isArray(parsed) ? sortSingleOriginSchedules(parsed) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeSingleOriginSchedules(value) {
+      writeStoreValue(singleOriginSchedulesKey, sortSingleOriginSchedules(value));
+    }
+
+    let singleOriginSchedules = readSingleOriginSchedules();
 
     function readRatioNotices() {
       const parsed = readStoreValue(ratioNoticesKey);
@@ -4474,6 +4647,10 @@
         editingVisitId = "";
         visitSubmitButton.textContent = "방문일지 저장";
       }
+      if (!type || type === "single-origin") {
+        editingSingleOriginId = "";
+        singleOriginSubmitButton.textContent = "스케줄 저장";
+      }
     }
 
     function loadEntryForEdit(entry) {
@@ -4974,7 +5151,8 @@
 
     function greenBeanOptionMarkup() {
       const options = greenBeans.map((bean) => {
-        const label = [bean.name, bean.process, bean.receivedDate].filter(Boolean).join(" / ");
+        const price = bean.krwPerKg ? `kg당 ₩ ${bean.krwPerKg}` : "";
+        const label = [bean.origin, bean.name, bean.process, price].filter(Boolean).join(" / ");
         return `<option value="${escapeHtml(bean.id)}">${escapeHtml(label || bean.name || "-")}</option>`;
       }).join("");
       return `<option value="">생두 선택</option>${options}`;
@@ -4983,6 +5161,12 @@
     function populateGreenBeanRatioControls() {
       const markup = greenBeanOptionMarkup();
       noticeFields.ratioBeans.forEach((select) => {
+        const current = select.value;
+        select.innerHTML = markup;
+        if (current && selectHasValue(select, current)) select.value = current;
+      });
+      singleOriginFields.rows.forEach((row) => {
+        const select = row.querySelector("[data-single-bean]");
         const current = select.value;
         select.innerHTML = markup;
         if (current && selectHasValue(select, current)) select.value = current;
@@ -5005,6 +5189,76 @@
 
     function ratioCompositionText(composition) {
       return (composition || []).map((item) => `${item.beanName}${item.process ? ` (${item.process})` : ""} ${item.percent}%`).join(" / ");
+    }
+
+    function selectedSingleOriginLineups() {
+      return singleOriginFields.rows.map((row, index) => {
+        const beanId = row.querySelector("[data-single-bean]")?.value || "";
+        const bean = greenBeans.find((item) => item.id === beanId);
+        if (!bean) return null;
+        return {
+          slot: index + 1,
+          beanId: bean.id,
+          beanName: bean.name || "",
+          origin: bean.origin || "",
+          process: bean.process || "",
+          krwPerKg: bean.krwPerKg || "",
+          wholesalePrice: normalizeText(row.querySelector("[data-single-wholesale]")?.value || ""),
+          retailPrice: normalizeText(row.querySelector("[data-single-retail]")?.value || ""),
+          brewingPrice: normalizeText(row.querySelector("[data-single-brewing]")?.value || "")
+        };
+      }).filter(Boolean);
+    }
+
+    function singleOriginLineupWithBean(lineup) {
+      const bean = greenBeans.find((item) => item.id === lineup.beanId);
+      return {
+        ...lineup,
+        beanName: bean?.name || lineup.beanName || "",
+        origin: bean?.origin || lineup.origin || "",
+        process: bean?.process || lineup.process || "",
+        krwPerKg: bean?.krwPerKg || lineup.krwPerKg || ""
+      };
+    }
+
+    function singleOriginScheduleMarkup(schedule) {
+      const editable = canManageSingleOriginSchedules(approvedSessionUser());
+      const lineups = (schedule.lineups || []).map(singleOriginLineupWithBean);
+      return `
+        <article class="notice-item">
+          <div>
+            <strong>${escapeHtml(schedule.title || "싱글오리진 라인업")}</strong>
+            <div class="meta">
+              <span class="tag blue">${escapeHtml(schedule.startDate || "-")} ~ ${escapeHtml(schedule.endDate || "-")}</span>
+              <span class="tag">라인업 ${lineups.length}종</span>
+            </div>
+          </div>
+          <div>
+            <div class="comment-compare-grid">
+              ${lineups.map((lineup) => `
+                <article class="comment-item">
+                  <div class="comment-date">#${lineup.slot || "-"}</div>
+                  <div>
+                    <div class="qc-head">
+                      <h4 class="qc-title">${escapeHtml(lineup.beanName || "-")}</h4>
+                      <span class="tag green">kg당 ₩ ${escapeHtml(lineup.krwPerKg || "-")}</span>
+                    </div>
+                    <div class="meta">
+                      <span class="tag blue">${escapeHtml(lineup.origin || "-")}</span>
+                      <span class="tag">${escapeHtml(lineup.process || "-")}</span>
+                      <span class="tag">도매 ${escapeHtml(lineup.wholesalePrice || "-")}</span>
+                      <span class="tag">소매 ${escapeHtml(lineup.retailPrice || "-")}</span>
+                      <span class="tag amber">브루잉 ${escapeHtml(lineup.brewingPrice || "-")}</span>
+                    </div>
+                  </div>
+                </article>
+              `).join("")}
+            </div>
+            ${schedule.note ? `<p>${escapeHtml(schedule.note)}</p>` : ""}
+          </div>
+          ${editable ? `<div class="entry-actions"><button type="button" data-edit-single-origin="${escapeHtml(schedule.id)}">수정</button><button class="delete" type="button" data-delete-single-origin="${escapeHtml(schedule.id)}" title="스케줄 삭제">×</button></div>` : ""}
+        </article>
+      `;
     }
 
     function matchesFilterControls(entry, includeDate = true) {
@@ -5888,6 +6142,32 @@
         : `<div class="empty">아직 등록된 생두가 없습니다.</div>`;
     }
 
+    function renderSingleOriginSchedules() {
+      singleOriginScheduleList.innerHTML = singleOriginSchedules.length
+        ? `<div class="list-summary"><span>싱글오리진 스케줄 ${singleOriginSchedules.length}개</span><span>시작일 최신순</span></div>${singleOriginSchedules.map((schedule) => singleOriginScheduleMarkup(schedule)).join("")}`
+        : `<div class="empty">아직 등록된 싱글오리진 스케줄이 없습니다.</div>`;
+    }
+
+    function loadSingleOriginForEdit(schedule) {
+      if (!schedule || !canManageSingleOriginSchedules(approvedSessionUser())) return;
+      editingSingleOriginId = schedule.id;
+      singleOriginFields.startDate.value = schedule.startDate || today();
+      singleOriginFields.endDate.value = schedule.endDate || shiftDateInput(schedule.startDate || today(), 13);
+      singleOriginFields.title.value = schedule.title || "";
+      singleOriginFields.note.value = schedule.note || "";
+      const lineups = schedule.lineups || [];
+      singleOriginFields.rows.forEach((row, index) => {
+        const lineup = lineups[index] || {};
+        row.querySelector("[data-single-bean]").value = lineup.beanId || "";
+        row.querySelector("[data-single-wholesale]").value = lineup.wholesalePrice || "";
+        row.querySelector("[data-single-retail]").value = lineup.retailPrice || "";
+        row.querySelector("[data-single-brewing]").value = lineup.brewingPrice || "";
+      });
+      singleOriginFields.message.textContent = "";
+      singleOriginSubmitButton.textContent = "스케줄 수정";
+      setAppView("single-origin");
+    }
+
     function renderNonShipResults() {
       if (!canManageNonShipResults(approvedSessionUser())) {
         nonShipResultList.innerHTML = "";
@@ -5923,6 +6203,7 @@
       renderBlendSheetTabs();
       renderBlendSheet();
       renderGreenBeans();
+      renderSingleOriginSchedules();
       renderNonShipResults();
       Object.keys(lanes).forEach((verdict) => {
         const laneEntries = visibleCupping.filter((entry) => normalizeVerdict(entry.verdict) === verdict);
@@ -6120,6 +6401,39 @@
       ratioNoticeForm.reset();
       noticeFields.blend.value = "올드독";
       noticeFields.date.value = today();
+      populateGreenBeanRatioControls();
+      render();
+    });
+
+    singleOriginForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = approvedSessionUser();
+      if (!canManageSingleOriginSchedules(user)) return;
+      const lineups = selectedSingleOriginLineups();
+      if (!lineups.length) {
+        singleOriginFields.message.textContent = "싱글오리진 생두를 하나 이상 선택해주세요.";
+        return;
+      }
+      const startDate = singleOriginFields.startDate.value || today();
+      const schedule = {
+        id: editingSingleOriginId || makeId(),
+        startDate,
+        endDate: singleOriginFields.endDate.value || shiftDateInput(startDate, 13),
+        title: normalizeText(singleOriginFields.title.value),
+        lineups,
+        note: normalizeText(singleOriginFields.note.value),
+        createdAt: today(),
+        createdBy: userDisplayName(user)
+      };
+      singleOriginSchedules = editingSingleOriginId
+        ? singleOriginSchedules.map((item) => item.id === editingSingleOriginId ? { ...item, ...schedule, createdAt: item.createdAt || schedule.createdAt, updatedAt: today() } : item)
+        : [schedule, ...singleOriginSchedules];
+      writeSingleOriginSchedules(singleOriginSchedules);
+      singleOriginForm.reset();
+      resetEditingState("single-origin");
+      singleOriginFields.startDate.value = today();
+      singleOriginFields.endDate.value = shiftDateInput(today(), 13);
+      singleOriginFields.message.textContent = "싱글오리진 스케줄을 저장했습니다.";
       populateGreenBeanRatioControls();
       render();
     });
@@ -6682,6 +6996,20 @@
     espressoRecentList.addEventListener("click", handleEntryAction);
     visitRecentList.addEventListener("click", handleEntryAction);
 
+    singleOriginScheduleList.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-edit-single-origin]");
+      if (editButton) {
+        const schedule = singleOriginSchedules.find((item) => item.id === editButton.dataset.editSingleOrigin);
+        if (schedule) loadSingleOriginForEdit(schedule);
+        return;
+      }
+      const deleteButton = event.target.closest("[data-delete-single-origin]");
+      if (!deleteButton || !canManageSingleOriginSchedules(approvedSessionUser())) return;
+      singleOriginSchedules = singleOriginSchedules.filter((item) => item.id !== deleteButton.dataset.deleteSingleOrigin);
+      writeSingleOriginSchedules(singleOriginSchedules);
+      render();
+    });
+
     cuppingBatchFields.list.addEventListener("change", (event) => {
       const input = event.target.closest("[data-cupping-roast-entry]");
       if (!input) return;
@@ -7012,6 +7340,12 @@
       input.addEventListener("change", calculateGreenBeanKrwPerKg);
     });
 
+    singleOriginFields.startDate.addEventListener("change", () => {
+      if (!singleOriginFields.endDate.value || dateTimestamp(singleOriginFields.endDate.value) < dateTimestamp(singleOriginFields.startDate.value)) {
+        singleOriginFields.endDate.value = shiftDateInput(singleOriginFields.startDate.value, 13);
+      }
+    });
+
     document.querySelector("#exportButton").addEventListener("click", () => {
       const blob = new Blob([JSON.stringify(entries, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -7038,6 +7372,8 @@
     noticeFields.date.value = today();
     correctionFields.date.value = today();
     greenBeanFields.receivedDate.value = today();
+    singleOriginFields.startDate.value = today();
+    singleOriginFields.endDate.value = shiftDateInput(today(), 13);
     appShell.style.display = "none";
     enforcePrimaryAdmin();
     populateProductControls();
