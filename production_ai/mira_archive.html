@@ -2106,7 +2106,7 @@
               <input id="greenBeanAmountInput" placeholder="예: 60kg x 10bag">
             </div>
             <div class="field">
-              <label for="greenBeanContractDateInput">계약일</label>
+              <label for="greenBeanContractDateInput">결제일</label>
               <input id="greenBeanContractDateInput" type="date">
             </div>
             <div class="field">
@@ -2118,16 +2118,16 @@
               <input id="greenBeanUsdPerKgInput" inputmode="decimal">
             </div>
             <div class="field">
-              <label for="greenBeanExchangeRateInput">계약일 환율</label>
+              <label for="greenBeanExchangeRateInput">결제일 달러 환율</label>
               <input id="greenBeanExchangeRateInput" inputmode="decimal">
             </div>
             <div class="field">
-              <label for="greenBeanExchangeRateDateInput">환율 기준일</label>
+              <label for="greenBeanExchangeRateDateInput">환율 조회 기준일</label>
               <input id="greenBeanExchangeRateDateInput" readonly>
             </div>
             <div class="field">
               <label for="greenBeanKrwPerKgInput">kg당 ₩</label>
-              <input id="greenBeanKrwPerKgInput" inputmode="decimal" readonly>
+              <input id="greenBeanKrwPerKgInput" inputmode="decimal">
             </div>
             <div class="field" style="grid-column: 1 / -1;">
               <label for="greenBeanNoteInput">메모</label>
@@ -4172,8 +4172,7 @@
       const usdPerKgValue = calculateUsdPerKg(greenBeanFields.usdPerLb.value, greenBeanFields.usdPerKg.value);
       const exchangeRate = numericInputValue(greenBeanFields.exchangeRate.value);
       if (!usdPerKgValue || !exchangeRate) {
-        greenBeanFields.krwPerKg.value = "";
-        return "";
+        return greenBeanFields.krwPerKg.value;
       }
       const krwPerKg = usdPerKgValue * exchangeRate;
       greenBeanFields.krwPerKg.value = formatCurrencyNumber(krwPerKg, 0);
@@ -4204,7 +4203,7 @@
     async function updateGreenBeanExchangeRate() {
       const dateValue = greenBeanFields.contractDate.value;
       if (!dateValue) return;
-      greenBeanFields.message.textContent = "계약일 환율을 조회하고 있습니다.";
+      greenBeanFields.message.textContent = "결제일 달러 환율을 조회하고 있습니다.";
       try {
         const result = await fetchUsdKrwRateForDate(dateValue);
         greenBeanFields.exchangeRate.value = formatCurrencyNumber(result.rate, 2);
@@ -4212,7 +4211,7 @@
         calculateGreenBeanKrwPerKg();
         greenBeanFields.message.textContent = `USD/KRW 환율 ${greenBeanFields.exchangeRate.value}을 적용했습니다.`;
       } catch (error) {
-        greenBeanFields.message.textContent = "환율 자동 조회에 실패했습니다. 계약일 환율을 직접 입력하면 kg당 원화 단가가 계산됩니다.";
+        greenBeanFields.message.textContent = "환율 자동 조회에 실패했습니다. 결제일 달러 환율을 직접 입력하면 kg당 원화 단가가 계산됩니다.";
       }
     }
 
@@ -5856,7 +5855,7 @@
               <span class="tag amber">수분율 ${escapeHtml(bean.moisture || "-")}</span>
               <span class="tag amber">밀도 ${escapeHtml(bean.density || "-")}</span>
               <span class="tag green">kg당 ₩ ${escapeHtml(bean.krwPerKg || "-")}</span>
-              <span class="tag">계약일 ${escapeHtml(bean.contractDate || "-")}</span>
+              <span class="tag">결제일 ${escapeHtml(bean.contractDate || "-")}</span>
               <span class="tag">환율 ${escapeHtml(bean.exchangeRate || "-")}</span>
               <span class="tag">등록 ${escapeHtml(bean.createdBy || "-")}</span>
             </div>
@@ -6158,7 +6157,8 @@
       event.preventDefault();
       const user = approvedSessionUser();
       if (!canManageGreenBeans(user)) return;
-      if (greenBeanFields.contractDate.value && !numericInputValue(greenBeanFields.exchangeRate.value)) {
+      const hasDollarPrice = numericInputValue(greenBeanFields.usdPerLb.value) || numericInputValue(greenBeanFields.usdPerKg.value);
+      if (greenBeanFields.contractDate.value && hasDollarPrice && !numericInputValue(greenBeanFields.exchangeRate.value)) {
         await updateGreenBeanExchangeRate();
       }
       calculateGreenBeanKrwPerKg();
