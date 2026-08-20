@@ -880,6 +880,15 @@
       display: none;
     }
 
+    .green-bean-form {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .green-bean-form .green-row-break {
+      grid-column: 1 / -1;
+      min-height: 0;
+    }
+
     .notice-list {
       display: grid;
       gap: 8px;
@@ -1306,7 +1315,8 @@
       .blend-grid,
       .category-grid,
       .toolbar,
-      .notice-form {
+      .notice-form,
+      .green-bean-form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
@@ -1343,6 +1353,7 @@
       .record-item,
       .comment-item,
       .notice-form,
+      .green-bean-form,
       .notice-item,
       .roadmap,
       .admin-grid,
@@ -2072,14 +2083,18 @@
               <p class="hint">입고 생두의 기본 정보와 수분율, 밀도, 입고일을 관리합니다.</p>
             </div>
           </div>
-          <form class="notice-form" id="greenBeanForm">
+          <form class="notice-form green-bean-form" id="greenBeanForm">
             <div class="field">
-              <label for="greenBeanNameInput">생두 이름</label>
+              <label for="greenBeanOriginInput">국가</label>
+              <input id="greenBeanOriginInput" placeholder="예: Colombia / Ethiopia">
+            </div>
+            <div class="field">
+              <label for="greenBeanNameInput">이름</label>
               <input id="greenBeanNameInput" required placeholder="예: Colombia Huila">
             </div>
             <div class="field">
-              <label for="greenBeanOriginInput">산지</label>
-              <input id="greenBeanOriginInput" placeholder="예: Colombia / Ethiopia">
+              <label for="greenBeanVarietyInput">품종</label>
+              <input id="greenBeanVarietyInput" placeholder="예: Bourbon / Caturra">
             </div>
             <div class="field">
               <label for="greenBeanProcessInput">프로세스</label>
@@ -2090,6 +2105,11 @@
               <input id="greenBeanReceivedDateInput" type="date" required>
             </div>
             <div class="field">
+              <label for="greenBeanAmountInput">입고량</label>
+              <input id="greenBeanAmountInput" placeholder="예: 60kg x 10bag">
+            </div>
+            <div class="green-row-break" aria-hidden="true"></div>
+            <div class="field">
               <label for="greenBeanMoistureInput">수분율</label>
               <input id="greenBeanMoistureInput" inputmode="decimal" placeholder="예: 10.8%">
             </div>
@@ -2097,14 +2117,7 @@
               <label for="greenBeanDensityInput">밀도</label>
               <input id="greenBeanDensityInput" inputmode="decimal" placeholder="예: 780 g/L">
             </div>
-            <div class="field">
-              <label for="greenBeanVarietyInput">품종</label>
-              <input id="greenBeanVarietyInput" placeholder="예: Bourbon / Caturra">
-            </div>
-            <div class="field">
-              <label for="greenBeanAmountInput">입고량</label>
-              <input id="greenBeanAmountInput" placeholder="예: 60kg x 10bag">
-            </div>
+            <div class="green-row-break" aria-hidden="true"></div>
             <div class="field">
               <label for="greenBeanContractDateInput">결제일</label>
               <input id="greenBeanContractDateInput" type="date">
@@ -5850,7 +5863,7 @@
             </div>
             <p class="qc-body">${escapeHtml(bean.note || "메모 없음")}</p>
             <div class="meta">
-              <span class="tag blue">산지 ${escapeHtml(bean.origin || "-")}</span>
+              <span class="tag blue">국가 ${escapeHtml(bean.origin || "-")}</span>
               <span class="tag">품종 ${escapeHtml(bean.variety || "-")}</span>
               <span class="tag amber">수분율 ${escapeHtml(bean.moisture || "-")}</span>
               <span class="tag amber">밀도 ${escapeHtml(bean.density || "-")}</span>
