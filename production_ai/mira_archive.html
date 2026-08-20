@@ -2296,10 +2296,24 @@
         <section class="panel cupping-panel app-panel" data-app-panel="espresso">
           <div class="section-title">
             <div>
-              <h3>에스프레소 추출 평가</h3>
-              <p class="hint">거래처 사용 배치의 추출 상태와 코멘트를 저장합니다.</p>
+              <h3>추출 테스트 입력</h3>
+              <p class="hint">로스팅 배치에 연결되는 추출 평가와 코멘트를 저장합니다.</p>
             </div>
           </div>
+          <div class="calendar-head">
+            <div>
+              <h3 id="espressoCalendarTitle">추출 평가 달력</h3>
+              <p class="hint">날짜를 누르면 해당 로스팅일의 추출 평가를 확인합니다.</p>
+            </div>
+            <div class="calendar-actions">
+              <button type="button" id="espressoCalendarPrevButton">이전 달</button>
+              <button type="button" id="espressoCalendarTodayButton">이번 달</button>
+              <button type="button" id="espressoCalendarNextButton">다음 달</button>
+              <button type="button" id="espressoCalendarClearButton">날짜 해제</button>
+            </div>
+          </div>
+          <div class="calendar-summary" id="espressoCalendarSummary"></div>
+          <div class="calendar-grid" id="espressoCalendar"></div>
           <form class="notice-form" id="espressoForm">
             <div class="field">
               <label for="espressoBlendInput">블렌드</label>
@@ -2311,7 +2325,7 @@
               </select>
             </div>
             <div class="field">
-              <label for="espressoDateInput">평가일</label>
+              <label for="espressoDateInput">로스팅일</label>
               <input id="espressoDateInput" type="date" required>
             </div>
             <div class="field">
@@ -2319,24 +2333,16 @@
               <input id="espressoBatchInput" required placeholder="예: #1">
             </div>
             <div class="field">
-              <label for="espressoAccountInput">거래처</label>
-              <input id="espressoAccountInput" placeholder="예: 거래처명">
-            </div>
-            <div class="field">
-              <label for="espressoTimeInput">추출 시간</label>
-              <input id="espressoTimeInput" placeholder="예: 27초">
+              <label for="espressoDoseInput">도징량</label>
+              <input id="espressoDoseInput" inputmode="decimal" placeholder="예: 18g">
             </div>
             <div class="field">
               <label for="espressoYieldInput">추출량</label>
-              <input id="espressoYieldInput" placeholder="예: 38g">
+              <input id="espressoYieldInput" inputmode="decimal" placeholder="예: 38g">
             </div>
             <div class="field">
-              <label for="espressoTdsInput">TDS</label>
-              <input id="espressoTdsInput" inputmode="decimal" placeholder="예: 8.5%">
-            </div>
-            <div class="field">
-              <label for="espressoDoseInput">도징량</label>
-              <input id="espressoDoseInput" inputmode="decimal" placeholder="예: 18g">
+              <label for="espressoTimeInput">시간</label>
+              <input id="espressoTimeInput" placeholder="예: 27초">
             </div>
             <div class="field">
               <label for="espressoBasketInput">바스켓 종류</label>
@@ -2345,6 +2351,18 @@
             <div class="field">
               <label for="espressoGrindInput">분쇄도</label>
               <input id="espressoGrindInput" placeholder="예: 기준 / 미세 조정">
+            </div>
+            <div class="field">
+              <label for="espressoTdsInput">TDS</label>
+              <input id="espressoTdsInput" inputmode="decimal" placeholder="예: 8.5%">
+            </div>
+            <div class="field">
+              <label for="espressoExtractionYieldInput">수율</label>
+              <input id="espressoExtractionYieldInput" inputmode="decimal" placeholder="자동 계산" readonly>
+            </div>
+            <div class="field">
+              <label for="espressoFlowInput">머신 유량</label>
+              <input id="espressoFlowInput" inputmode="decimal" placeholder="예: 6.5 g/s">
             </div>
             <div class="field">
               <label for="espressoVerdictInput">판정</label>
@@ -2356,7 +2374,7 @@
             </div>
             <div class="field" style="grid-column: 1 / -1;">
               <label for="espressoNoteInput">추출 코멘트</label>
-              <textarea id="espressoNoteInput" required placeholder="거래처 추출 상태, 조정 필요사항, 전달 메모를 남깁니다."></textarea>
+              <textarea id="espressoNoteInput" required placeholder="추출 상태, 조정 필요사항, 전달 메모를 남깁니다."></textarea>
             </div>
             <button class="primary" type="submit" id="espressoSubmitButton">추출 평가 저장</button>
           </form>
@@ -2773,6 +2791,13 @@
     const cuppingCalendarTodayButton = document.querySelector("#cuppingCalendarTodayButton");
     const cuppingCalendarNextButton = document.querySelector("#cuppingCalendarNextButton");
     const cuppingCalendarClearButton = document.querySelector("#cuppingCalendarClearButton");
+    const espressoCalendarTitle = document.querySelector("#espressoCalendarTitle");
+    const espressoCalendarSummary = document.querySelector("#espressoCalendarSummary");
+    const espressoCalendar = document.querySelector("#espressoCalendar");
+    const espressoCalendarPrevButton = document.querySelector("#espressoCalendarPrevButton");
+    const espressoCalendarTodayButton = document.querySelector("#espressoCalendarTodayButton");
+    const espressoCalendarNextButton = document.querySelector("#espressoCalendarNextButton");
+    const espressoCalendarClearButton = document.querySelector("#espressoCalendarClearButton");
     const correctionCalendarTitle = document.querySelector("#correctionCalendarTitle");
     const correctionCalendarSummary = document.querySelector("#correctionCalendarSummary");
     const correctionCalendar = document.querySelector("#correctionCalendar");
@@ -2860,11 +2885,12 @@
       blend: document.querySelector("#espressoBlendInput"),
       date: document.querySelector("#espressoDateInput"),
       batch: document.querySelector("#espressoBatchInput"),
-      account: document.querySelector("#espressoAccountInput"),
       time: document.querySelector("#espressoTimeInput"),
       yield: document.querySelector("#espressoYieldInput"),
       tds: document.querySelector("#espressoTdsInput"),
       dose: document.querySelector("#espressoDoseInput"),
+      extractionYield: document.querySelector("#espressoExtractionYieldInput"),
+      flow: document.querySelector("#espressoFlowInput"),
       basket: document.querySelector("#espressoBasketInput"),
       grind: document.querySelector("#espressoGrindInput"),
       verdict: document.querySelector("#espressoVerdictInput"),
@@ -2892,6 +2918,8 @@
     let selectedRoastingDate = "";
     let cuppingCalendarMonth = today().slice(0, 7);
     let selectedCuppingDate = "";
+    let espressoCalendarMonth = today().slice(0, 7);
+    let selectedEspressoDate = "";
     let correctionCalendarMonth = today().slice(0, 7);
     let selectedCorrectionDate = "";
     let selectedCuppingBatchIds = new Set();
@@ -3680,8 +3708,7 @@
         return [type, entry.roastDate || "", blend, batch, roaster].join("|");
       }
       if (type === "espresso") {
-        const account = normalizeText(entry.espressoData?.account || entry.espresso?.account || "");
-        return [type, entry.roastDate || "", blend, batch, account].join("|");
+        return [type, entry.roastDate || "", blend, batch].join("|");
       }
       if (type === "correction") return "";
       const evaluator = normalizeUserId(entry.createdBy || "") || normalizeText(entry.evaluatorName || entry.createdByName || "");
@@ -3770,8 +3797,12 @@
       return upsertOperationalEntries(collection, [nextEntry]);
     }
 
+    function isRoastingVerdictSource(entry) {
+      return (isCuppingEntry(entry) && entry.entryType !== "correction") || entry.entryType === "espresso";
+    }
+
     function syncRoastingVerdictsFromCupping(collection, cuppingEntries) {
-      const targets = cuppingEntries.filter((entry) => isCuppingEntry(entry) && entry.entryType !== "correction");
+      const targets = cuppingEntries.filter(isRoastingVerdictSource);
       if (!targets.length) return { entries: collection, updated: 0 };
       let updated = 0;
       const result = collection.map((entry) => {
@@ -3784,8 +3815,7 @@
         if (!shouldSync) return entry;
         const linkedVerdicts = collection
           .filter((candidate) => (
-            isCuppingEntry(candidate)
-            && candidate.entryType !== "correction"
+            isRoastingVerdictSource(candidate)
             && candidate.blend === entry.blend
             && candidate.roastDate === entry.roastDate
             && batchesOverlap(candidate.batch, entry.batch)
@@ -3807,7 +3837,7 @@
 
     function unifiedOperationalEntries(collection) {
       const uniqueEntries = uniqueEntriesByOperationalKey(collection);
-      return syncRoastingVerdictsFromCupping(uniqueEntries, uniqueEntries.filter(isCuppingEntry)).entries;
+      return syncRoastingVerdictsFromCupping(uniqueEntries, uniqueEntries.filter(isRoastingVerdictSource)).entries;
     }
 
     function isEntryInLastDays(entry, days) {
@@ -3897,6 +3927,19 @@
     function normalizeTagValue(value) {
       if (Array.isArray(value)) return Array.from(new Set(value.filter(Boolean)));
       return normalizeTags(value || "");
+    }
+
+    function numericInputValue(value) {
+      const match = String(value || "").replace(",", ".").match(/-?\d+(?:\.\d+)?/);
+      return match ? Number(match[0]) : 0;
+    }
+
+    function calculateExtractionYield(dose, beverageYield, tds) {
+      const doseValue = numericInputValue(dose);
+      const yieldValue = numericInputValue(beverageYield);
+      const tdsValue = numericInputValue(tds);
+      if (!doseValue || !yieldValue || !tdsValue) return "";
+      return `${((yieldValue * tdsValue) / doseValue).toFixed(2)}%`;
     }
 
     function parseQuickCuppingComments(value) {
@@ -4172,11 +4215,12 @@
         espressoFields.blend.value = entry.blend;
         espressoFields.date.value = entry.roastDate || today();
         espressoFields.batch.value = entry.batch || "";
-        espressoFields.account.value = espressoData.account;
         espressoFields.time.value = espressoData.time;
         espressoFields.yield.value = espressoData.yield;
         espressoFields.tds.value = espressoData.tds;
         espressoFields.dose.value = espressoData.dose;
+        espressoFields.extractionYield.value = espressoData.extractionYield || calculateExtractionYield(espressoData.dose, espressoData.yield, espressoData.tds);
+        espressoFields.flow.value = espressoData.flow;
         espressoFields.basket.value = espressoData.basket;
         espressoFields.grind.value = espressoData.grind;
         espressoFields.verdict.value = normalizeVerdict(entry.verdict || "pass");
@@ -4291,6 +4335,8 @@
         yield: espressoData.yield || "",
         tds: espressoData.tds || "",
         dose: espressoData.dose || "",
+        extractionYield: espressoData.extractionYield || espressoData.extractionYieldPercent || calculateExtractionYield(espressoData.dose, espressoData.yield, espressoData.tds),
+        flow: espressoData.flow || espressoData.machineFlow || "",
         basket: espressoData.basket || "",
         grind: espressoData.grind || ""
       };
@@ -4697,13 +4743,14 @@
             <div class="meta">
               <span class="tag blue">${entry.roastLevel}</span>
               ${isEspresso
-                ? `<span class="tag">거래처 ${escapeHtml(espressoData.account || "-")}</span>
-                  <span class="tag">추출시간 ${escapeHtml(espressoData.time || "-")}</span>
+                ? `<span class="tag">도징 ${escapeHtml(espressoData.dose || "-")}</span>
                   <span class="tag">추출량 ${escapeHtml(espressoData.yield || "-")}</span>
-                  <span class="tag amber">TDS ${escapeHtml(espressoData.tds || "-")}</span>
-                  <span class="tag">도징 ${escapeHtml(espressoData.dose || "-")}</span>
+                  <span class="tag">추출시간 ${escapeHtml(espressoData.time || "-")}</span>
                   <span class="tag">바스켓 ${escapeHtml(espressoData.basket || "-")}</span>
-                  <span class="tag amber">분쇄도 ${escapeHtml(espressoData.grind || "-")}</span>`
+                  <span class="tag amber">분쇄도 ${escapeHtml(espressoData.grind || "-")}</span>
+                  <span class="tag amber">TDS ${escapeHtml(espressoData.tds || "-")}</span>
+                  <span class="tag green">수율 ${escapeHtml(espressoData.extractionYield || "-")}</span>
+                  <span class="tag">유량 ${escapeHtml(espressoData.flow || "-")}</span>`
                 : isRoasting
                 ? `<span class="tag">로스터기 ${escapeHtml(roastData.roaster || "-")}</span>
                   <span class="tag blue">로스팅한 사람 ${escapeHtml(roastData.operator || "-")}</span>
@@ -5083,6 +5130,45 @@
       cuppingCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
     }
 
+    function renderEspressoCalendar() {
+      const [year, month] = espressoCalendarMonth.split("-").map(Number);
+      const firstDate = new Date(year, month - 1, 1);
+      const lastDate = new Date(year, month, 0);
+      const leadingEmptyDays = firstDate.getDay();
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const relatedEntries = entries.filter((entry) => entry.entryType === "roasting" || entry.entryType === "espresso");
+      const countByDate = relatedEntries.reduce((acc, entry) => {
+        const value = entry.roastDate || "";
+        if (value.slice(0, 7) !== espressoCalendarMonth) return acc;
+        if (!acc[value]) acc[value] = { roasting: 0, espresso: 0 };
+        if (entry.entryType === "roasting") acc[value].roasting += 1;
+        if (entry.entryType === "espresso") acc[value].espresso += 1;
+        return acc;
+      }, {});
+      const dayButtons = [];
+      for (let index = 0; index < leadingEmptyDays; index += 1) {
+        dayButtons.push(`<div class="calendar-day empty" aria-hidden="true"></div>`);
+      }
+      for (let day = 1; day <= lastDate.getDate(); day += 1) {
+        const dateValue = `${espressoCalendarMonth}-${String(day).padStart(2, "0")}`;
+        const count = countByDate[dateValue] || { roasting: 0, espresso: 0 };
+        const total = count.roasting + count.espresso;
+        dayButtons.push(`
+          <button type="button" class="calendar-day ${total ? "has-data" : ""} ${selectedEspressoDate === dateValue ? "selected" : ""}" data-espresso-date="${dateValue}">
+            <strong>${day}</strong>
+            ${total ? `<span>배치 ${count.roasting} / 추출 ${count.espresso}</span>` : ""}
+          </button>
+        `);
+      }
+      const monthEspressoCount = Object.values(countByDate).reduce((sum, count) => sum + count.espresso, 0);
+      const selectedStats = selectedEspressoDate ? (countByDate[selectedEspressoDate] || { roasting: 0, espresso: 0 }) : { roasting: 0, espresso: 0 };
+      espressoCalendarTitle.textContent = `${monthLabel(espressoCalendarMonth)} 추출 평가 달력`;
+      espressoCalendarSummary.innerHTML = selectedEspressoDate
+        ? `<span>선택 로스팅일 ${escapeHtml(selectedEspressoDate)}</span><span>로스팅 배치 ${selectedStats.roasting}개 / 추출 평가 ${selectedStats.espresso}개</span>`
+        : `<span>날짜를 선택하지 않으면 ${monthLabel(espressoCalendarMonth)} 전체 추출 평가를 표시합니다.</span><span>월간 추출 평가 ${monthEspressoCount}개</span>`;
+      espressoCalendar.innerHTML = `${weekdays.map((day) => `<div class="calendar-weekday">${day}</div>`).join("")}${dayButtons.join("")}`;
+    }
+
     function renderCuppingBatchPicker() {
       const roastDate = selectedCuppingRoastDate();
       const candidates = cuppingRoastingCandidates();
@@ -5372,6 +5458,7 @@
       renderRatioCalendar();
       renderRoastingCalendar();
       renderCuppingCalendar();
+      renderEspressoCalendar();
       renderCuppingBatchPicker();
       renderDashboardRecent(monthEntries);
       renderSummary(monthEntries);
@@ -5419,9 +5506,13 @@
       roastingRecentList.innerHTML = roastingEntries.length
         ? `<div class="list-summary"><span>${selectedRoastingDate ? selectedRoastingDate : monthLabel(roastingCalendarMonth)} 로스팅 데이터 ${roastingEntries.length}개</span><span>${selectedRoastingDate ? "선택일" : "월간"}</span></div>${roastingEntries.map((entry) => cardMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 로스팅 데이터가 없습니다.</div>`;
-      const espressoEntries = monthEntries.filter((entry) => entry.entryType === "espresso");
+      const espressoEntries = entries.filter((entry) => {
+        if (entry.entryType !== "espresso") return false;
+        if (selectedEspressoDate) return entry.roastDate === selectedEspressoDate;
+        return entry.roastDate?.slice(0, 7) === espressoCalendarMonth;
+      });
       espressoRecentList.innerHTML = espressoEntries.length
-        ? `<div class="list-summary"><span>이번 달 추출 평가 ${espressoEntries.length}개</span><span>${monthLabel(monthKey)}</span></div>${espressoEntries.map((entry) => cardMarkup(entry)).join("")}`
+        ? `<div class="list-summary"><span>${selectedEspressoDate ? selectedEspressoDate : monthLabel(espressoCalendarMonth)} 추출 평가 ${espressoEntries.length}개</span><span>${selectedEspressoDate ? "선택일" : "월간"}</span></div>${espressoEntries.map((entry) => cardMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 추출 평가가 없습니다.</div>`;
     }
 
@@ -5700,6 +5791,7 @@
       event.preventDefault();
       if (!canInputEspresso(approvedSessionUser())) return;
       const batch = normalizeBatchRange(espressoFields.batch.value);
+      const extractionYield = calculateExtractionYield(espressoFields.dose.value, espressoFields.yield.value, espressoFields.tds.value);
       const entry = {
         id: editingEspressoId || makeId(),
         entryType: "espresso",
@@ -5709,28 +5801,31 @@
         roastLevel: "추출 평가",
         verdict: normalizeVerdict(espressoFields.verdict.value),
         espressoData: {
-          account: espressoFields.account.value.trim(),
           time: espressoFields.time.value.trim(),
           yield: espressoFields.yield.value.trim(),
           tds: espressoFields.tds.value.trim(),
           dose: espressoFields.dose.value.trim(),
+          extractionYield,
+          flow: espressoFields.flow.value.trim(),
           basket: espressoFields.basket.value.trim(),
           grind: espressoFields.grind.value.trim()
         },
         scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
         intensity: { acidity: 0, sweetness: 0, bitterness: 0, body: 0 },
         note: espressoFields.note.value.trim(),
-        tags: normalizeTags(`추출평가, ${batch}, ${espressoFields.account.value.trim()}`),
+        tags: normalizeTags(`추출평가, ${batch}`),
         createdAt: today()
       };
       const upserted = saveOperationalEntry(entries, entry, editingEspressoId);
-      entries = upserted.entries;
+      const verdictSync = syncRoastingVerdictsFromCupping(upserted.entries, [entry]);
+      entries = verdictSync.entries;
       writeEntries(entries);
       espressoForm.reset();
       resetEditingState("espresso");
       espressoFields.blend.value = "올드독";
       espressoFields.date.value = today();
       espressoFields.verdict.value = "pass";
+      espressoFields.extractionYield.value = "";
       render();
     });
 
@@ -6207,6 +6302,38 @@
       render();
     });
 
+    espressoCalendar.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-espresso-date]");
+      if (!button) return;
+      selectedEspressoDate = selectedEspressoDate === button.dataset.espressoDate ? "" : button.dataset.espressoDate;
+      if (selectedEspressoDate) espressoFields.date.value = selectedEspressoDate;
+      render();
+    });
+
+    espressoCalendarPrevButton.addEventListener("click", () => {
+      espressoCalendarMonth = shiftMonthKey(espressoCalendarMonth, -1);
+      selectedEspressoDate = "";
+      render();
+    });
+
+    espressoCalendarTodayButton.addEventListener("click", () => {
+      espressoCalendarMonth = today().slice(0, 7);
+      selectedEspressoDate = "";
+      espressoFields.date.value = today();
+      render();
+    });
+
+    espressoCalendarNextButton.addEventListener("click", () => {
+      espressoCalendarMonth = shiftMonthKey(espressoCalendarMonth, 1);
+      selectedEspressoDate = "";
+      render();
+    });
+
+    espressoCalendarClearButton.addEventListener("click", () => {
+      selectedEspressoDate = "";
+      render();
+    });
+
     cuppingCalendar.addEventListener("click", (event) => {
       const button = event.target.closest("[data-cupping-date]");
       if (!button) return;
@@ -6287,6 +6414,15 @@
         if (filter === filters.blend && filter.value !== "all") activeBlendSheet = filter.value;
         render();
       });
+    });
+
+    function updateEspressoExtractionYield() {
+      espressoFields.extractionYield.value = calculateExtractionYield(espressoFields.dose.value, espressoFields.yield.value, espressoFields.tds.value);
+    }
+
+    [espressoFields.dose, espressoFields.yield, espressoFields.tds].forEach((input) => {
+      input.addEventListener("input", updateEspressoExtractionYield);
+      input.addEventListener("change", updateEspressoExtractionYield);
     });
 
     document.querySelector("#exportButton").addEventListener("click", () => {
