@@ -3922,8 +3922,7 @@
     function readEntries() {
       const parsed = readStoreValue(storageKey);
       if (!parsed) {
-        writeStoreValue(storageKey, []);
-        return [];
+        return readLocalStoreValue(storageKey) || [];
       }
       try {
         if (!Array.isArray(parsed)) return [];
@@ -3939,7 +3938,6 @@
         const sortedEntries = sortEntriesByDate(withoutSeedEntries);
         const unifiedEntries = unifiedOperationalEntries(sortedEntries);
         if (unifiedEntries.length !== sortedEntries.length || JSON.stringify(unifiedEntries) !== JSON.stringify(sortedEntries)) changed = true;
-        if (changed) writeEntries(unifiedEntries);
         return unifiedEntries;
       } catch {
         return [];
@@ -6518,7 +6516,6 @@
         updated += 1;
         return { ...entry, verdict: "no_ship", issueLocked: true, updatedAt: today() };
       });
-      if (updated) writeEntries(entries);
       return updated;
     }
 
@@ -6559,7 +6556,6 @@
 
     function render() {
       entries = unifiedOperationalEntries(entries);
-      syncNonShipLockedEntries();
       const monthKey = currentMonthKey();
       const monthEntries = entries.filter((entry) => isEntryInMonth(entry, monthKey));
       const visible = activeAppView === "search" ? entries.filter(matchesFilters) : monthEntries;
@@ -7080,7 +7076,7 @@
         ? nonShipResults.map((item) => item.id === editingNonShipId ? { ...item, ...result, createdAt: item.createdAt || result.createdAt, updatedAt: today() } : item)
         : [result, ...nonShipResults];
       writeNonShipResults(nonShipResults);
-      syncNonShipLockedEntries();
+      if (syncNonShipLockedEntries()) writeEntries(entries);
       nonShipResultForm.reset();
       resetEditingState("nonship");
       nonShipFields.blend.value = "올드독";
