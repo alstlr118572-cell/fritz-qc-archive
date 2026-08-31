@@ -3951,21 +3951,26 @@
     function normalizeRoastingEntryClassification(entry) {
       if (!entry || entry.entryType !== "roasting") return entry;
       const batchText = normalizeText(entry.batch || "");
-      if (!/[가-힣A-Za-z]/.test(batchText)) return entry;
+      const roastData = normalizedRoastData(entry);
+      const normalizedTime = normalizeRoastTime(roastData.roastTime);
+      if (!/[가-힣A-Za-z]/.test(batchText)) {
+        if (normalizedTime === roastData.roastTime) return entry;
+        return { ...entry, roastData: { ...roastData, roastTime: normalizedTime }, updatedAt: entry.updatedAt || today() };
+      }
       const parsed = parseBatchBlend(batchText, canonicalBlendName(entry.blend || ""));
       if (!parsed.blend) return entry;
-      const roastData = normalizedRoastData(entry);
       const nextBlend = canonicalBlendName(parsed.blend);
       const nextBatch = parsed.batch || entry.batch;
       const nextRoaster = parsed.roaster || roastData.roaster || "";
-      if (nextBlend === entry.blend && nextBatch === entry.batch && nextRoaster === roastData.roaster) return entry;
+      if (nextBlend === entry.blend && nextBatch === entry.batch && nextRoaster === roastData.roaster && normalizedTime === roastData.roastTime) return entry;
       return {
         ...entry,
         blend: nextBlend,
         batch: nextBatch,
         roastData: {
           ...roastData,
-          roaster: nextRoaster
+          roaster: nextRoaster,
+          roastTime: normalizedTime
         },
         updatedAt: entry.updatedAt || today()
       };
@@ -4358,6 +4363,15 @@
       return text;
     }
 
+    function normalizeRoastTime(value) {
+      const text = normalizeText(value);
+      if (!text) return "";
+      const compact = text.replace(/\s+/g, "");
+      const match = compact.match(/^(\d{1,2})[:"](\d{1,2})$/);
+      if (match) return `${Number(match[1])}:${String(Number(match[2])).padStart(2, "0")}`;
+      return text;
+    }
+
     function inferVerdictFromText(value, fallback = "hold") {
       const compact = String(value || "").toLowerCase().replace(/\s+/g, "");
       if (!compact) return fallback;
@@ -4627,7 +4641,7 @@
         batch,
         roastLevel: "기준",
         verdict,
-        roastData: { roaster, operator, pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor },
+        roastData: { roaster, operator, pressure, drumSpeed, exhaust, heat, dropTemp, roastTime: normalizeRoastTime(roastTime), wholeColor, groundColor },
         scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
         intensity: { acidity: 0, sweetness: 0, bitterness: 0, body: 0 },
         note,
