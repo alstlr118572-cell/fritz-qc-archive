@@ -354,6 +354,19 @@
       font-weight: 800;
     }
 
+    .user-admin-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .user-admin-actions button {
+      min-height: 30px;
+      padding: 0 9px;
+      font-size: 12px;
+    }
+
     .userbar {
       display: none;
       grid-template-columns: 1fr auto auto auto;
@@ -3934,6 +3947,12 @@
                 </div>`}
             <span class="tag">${escapeHtml(permissionLabels(user))}</span>
             <span class="tag ${user.status === "approved" ? "green" : user.status === "pending" ? "amber" : "red"}">${escapeHtml(user.status || "-")}</span>
+            ${isPrimaryAdmin(user) ? "" : `
+              <div class="user-admin-actions">
+                <button type="button" data-admin-password="${escapeHtml(user.id)}">비밀번호 수정</button>
+                <button type="button" class="danger" data-admin-delete-user="${escapeHtml(user.id)}">아이디 삭제</button>
+              </div>
+            `}
           </article>
         `).join("")
         : `<div class="empty">사용자가 없습니다.</div>`;
@@ -7523,6 +7542,54 @@
       }
       renderUserList();
       render();
+    });
+
+    userList.addEventListener("click", (event) => {
+      const passwordButton = event.target.closest("[data-admin-password]");
+      const deleteButton = event.target.closest("[data-admin-delete-user]");
+      if (!passwordButton && !deleteButton) return;
+      if (!isPrimaryAdmin(approvedSessionUser())) return;
+      const targetId = passwordButton?.dataset.adminPassword || deleteButton?.dataset.adminDeleteUser;
+      try {
+        refreshUsers();
+      } catch (error) {
+        alert(error.message || "공용 사용자 저장소 연결에 실패했습니다.");
+        return;
+      }
+      const targetUser = users.find((user) => user.id === targetId);
+      if (!targetUser || isPrimaryAdmin(targetUser)) return;
+      if (passwordButton) {
+        const nextPassword = prompt(`${targetUser.userId} 새 비밀번호를 입력하세요.`, "");
+        if (nextPassword === null) return;
+        if (nextPassword.length < 4) {
+          alert("새 비밀번호는 4자 이상으로 입력해주세요.");
+          return;
+        }
+        users = users.map((user) => user.id === targetId ? { ...user, password: nextPassword, passwordUpdatedAt: today() } : user);
+        try {
+          writeUsers(users, { requireShared: true });
+        } catch (error) {
+          alert(error.message || "사용자 비밀번호 저장에 실패했습니다.");
+          users = readUsers();
+          renderUserList();
+          return;
+        }
+        alert(`${targetUser.userId} 비밀번호를 변경했습니다.`);
+        renderUserList();
+        return;
+      }
+      if (!confirm(`${targetUser.userId} 아이디를 삭제할까요? 삭제 후 해당 사용자는 로그인할 수 없습니다.`)) return;
+      users = users.filter((user) => user.id !== targetId);
+      try {
+        writeUsers(users, { requireShared: true });
+      } catch (error) {
+        alert(error.message || "사용자 삭제 저장에 실패했습니다.");
+        users = readUsers();
+        renderUserList();
+        return;
+      }
+      renderPendingUsers();
+      renderUserList();
     });
 
     blendCatalogForm.addEventListener("submit", (event) => {
