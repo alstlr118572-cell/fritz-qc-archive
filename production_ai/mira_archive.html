@@ -7015,6 +7015,13 @@
       render();
     });
 
+    visitForm.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.isComposing) return;
+      const target = event.target;
+      if (target?.tagName === "TEXTAREA" || target?.type === "submit") return;
+      event.preventDefault();
+    });
+
     visitForm.addEventListener("submit", (event) => {
       event.preventDefault();
       const user = approvedSessionUser();
