@@ -924,6 +924,35 @@
       font-size: 12px;
     }
 
+    .visit-extraction-section {
+      display: grid;
+      grid-column: 1 / -1;
+      gap: 8px;
+    }
+
+    .visit-extraction-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .visit-extraction-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .visit-extraction-row {
+      display: grid;
+      grid-template-columns: 1.3fr repeat(5, minmax(78px, 1fr)) auto;
+      gap: 8px;
+      align-items: end;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffefa;
+    }
+
     .calendar-day .calendar-mini {
       display: grid;
       gap: 3px;
@@ -1425,7 +1454,8 @@
       }
 
       .single-origin-form,
-      .single-origin-lineup {
+      .single-origin-lineup,
+      .visit-extraction-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
@@ -1465,6 +1495,7 @@
       .green-bean-form,
       .single-origin-form,
       .single-origin-lineup,
+      .visit-extraction-row,
       .notice-item,
       .roadmap,
       .admin-grid,
@@ -2656,25 +2687,40 @@
               <label for="visitFlowPressureInput">머신 유량 및 압력</label>
               <input id="visitFlowPressureInput">
             </div>
-            <div class="field">
-              <label for="visitDoseInput">도징량</label>
-              <input id="visitDoseInput" inputmode="decimal">
-            </div>
-            <div class="field">
-              <label for="visitYieldInput">추출량</label>
-              <input id="visitYieldInput" inputmode="decimal">
-            </div>
-            <div class="field">
-              <label for="visitTimeInput">시간</label>
-              <input id="visitTimeInput">
-            </div>
-            <div class="field">
-              <label for="visitTdsInput">TDS</label>
-              <input id="visitTdsInput" inputmode="decimal">
-            </div>
-            <div class="field">
-              <label for="visitExtractionYieldInput">수율</label>
-              <input id="visitExtractionYieldInput" inputmode="decimal" placeholder="자동 계산" readonly>
+            <div class="visit-extraction-section">
+              <div class="visit-extraction-head">
+                <label>추출 기록</label>
+                <button type="button" id="visitAddExtractionButton">추출 기록 추가</button>
+              </div>
+              <div class="visit-extraction-list" id="visitExtractionList">
+                <div class="visit-extraction-row" data-visit-extraction-row>
+                  <div class="field">
+                    <label>블렌드</label>
+                    <input id="visitExtractionBlendInput" data-visit-extraction-blend placeholder="사용 원두">
+                  </div>
+                  <div class="field">
+                    <label>도징량</label>
+                    <input id="visitDoseInput" data-visit-dose inputmode="decimal">
+                  </div>
+                  <div class="field">
+                    <label>추출량</label>
+                    <input id="visitYieldInput" data-visit-yield inputmode="decimal">
+                  </div>
+                  <div class="field">
+                    <label>시간</label>
+                    <input id="visitTimeInput" data-visit-time>
+                  </div>
+                  <div class="field">
+                    <label>TDS</label>
+                    <input id="visitTdsInput" data-visit-tds inputmode="decimal">
+                  </div>
+                  <div class="field">
+                    <label>수율</label>
+                    <input id="visitExtractionYieldInput" data-visit-extraction-yield inputmode="decimal" placeholder="자동 계산" readonly>
+                  </div>
+                  <button class="delete" type="button" data-remove-visit-extraction title="추출 기록 삭제">×</button>
+                </div>
+              </div>
             </div>
             <div class="field" style="grid-column: 1 / -1;">
               <label for="visitStoreFeatureInput">업장 및 상담특징</label>
@@ -3143,6 +3189,7 @@
     const visitCalendarNextButton = document.querySelector("#visitCalendarNextButton");
     const visitCalendarClearButton = document.querySelector("#visitCalendarClearButton");
     const visitSearchInput = document.querySelector("#visitSearchInput");
+    const visitAddExtractionButton = document.querySelector("#visitAddExtractionButton");
     const nonShipCalendarTitle = document.querySelector("#nonShipCalendarTitle");
     const nonShipCalendarSummary = document.querySelector("#nonShipCalendarSummary");
     const nonShipCalendar = document.querySelector("#nonShipCalendar");
@@ -3290,11 +3337,7 @@
       grinder: document.querySelector("#visitGrinderInput"),
       basket: document.querySelector("#visitBasketInput"),
       flowPressure: document.querySelector("#visitFlowPressureInput"),
-      dose: document.querySelector("#visitDoseInput"),
-      yield: document.querySelector("#visitYieldInput"),
-      time: document.querySelector("#visitTimeInput"),
-      tds: document.querySelector("#visitTdsInput"),
-      extractionYield: document.querySelector("#visitExtractionYieldInput"),
+      extractionList: document.querySelector("#visitExtractionList"),
       storeFeature: document.querySelector("#visitStoreFeatureInput"),
       beverageQuality: document.querySelector("#visitBeverageQualityInput"),
       equipment: document.querySelector("#visitEquipmentInput"),
@@ -4811,11 +4854,7 @@
         visitFields.grinder.value = visitData.grinder;
         visitFields.basket.value = visitData.basket;
         visitFields.flowPressure.value = visitData.flowPressure;
-        visitFields.dose.value = visitData.dose;
-        visitFields.yield.value = visitData.yield;
-        visitFields.time.value = visitData.time;
-        visitFields.tds.value = visitData.tds;
-        visitFields.extractionYield.value = visitData.extractionYield || calculateExtractionYield(visitData.dose, visitData.yield, visitData.tds);
+        resetVisitExtractionRows(visitData.extractions);
         visitFields.storeFeature.value = visitData.storeFeature;
         visitFields.beverageQuality.value = visitData.beverageQuality;
         visitFields.equipment.value = visitData.equipment;
@@ -4943,8 +4982,51 @@
       };
     }
 
+    function visitExtractionHasValue(extraction) {
+      return Boolean([
+        extraction.blend,
+        extraction.dose,
+        extraction.yield,
+        extraction.time,
+        extraction.tds,
+        extraction.extractionYield
+      ].some((value) => normalizeText(value)));
+    }
+
+    function normalizedVisitExtraction(extraction = {}) {
+      const item = {
+        blend: normalizeText(extraction.blend || extraction.coffee || ""),
+        dose: normalizeText(extraction.dose),
+        yield: normalizeText(extraction.yield),
+        time: normalizeText(extraction.time),
+        tds: normalizeText(extraction.tds),
+        extractionYield: normalizeText(extraction.extractionYield || extraction.extractionYieldPercent)
+      };
+      item.extractionYield = item.extractionYield || calculateExtractionYield(item.dose, item.yield, item.tds);
+      return item;
+    }
+
+    function legacyVisitExtraction(visitData) {
+      return normalizedVisitExtraction({
+        blend: visitData.coffee || "",
+        dose: visitData.dose || "",
+        yield: visitData.yield || "",
+        time: visitData.time || "",
+        tds: visitData.tds || "",
+        extractionYield: visitData.extractionYield || ""
+      });
+    }
+
     function normalizedVisitData(entry) {
       const visitData = entry.visitData || {};
+      const storedExtractions = Array.isArray(visitData.extractions)
+        ? visitData.extractions.map(normalizedVisitExtraction).filter(visitExtractionHasValue)
+        : [];
+      const legacyExtraction = legacyVisitExtraction(visitData);
+      const extractions = storedExtractions.length
+        ? storedExtractions
+        : visitExtractionHasValue(legacyExtraction) ? [legacyExtraction] : [];
+      const firstExtraction = extractions[0] || legacyExtraction;
       return {
         customer: visitData.customer || "",
         store: visitData.store || "",
@@ -4958,11 +5040,12 @@
         basket: visitData.basket || "",
         flowPressure: visitData.flowPressure || "",
         recipe: visitData.recipe || "",
-        dose: visitData.dose || "",
-        yield: visitData.yield || "",
-        time: visitData.time || "",
-        tds: visitData.tds || "",
-        extractionYield: visitData.extractionYield || calculateExtractionYield(visitData.dose, visitData.yield, visitData.tds),
+        extractions,
+        dose: visitData.dose || firstExtraction.dose || "",
+        yield: visitData.yield || firstExtraction.yield || "",
+        time: visitData.time || firstExtraction.time || "",
+        tds: visitData.tds || firstExtraction.tds || "",
+        extractionYield: visitData.extractionYield || firstExtraction.extractionYield || calculateExtractionYield(visitData.dose, visitData.yield, visitData.tds),
         storeFeature: visitData.storeFeature || "",
         beverageQuality: visitData.beverageQuality || "",
         equipment: visitData.equipment || "",
@@ -5297,6 +5380,74 @@
       return (composition || []).map((item) => `${item.beanName}${item.process ? ` (${item.process})` : ""} ${item.percent}%`).join(" / ");
     }
 
+    function getVisitExtractionRows() {
+      return Array.from(visitFields.extractionList.querySelectorAll("[data-visit-extraction-row]"));
+    }
+
+    function updateVisitExtractionRowYield(row) {
+      const doseInput = row.querySelector("[data-visit-dose]");
+      const yieldInput = row.querySelector("[data-visit-yield]");
+      const tdsInput = row.querySelector("[data-visit-tds]");
+      const extractionYieldInput = row.querySelector("[data-visit-extraction-yield]");
+      extractionYieldInput.value = calculateExtractionYield(doseInput.value, yieldInput.value, tdsInput.value);
+    }
+
+    function visitExtractionRowMarkup(extraction = {}) {
+      const item = normalizedVisitExtraction(extraction);
+      return `
+        <div class="visit-extraction-row" data-visit-extraction-row>
+          <div class="field">
+            <label>블렌드</label>
+            <input data-visit-extraction-blend placeholder="사용 원두" value="${escapeHtml(item.blend || "")}">
+          </div>
+          <div class="field">
+            <label>도징량</label>
+            <input data-visit-dose inputmode="decimal" value="${escapeHtml(item.dose || "")}">
+          </div>
+          <div class="field">
+            <label>추출량</label>
+            <input data-visit-yield inputmode="decimal" value="${escapeHtml(item.yield || "")}">
+          </div>
+          <div class="field">
+            <label>시간</label>
+            <input data-visit-time value="${escapeHtml(item.time || "")}">
+          </div>
+          <div class="field">
+            <label>TDS</label>
+            <input data-visit-tds inputmode="decimal" value="${escapeHtml(item.tds || "")}">
+          </div>
+          <div class="field">
+            <label>수율</label>
+            <input data-visit-extraction-yield inputmode="decimal" placeholder="자동 계산" readonly value="${escapeHtml(item.extractionYield || "")}">
+          </div>
+          <button class="delete" type="button" data-remove-visit-extraction title="추출 기록 삭제">×</button>
+        </div>
+      `;
+    }
+
+    function addVisitExtractionRow(extraction = {}) {
+      visitFields.extractionList.insertAdjacentHTML("beforeend", visitExtractionRowMarkup(extraction));
+      const row = getVisitExtractionRows().at(-1);
+      if (row) updateVisitExtractionRowYield(row);
+    }
+
+    function resetVisitExtractionRows(extractions = [{}]) {
+      visitFields.extractionList.innerHTML = "";
+      const source = extractions.length ? extractions : [{}];
+      source.forEach((extraction) => addVisitExtractionRow(extraction));
+    }
+
+    function selectedVisitExtractions() {
+      return getVisitExtractionRows().map((row) => normalizedVisitExtraction({
+        blend: row.querySelector("[data-visit-extraction-blend]")?.value || "",
+        dose: row.querySelector("[data-visit-dose]")?.value || "",
+        yield: row.querySelector("[data-visit-yield]")?.value || "",
+        time: row.querySelector("[data-visit-time]")?.value || "",
+        tds: row.querySelector("[data-visit-tds]")?.value || "",
+        extractionYield: row.querySelector("[data-visit-extraction-yield]")?.value || ""
+      })).filter(visitExtractionHasValue);
+    }
+
     function getSingleOriginLineupRows() {
       return Array.from(singleOriginFields.lineupList.querySelectorAll("[data-single-lineup-row]"));
     }
@@ -5592,13 +5743,15 @@
     function visitCardMarkup(entry, compact = false) {
       const visitData = normalizedVisitData(entry);
       const user = approvedSessionUser();
-      const recipeText = visitData.recipe || [
-        visitData.dose ? `도징 ${visitData.dose}` : "",
-        visitData.yield ? `추출량 ${visitData.yield}` : "",
-        visitData.time ? `시간 ${visitData.time}` : "",
-        visitData.tds ? `TDS ${visitData.tds}` : "",
-        visitData.extractionYield ? `수율 ${visitData.extractionYield}` : ""
-      ].filter(Boolean).join(" / ");
+      const extractionTexts = visitData.extractions.map((extraction) => [
+        extraction.blend || visitData.coffee || "",
+        extraction.dose ? `도징 ${extraction.dose}` : "",
+        extraction.yield ? `추출량 ${extraction.yield}` : "",
+        extraction.time ? `시간 ${extraction.time}` : "",
+        extraction.tds ? `TDS ${extraction.tds}` : "",
+        extraction.extractionYield ? `수율 ${extraction.extractionYield}` : ""
+      ].filter(Boolean).join(" / "));
+      const recipeText = visitData.recipe || extractionTexts.join(" · ");
       const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${escapeHtml(entry.id)}" data-edit-type="visit">수정</button>`;
       const deleteButton = compact || !canDeleteEntry(entry, user) ? "" : `<button class="delete" data-delete="${escapeHtml(entry.id)}" title="방문일지 삭제">×</button>`;
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
@@ -5623,12 +5776,16 @@
               <span class="tag">월사용 ${escapeHtml(visitData.monthlyUsage || "-")}</span>
               <span class="tag blue">머신 ${escapeHtml(visitData.machine || "-")}</span>
               <span class="tag">그라인더 ${escapeHtml(visitData.grinder || "-")}</span>
-              <span class="tag amber">레시피 ${escapeHtml(recipeText || "-")}</span>
+              <span class="tag amber">추출 ${escapeHtml(recipeText || "-")}</span>
             </div>
             ${compact ? "" : `
               <div class="comment-field-block">
                 <strong>기본 정보</strong>
                 <p>${escapeHtml([visitData.address, visitData.phone, visitData.basket, visitData.flowPressure].filter(Boolean).join(" / ") || "기본 정보 미기록")}</p>
+              </div>
+              <div class="comment-field-block">
+                <strong>추출 기록</strong>
+                ${extractionTexts.length ? extractionTexts.map((text) => `<p>${escapeHtml(text)}</p>`).join("") : `<p>추출 기록 미기록</p>`}
               </div>
               ${noteBlocks.map(([label, value]) => `
                 <div class="comment-field-block">
@@ -7026,6 +7183,9 @@
       event.preventDefault();
       const user = approvedSessionUser();
       if (!canManageVisitLogs(user)) return;
+      const extractions = selectedVisitExtractions();
+      const firstExtraction = extractions[0] || {};
+      const extractionBlends = extractions.map((extraction) => extraction.blend).filter(Boolean).join(", ");
       const visitData = {
         customer: normalizeText(visitFields.customer.value),
         store: normalizeText(visitFields.store.value),
@@ -7038,11 +7198,12 @@
         grinder: normalizeText(visitFields.grinder.value),
         basket: normalizeText(visitFields.basket.value),
         flowPressure: normalizeText(visitFields.flowPressure.value),
-        dose: normalizeText(visitFields.dose.value),
-        yield: normalizeText(visitFields.yield.value),
-        time: normalizeText(visitFields.time.value),
-        tds: normalizeText(visitFields.tds.value),
-        extractionYield: calculateExtractionYield(visitFields.dose.value, visitFields.yield.value, visitFields.tds.value),
+        extractions,
+        dose: firstExtraction.dose || "",
+        yield: firstExtraction.yield || "",
+        time: firstExtraction.time || "",
+        tds: firstExtraction.tds || "",
+        extractionYield: firstExtraction.extractionYield || "",
         storeFeature: normalizeText(visitFields.storeFeature.value),
         beverageQuality: normalizeText(visitFields.beverageQuality.value),
         equipment: normalizeText(visitFields.equipment.value),
@@ -7061,7 +7222,7 @@
         scores: { aroma: 0, flavor: 0, balance: 0, after: 0 },
         intensity: { acidity: 0, sweetness: 0, bitterness: 0, body: 0 },
         note: visitData.storeFeature || visitData.beverageQuality || "거래처 방문일지",
-        tags: normalizeTags(`거래처방문, ${visitData.store}, ${visitData.customer}, ${visitData.coffee}`),
+        tags: normalizeTags(`거래처방문, ${visitData.store}, ${visitData.customer}, ${visitData.coffee}, ${extractionBlends}`),
         createdByName: userDisplayName(user),
         createdBy: user?.userId || "",
         createdAt: today()
@@ -7073,7 +7234,7 @@
       resetEditingState("visit");
       visitFields.date.value = today();
       visitFields.manager.value = userDisplayName(user);
-      visitFields.extractionYield.value = "";
+      resetVisitExtractionRows();
       render();
     });
 
@@ -7837,13 +7998,31 @@
       input.addEventListener("change", updateEspressoExtractionYield);
     });
 
-    function updateVisitExtractionYield() {
-      visitFields.extractionYield.value = calculateExtractionYield(visitFields.dose.value, visitFields.yield.value, visitFields.tds.value);
-    }
+    visitAddExtractionButton.addEventListener("click", () => {
+      addVisitExtractionRow();
+    });
 
-    [visitFields.dose, visitFields.yield, visitFields.tds].forEach((input) => {
-      input.addEventListener("input", updateVisitExtractionYield);
-      input.addEventListener("change", updateVisitExtractionYield);
+    visitFields.extractionList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-remove-visit-extraction]");
+      if (!button) return;
+      const rows = getVisitExtractionRows();
+      if (rows.length <= 1) {
+        rows[0]?.querySelectorAll("input").forEach((input) => input.value = "");
+        return;
+      }
+      button.closest("[data-visit-extraction-row]")?.remove();
+    });
+
+    visitFields.extractionList.addEventListener("input", (event) => {
+      if (!event.target.matches("[data-visit-dose], [data-visit-yield], [data-visit-tds]")) return;
+      const row = event.target.closest("[data-visit-extraction-row]");
+      if (row) updateVisitExtractionRowYield(row);
+    });
+
+    visitFields.extractionList.addEventListener("change", (event) => {
+      if (!event.target.matches("[data-visit-dose], [data-visit-yield], [data-visit-tds]")) return;
+      const row = event.target.closest("[data-visit-extraction-row]");
+      if (row) updateVisitExtractionRowYield(row);
     });
 
     greenBeanFields.contractDate.addEventListener("change", updateGreenBeanExchangeRate);
@@ -7886,6 +8065,7 @@
     espressoFields.date.value = today();
     visitFields.date.value = today();
     visitFields.manager.value = userDisplayName(approvedSessionUser());
+    resetVisitExtractionRows();
     nonShipFields.date.value = today();
     nonShipFields.roastDate.value = today();
     noticeFields.date.value = today();
