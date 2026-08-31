@@ -944,7 +944,7 @@
 
     .visit-extraction-row {
       display: grid;
-      grid-template-columns: 1.3fr repeat(5, minmax(78px, 1fr)) auto;
+      grid-template-columns: 130px 1.4fr repeat(5, minmax(78px, 1fr)) auto;
       gap: 8px;
       align-items: end;
       padding: 10px;
@@ -2695,8 +2695,14 @@
               <div class="visit-extraction-list" id="visitExtractionList">
                 <div class="visit-extraction-row" data-visit-extraction-row>
                   <div class="field">
-                    <label>블렌드</label>
-                    <input id="visitExtractionBlendInput" data-visit-extraction-blend placeholder="사용 원두">
+                    <label>로스팅일</label>
+                    <input id="visitExtractionRoastDateInput" data-visit-roast-date type="date">
+                  </div>
+                  <div class="field">
+                    <label>로스팅 배치</label>
+                    <select id="visitExtractionRoastInput" data-visit-roast-entry>
+                      <option value="">로스팅일을 선택하면 배치가 표시됩니다</option>
+                    </select>
                   </div>
                   <div class="field">
                     <label>도징량</label>
@@ -4984,7 +4990,10 @@
 
     function visitExtractionHasValue(extraction) {
       return Boolean([
+        extraction.roastEntryId,
+        extraction.roastDate,
         extraction.blend,
+        extraction.batch,
         extraction.dose,
         extraction.yield,
         extraction.time,
@@ -4995,7 +5004,10 @@
 
     function normalizedVisitExtraction(extraction = {}) {
       const item = {
+        roastEntryId: normalizeText(extraction.roastEntryId || extraction.entryId || ""),
+        roastDate: normalizeText(extraction.roastDate || extraction.date || ""),
         blend: normalizeText(extraction.blend || extraction.coffee || ""),
+        batch: normalizeBatchRange(extraction.batch || ""),
         dose: normalizeText(extraction.dose),
         yield: normalizeText(extraction.yield),
         time: normalizeText(extraction.time),
@@ -5008,7 +5020,9 @@
 
     function legacyVisitExtraction(visitData) {
       return normalizedVisitExtraction({
+        roastDate: visitData.roastDate || visitData.extractionDate || "",
         blend: visitData.coffee || "",
+        batch: visitData.batch || "",
         dose: visitData.dose || "",
         yield: visitData.yield || "",
         time: visitData.time || "",
@@ -5392,13 +5406,67 @@
       extractionYieldInput.value = calculateExtractionYield(doseInput.value, yieldInput.value, tdsInput.value);
     }
 
+    function visitRoastingEntriesForDate(date = "") {
+      return entries
+        .filter((entry) => entry.entryType === "roasting" && entry.roastDate === date)
+        .sort((left, right) => {
+          const blendDiff = String(left.blend || "").localeCompare(String(right.blend || ""), "ko");
+          if (blendDiff) return blendDiff;
+          return batchStartNumber(left.batch) - batchStartNumber(right.batch);
+        });
+    }
+
+    function visitRoastingBatchLabel(entry) {
+      const roastData = normalizedRoastData(entry);
+      return [
+        entry.blend || "블렌드 미기록",
+        entry.batch || "배치 미기록",
+        roastData.roaster ? `(${roastData.roaster})` : ""
+      ].filter(Boolean).join(" ");
+    }
+
+    function visitRoastingBatchOptionMarkup(extraction = {}) {
+      const item = normalizedVisitExtraction(extraction);
+      const roastEntries = visitRoastingEntriesForDate(item.roastDate);
+      const matchedEntry = item.roastEntryId
+        ? roastEntries.find((entry) => entry.id === item.roastEntryId)
+        : roastEntries.find((entry) => canonicalBlendName(entry.blend) === canonicalBlendName(item.blend) && (!item.batch || batchesOverlap(entry.batch, item.batch)));
+      const selectedId = matchedEntry?.id || item.roastEntryId || "";
+      const options = roastEntries.map((entry) => {
+        const selected = entry.id === selectedId ? " selected" : "";
+        return `<option value="${escapeHtml(entry.id)}" data-blend="${escapeHtml(entry.blend || "")}" data-batch="${escapeHtml(entry.batch || "")}"${selected}>${escapeHtml(visitRoastingBatchLabel(entry))}</option>`;
+      });
+      if (!roastEntries.length) {
+        options.unshift(`<option value="">${item.roastDate ? "해당 날짜 로스팅 배치 없음" : "로스팅일을 먼저 선택"}</option>`);
+      } else {
+        options.unshift(`<option value="">로스팅 배치 선택</option>`);
+      }
+      if (item.blend && !matchedEntry) {
+        const label = [item.blend, item.batch].filter(Boolean).join(" ") || "기존 입력값";
+        options.push(`<option value="__current__" data-blend="${escapeHtml(item.blend)}" data-batch="${escapeHtml(item.batch)}" selected>${escapeHtml(label)} (기존 입력)</option>`);
+      }
+      return options.join("");
+    }
+
+    function refreshVisitExtractionBatchOptions() {
+      getVisitExtractionRows().forEach((row) => {
+        const current = selectedVisitExtractionFromRow(row);
+        const select = row.querySelector("[data-visit-roast-entry]");
+        if (select) select.innerHTML = visitRoastingBatchOptionMarkup(current);
+      });
+    }
+
     function visitExtractionRowMarkup(extraction = {}) {
       const item = normalizedVisitExtraction(extraction);
       return `
         <div class="visit-extraction-row" data-visit-extraction-row>
           <div class="field">
-            <label>블렌드</label>
-            <input data-visit-extraction-blend placeholder="사용 원두" value="${escapeHtml(item.blend || "")}">
+            <label>로스팅일</label>
+            <input data-visit-roast-date type="date" value="${escapeHtml(item.roastDate || "")}">
+          </div>
+          <div class="field">
+            <label>로스팅 배치</label>
+            <select data-visit-roast-entry>${visitRoastingBatchOptionMarkup(item)}</select>
           </div>
           <div class="field">
             <label>도징량</label>
@@ -5426,7 +5494,9 @@
     }
 
     function addVisitExtractionRow(extraction = {}) {
-      visitFields.extractionList.insertAdjacentHTML("beforeend", visitExtractionRowMarkup(extraction));
+      const item = normalizedVisitExtraction(extraction);
+      const rowData = item.roastDate ? item : { ...item, roastDate: visitFields.date.value || today() };
+      visitFields.extractionList.insertAdjacentHTML("beforeend", visitExtractionRowMarkup(rowData));
       const row = getVisitExtractionRows().at(-1);
       if (row) updateVisitExtractionRowYield(row);
     }
@@ -5437,15 +5507,24 @@
       source.forEach((extraction) => addVisitExtractionRow(extraction));
     }
 
-    function selectedVisitExtractions() {
-      return getVisitExtractionRows().map((row) => normalizedVisitExtraction({
-        blend: row.querySelector("[data-visit-extraction-blend]")?.value || "",
+    function selectedVisitExtractionFromRow(row) {
+      const select = row.querySelector("[data-visit-roast-entry]");
+      const selectedOption = select?.selectedOptions?.[0];
+      return normalizedVisitExtraction({
+        roastEntryId: select?.value && select.value !== "__current__" ? select.value : "",
+        roastDate: row.querySelector("[data-visit-roast-date]")?.value || "",
+        blend: selectedOption?.dataset.blend || "",
+        batch: selectedOption?.dataset.batch || "",
         dose: row.querySelector("[data-visit-dose]")?.value || "",
         yield: row.querySelector("[data-visit-yield]")?.value || "",
         time: row.querySelector("[data-visit-time]")?.value || "",
         tds: row.querySelector("[data-visit-tds]")?.value || "",
         extractionYield: row.querySelector("[data-visit-extraction-yield]")?.value || ""
-      })).filter(visitExtractionHasValue);
+      });
+    }
+
+    function selectedVisitExtractions() {
+      return getVisitExtractionRows().map(selectedVisitExtractionFromRow).filter(visitExtractionHasValue);
     }
 
     function getSingleOriginLineupRows() {
@@ -5744,7 +5823,9 @@
       const visitData = normalizedVisitData(entry);
       const user = approvedSessionUser();
       const extractionTexts = visitData.extractions.map((extraction) => [
+        extraction.roastDate || "",
         extraction.blend || visitData.coffee || "",
+        extraction.batch || "",
         extraction.dose ? `도징 ${extraction.dose}` : "",
         extraction.yield ? `추출량 ${extraction.yield}` : "",
         extraction.time ? `시간 ${extraction.time}` : "",
@@ -7185,7 +7266,7 @@
       if (!canManageVisitLogs(user)) return;
       const extractions = selectedVisitExtractions();
       const firstExtraction = extractions[0] || {};
-      const extractionBlends = extractions.map((extraction) => extraction.blend).filter(Boolean).join(", ");
+      const extractionBlends = extractions.map((extraction) => [extraction.blend, extraction.batch].filter(Boolean).join(" ")).filter(Boolean).join(", ");
       const visitData = {
         customer: normalizeText(visitFields.customer.value),
         store: normalizeText(visitFields.store.value),
@@ -8020,6 +8101,14 @@
     });
 
     visitFields.extractionList.addEventListener("change", (event) => {
+      if (event.target.matches("[data-visit-roast-date]")) {
+        const row = event.target.closest("[data-visit-extraction-row]");
+        const select = row?.querySelector("[data-visit-roast-entry]");
+        if (select) {
+          select.innerHTML = visitRoastingBatchOptionMarkup({ roastDate: event.target.value });
+        }
+        return;
+      }
       if (!event.target.matches("[data-visit-dose], [data-visit-yield], [data-visit-tds]")) return;
       const row = event.target.closest("[data-visit-extraction-row]");
       if (row) updateVisitExtractionRowYield(row);
