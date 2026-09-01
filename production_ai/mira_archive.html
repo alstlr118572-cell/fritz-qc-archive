@@ -4461,6 +4461,22 @@
       return today().slice(0, 7);
     }
 
+    function latestEntryMonthKey() {
+      const datedEntries = entries
+        .map((entry) => entryDisplayDate(entry).slice(0, 7))
+        .filter((value) => /^\d{4}-\d{2}$/.test(value))
+        .sort()
+        .reverse();
+      return datedEntries[0] || currentMonthKey();
+    }
+
+    function dashboardMonthKey() {
+      const monthKey = currentMonthKey();
+      return entries.some((entry) => isEntryInMonth(entry, monthKey))
+        ? monthKey
+        : latestEntryMonthKey();
+    }
+
     function monthLabel(monthKey) {
       const [year, month] = String(monthKey || currentMonthKey()).split("-");
       return `${year}년 ${Number(month)}월`;
@@ -6790,7 +6806,8 @@
     }
 
     function renderBlendSheetTabs() {
-      const sheetEntries = activeAppView === "search" ? sortEntriesByDate(entries.filter(matchesFilters)) : sortEntriesByDate(entries.filter((entry) => isEntryInMonth(entry)));
+      const monthKey = dashboardMonthKey();
+      const sheetEntries = activeAppView === "search" ? sortEntriesByDate(entries.filter(matchesFilters)) : sortEntriesByDate(entries.filter((entry) => isEntryInMonth(entry, monthKey)));
       blendSheetTabs.innerHTML = allEntryBlends().map((blend) => {
         const count = sheetEntries.filter((entry) => entry.blend === blend).length;
         return `<button type="button" class="${activeBlendSheet === blend ? "active" : ""}" data-sheet-blend="${escapeHtml(blend)}">${escapeHtml(blend)} (${count})</button>`;
@@ -6798,7 +6815,8 @@
     }
 
     function renderBlendSheet() {
-      const source = activeAppView === "search" ? entries.filter(matchesFilters) : entries.filter((entry) => isEntryInMonth(entry));
+      const monthKey = dashboardMonthKey();
+      const source = activeAppView === "search" ? entries.filter(matchesFilters) : entries.filter((entry) => isEntryInMonth(entry, monthKey));
       const blendRows = sortEntriesByDate(source).filter((entry) => entry.blend === activeBlendSheet);
       const roastingRows = blendRows.filter((entry) => entry.entryType === "roasting");
       const attachedCuppingIds = new Set();
@@ -7083,11 +7101,14 @@
 
     function render() {
       entries = unifiedOperationalEntries(entries);
-      const monthKey = currentMonthKey();
+      const currentKey = currentMonthKey();
+      const monthKey = dashboardMonthKey();
       const monthEntries = entries.filter((entry) => isEntryInMonth(entry, monthKey));
       const visible = activeAppView === "search" ? entries.filter(matchesFilters) : monthEntries;
       const visibleCupping = visible.filter(isCuppingEntry);
-      monthDashboardHint.textContent = `${monthLabel(monthKey)} 데이터만 표시합니다. 이전 달 기록은 검색에서 확인합니다.`;
+      monthDashboardHint.textContent = monthKey === currentKey
+        ? `${monthLabel(monthKey)} 데이터만 표시합니다. 이전 달 기록은 검색에서 확인합니다.`
+        : `${monthLabel(currentKey)} 데이터가 없어 최신 데이터 월인 ${monthLabel(monthKey)} 기록을 표시합니다.`;
       renderSearchCalendar();
       renderRatioCalendar();
       renderRoastingCalendar();
