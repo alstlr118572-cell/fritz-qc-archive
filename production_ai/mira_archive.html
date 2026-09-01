@@ -3,7 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1f6f78">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="프릳츠 QC">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>프릳츠 QC 아카이브</title>
+  <link rel="manifest" href="/production_ai/mira_archive_manifest.json">
+  <link rel="icon" href="/production_ai/mira_archive_icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/production_ai/mira_archive_icon_192.png">
   <style>
     :root {
       --bg: #f5f2ec;
@@ -8514,6 +8521,12 @@
     renderSavedId();
     render();
     renderAuth();
+
+    if ("serviceWorker" in navigator && location.protocol !== "file:") {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/production_ai/mira_archive_sw.js", { scope: "/production_ai/" }).catch(() => {});
+      });
+    }
   </script>
 </body>
 </html>

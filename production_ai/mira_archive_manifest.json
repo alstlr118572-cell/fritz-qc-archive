@@ -1,0 +1,45 @@
+{
+  "name": "프릳츠 QC 아카이브",
+  "short_name": "프릳츠 QC",
+  "description": "프릳츠 로스팅 QC, 커핑, 추출 평가, 거래처 방문 기록을 관리하는 아카이브",
+  "lang": "ko-KR",
+  "start_url": "/production_ai/mira_archive.html",
+  "scope": "/production_ai/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f5f2ec",
+  "theme_color": "#1f6f78",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/production_ai/mira_archive_icon_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/production_ai/mira_archive_icon_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/production_ai/mira_archive_icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "QC 현황판",
+      "short_name": "현황판",
+      "url": "/production_ai/mira_archive.html"
+    },
+    {
+      "name": "검색",
+      "short_name": "검색",
+      "url": "/production_ai/mira_archive.html"
+    }
+  ]
+}
