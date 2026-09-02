@@ -1503,15 +1503,18 @@
       }
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1180px) {
+      html,
       body {
         background: var(--bg);
         overflow-x: hidden;
+        max-width: 100%;
       }
 
       .shell {
         width: 100%;
-        padding: 10px 10px 28px;
+        max-width: 100%;
+        padding: 8px 10px 28px;
         overflow-x: hidden;
       }
 
@@ -1526,7 +1529,7 @@
         top: 0;
         z-index: 20;
         justify-content: stretch;
-        margin: -10px -10px 8px;
+        margin: -8px -10px 8px;
         padding: 8px 10px;
         background: rgba(15, 17, 23, 0.92);
         backdrop-filter: blur(10px);
@@ -1550,12 +1553,12 @@
       }
 
       h1 {
-        font-size: 28px;
+        font-size: 24px;
         line-height: 1.08;
       }
 
       .app-shell-title h1 {
-        font-size: 24px;
+        font-size: 22px;
       }
 
       button,
@@ -1604,8 +1607,8 @@
         z-index: 45;
         display: grid;
         align-content: start;
-        width: min(82vw, 320px);
-        max-width: calc(100vw - 34px);
+        width: min(78vw, 300px);
+        max-width: calc(100vw - 42px);
         height: 100svh;
         margin: 0;
         padding: 18px 12px;
@@ -1620,8 +1623,9 @@
 
       .app-nav button {
         width: 100%;
-        min-height: 42px;
+        min-height: 40px;
         padding: 0 13px;
+        font-size: 14px;
         white-space: nowrap;
       }
 
@@ -1639,12 +1643,13 @@
         align-items: center;
         gap: 8px;
         width: fit-content;
-        min-height: 38px;
+        min-height: 34px;
         margin-bottom: 2px;
-        padding: 0 12px;
+        padding: 0 10px;
         border-color: rgba(100, 210, 255, 0.32);
         background: rgba(28, 31, 40, 0.94);
         color: var(--ink);
+        font-size: 14px;
         box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24);
       }
 
@@ -1682,6 +1687,20 @@
       .main,
       #adminShell {
         grid-column: 1;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .panel,
+      .app-panel,
+      .dashboard-recent-box,
+      .record-item,
+      .comment-item,
+      .notice-item,
+      .calendar-panel,
+      .cupping-panel {
+        max-width: 100%;
       }
 
       .panel {
@@ -1699,6 +1718,7 @@
       }
 
       .dashboard-recent-box {
+        min-height: auto;
         padding: 10px;
       }
 
@@ -1712,7 +1732,7 @@
       }
 
       .blend-card h2 {
-        font-size: 17px;
+        font-size: 16px;
       }
 
       .mini-stat {
@@ -1739,6 +1759,11 @@
       .calendar-head h3 {
         margin: 0;
         font-size: 18px;
+      }
+
+      h3 {
+        font-size: 20px;
+        line-height: 1.25;
       }
 
       .calendar-actions {
@@ -1795,6 +1820,14 @@
         gap: 5px;
       }
 
+      .userbar strong {
+        font-size: 10px;
+      }
+
+      .userbar span {
+        font-size: 9px;
+      }
+
       .userbar > div:first-child {
         flex: 1 1 120px;
         text-align: left;
@@ -1809,9 +1842,9 @@
       #passwordPanelButton,
       #logoutButton {
         width: auto;
-        min-height: 30px;
-        padding: 0 7px;
-        font-size: 11px;
+        min-height: 28px;
+        padding: 0 6px;
+        font-size: 10px;
       }
 
       .password-panel {
@@ -2047,11 +2080,11 @@
       }
 
       h1 {
-        font-size: 25px;
+        font-size: 22px;
       }
 
       .app-shell-title h1 {
-        font-size: 22px;
+        font-size: 20px;
       }
     }
   </style>
