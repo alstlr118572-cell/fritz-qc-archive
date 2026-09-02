@@ -213,6 +213,11 @@
       color: var(--teal);
     }
 
+    .mobile-menu-toggle,
+    .mobile-menu-backdrop {
+      display: none;
+    }
+
     .side,
     .main,
     #adminShell {
@@ -1498,14 +1503,16 @@
       }
     }
 
-    @media (max-width: 760px) {
+    @media (max-width: 900px) {
       body {
         background: var(--bg);
+        overflow-x: hidden;
       }
 
       .shell {
         width: 100%;
         padding: 10px 10px 28px;
+        overflow-x: hidden;
       }
 
       .shell.auth-mode {
@@ -1590,29 +1597,79 @@
       }
 
       .app-nav {
-        position: static;
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 6px;
-        grid-column: 1;
-        grid-row: auto;
-        margin: 0 -10px 8px;
-        padding: 8px 10px;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scroll-snap-type: x proximity;
-        border-top: 1px solid var(--line-soft);
-        border-bottom: 1px solid var(--line-soft);
-        background: rgba(28, 31, 40, 0.84);
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 45;
+        display: grid;
+        align-content: start;
+        width: min(82vw, 320px);
+        max-width: calc(100vw - 34px);
+        height: 100svh;
+        margin: 0;
+        padding: 18px 12px;
+        overflow-y: auto;
+        transform: translateX(-105%);
+        transition: transform 180ms ease;
+        border: 1px solid var(--line);
+        border-radius: 0 10px 10px 0;
+        background: rgba(28, 31, 40, 0.98);
+        box-shadow: 18px 0 42px rgba(0, 0, 0, 0.42);
       }
 
       .app-nav button {
-        flex: 0 0 auto;
-        width: auto;
-        min-height: 38px;
+        width: 100%;
+        min-height: 42px;
         padding: 0 13px;
         white-space: nowrap;
-        scroll-snap-align: start;
+      }
+
+      .layout.menu-open .app-nav {
+        transform: translateX(0);
+      }
+
+      .mobile-menu-toggle {
+        position: sticky;
+        top: 60px;
+        z-index: 35;
+        display: inline-flex;
+        grid-column: 1;
+        justify-self: start;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        min-height: 38px;
+        margin-bottom: 2px;
+        padding: 0 12px;
+        border-color: rgba(100, 210, 255, 0.32);
+        background: rgba(28, 31, 40, 0.94);
+        color: var(--ink);
+        box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24);
+      }
+
+      .mobile-menu-toggle::before {
+        content: "";
+        width: 14px;
+        height: 10px;
+        border-top: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        box-shadow: 0 4px 0 currentColor;
+      }
+
+      .mobile-menu-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: rgba(0, 0, 0, 0.48);
+      }
+
+      .layout.menu-open .mobile-menu-backdrop {
+        display: block;
       }
 
       .layout {
@@ -1802,7 +1859,7 @@
       }
 
       .sheet-table {
-        min-width: 1180px;
+        min-width: 980px;
         font-size: 11px;
       }
 
@@ -1958,8 +2015,7 @@
       }
 
       .top-utility,
-      .app-shell-title,
-      .app-nav {
+      .app-shell-title {
         margin-right: -8px;
         margin-left: -8px;
         padding-right: 8px;
@@ -2106,7 +2162,9 @@
     </section>
 
     <div class="layout" id="appShell">
-      <nav class="panel app-nav" aria-label="QC 페이지">
+      <button class="mobile-menu-toggle" type="button" id="mobileMenuToggle" aria-controls="appNav" aria-expanded="false">메뉴</button>
+      <button class="mobile-menu-backdrop" type="button" id="mobileMenuBackdrop" aria-label="메뉴 닫기"></button>
+      <nav class="panel app-nav" id="appNav" aria-label="QC 페이지">
         <button type="button" class="active" data-app-view="dashboard">QC 종합 현황판</button>
         <button type="button" data-app-view="search">검색</button>
         <button type="button" data-app-view="comments">커핑 코멘트</button>
@@ -3371,6 +3429,8 @@
     const masthead = document.querySelector("#masthead");
     const authShell = document.querySelector("#authShell");
     const appShell = document.querySelector("#appShell");
+    const mobileMenuToggle = document.querySelector("#mobileMenuToggle");
+    const mobileMenuBackdrop = document.querySelector("#mobileMenuBackdrop");
     const qcInputPanel = document.querySelector("#qcInputPanel");
     const adminShell = document.querySelector("#adminShell");
     const userbar = document.querySelector("#userbar");
@@ -4130,6 +4190,7 @@
     function setAppView(name) {
       const user = approvedSessionUser();
       const target = canOpenAppView(name, user) ? name : "dashboard";
+      setMobileMenu(false);
       activeAppView = target;
       appViewButtons.forEach((button) => {
         button.classList.toggle("active", button.dataset.appView === target);
@@ -4148,6 +4209,11 @@
     function setAuthTab(name) {
       authTabs.forEach((button) => button.classList.toggle("active", button.dataset.authTab === name));
       Object.entries(authViews).forEach(([key, view]) => view.classList.toggle("active", key === name));
+    }
+
+    function setMobileMenu(open) {
+      appShell.classList.toggle("menu-open", open);
+      mobileMenuToggle.setAttribute("aria-expanded", open ? "true" : "false");
     }
 
     function renderAuth() {
@@ -4187,6 +4253,7 @@
       const user = approvedSessionUser();
       const canAdmin = isPrimaryAdmin(user);
       const target = pageName === "admin" && canAdmin ? "admin" : "qc";
+      setMobileMenu(false);
       appShell.style.display = target === "qc" ? "grid" : "none";
       adminShell.style.display = target === "admin" ? "grid" : "none";
       applyQcPermission(user);
@@ -7689,6 +7756,16 @@
 
     appViewButtons.forEach((button) => {
       button.addEventListener("click", () => setAppView(button.dataset.appView));
+    });
+
+    mobileMenuToggle.addEventListener("click", () => {
+      setMobileMenu(!appShell.classList.contains("menu-open"));
+    });
+
+    mobileMenuBackdrop.addEventListener("click", () => setMobileMenu(false));
+
+    window.addEventListener("resize", () => {
+      if (window.innerWidth > 900) setMobileMenu(false);
     });
 
     blendSheetTabs.addEventListener("click", (event) => {
