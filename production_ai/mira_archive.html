@@ -2596,7 +2596,7 @@
         <button type="button" data-app-view="green" id="greenPageButton">생두 관리</button>
         <button type="button" data-app-view="ratios">생두 비율 이력</button>
         <button type="button" data-app-view="single-origin">싱글오리진 스케줄</button>
-        <button type="button" data-app-view="product-qc">제품 QC</button>
+        <button type="button" data-app-view="product-qc" id="productQcPageButton">제품 QC</button>
         <button type="button" data-app-view="roasting" id="roastingPageButton">로스팅 입력</button>
         <button type="button" data-app-view="cupping" id="cuppingPageButton">커핑 입력</button>
         <button type="button" data-app-view="espresso" id="espressoPageButton">추출 평가</button>
@@ -3887,6 +3887,7 @@
     const espressoPageButton = document.querySelector("#espressoPageButton");
     const visitPageButton = document.querySelector("#visitPageButton");
     const nonShipPageButton = document.querySelector("#nonShipPageButton");
+    const productQcPageButton = document.querySelector("#productQcPageButton");
     const authTabs = document.querySelectorAll("[data-auth-tab]");
     const authViews = {
       login: document.querySelector("#loginView"),
@@ -4488,7 +4489,8 @@
       ["correction", "로스팅 프로파일 변경내용"],
       ["green", "생두 관리"],
       ["espresso", "추출 평가"],
-      ["visit", "거래처 방문일지"]
+      ["visit", "거래처 방문일지"],
+      ["product_qc", "제품 QC"]
     ];
 
     function rolePermissions(role) {
@@ -4613,6 +4615,10 @@
       return hasAnyOperationalPermission(user);
     }
 
+    function canManageProductQc(user) {
+      return hasPermission(user, "product_qc");
+    }
+
     function canManageData(user) {
       return isPrimaryAdmin(user);
     }
@@ -4639,6 +4645,7 @@
       if (name === "espresso") return canInputEspresso(user);
       if (name === "visit") return canManageVisitLogs(user);
       if (name === "nonship") return canManageNonShipResults(user);
+      if (name === "product-qc") return canManageProductQc(user);
       return true;
     }
 
@@ -4657,6 +4664,7 @@
       espressoPageButton.hidden = !canInputEspresso(user);
       visitPageButton.hidden = !canManageVisitLogs(user);
       nonShipPageButton.hidden = !canManageNonShipResults(user);
+      productQcPageButton.hidden = !canManageProductQc(user);
       resetButton.hidden = !canManageData(user);
       appShell.classList.add("viewer-mode");
     }
@@ -4822,7 +4830,7 @@
 
     function renderProductQc() {
       const user = approvedSessionUser();
-      const editable = canManageData(user);
+      const editable = canManageProductQc(user);
       productSubcategoryForm.hidden = !editable;
       productFields.category.innerHTML = Object.keys(productCatalog)
         .map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
@@ -8554,7 +8562,7 @@
 
     productSubcategoryForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      if (!canManageData(approvedSessionUser())) return;
+      if (!canManageProductQc(approvedSessionUser())) return;
       const category = productFields.category.value;
       const subcategory = normalizeText(productFields.subcategory.value);
       if (!category || !subcategory) return;
@@ -8573,7 +8581,7 @@
 
     productQcGrid.addEventListener("click", (event) => {
       const button = event.target.closest("[data-delete-product-subcategory]");
-      if (!button || !canManageData(approvedSessionUser())) return;
+      if (!button || !canManageProductQc(approvedSessionUser())) return;
       const category = button.dataset.productCategory;
       const subcategory = button.dataset.deleteProductSubcategory;
       const nextCatalog = cloneCatalog(productCatalog);
