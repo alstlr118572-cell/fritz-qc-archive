@@ -925,7 +925,7 @@
     }
 
     .green-bean-form {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .green-bean-form .green-row-break {
@@ -3004,7 +3004,7 @@
           <div class="section-title">
             <div>
               <h3>생두 관리</h3>
-              <p class="hint">입고 생두의 기본 정보와 수분율, 밀도, 입고일을 관리합니다.</p>
+              <p class="hint">입고 생두의 기본 정보와 원화 단가를 관리합니다. 여러 생두는 일괄 입력으로 빠르게 저장할 수 있습니다.</p>
             </div>
           </div>
           <form class="notice-form green-bean-form" id="greenBeanForm">
@@ -3032,7 +3032,6 @@
               <label for="greenBeanAmountInput">입고량</label>
               <input id="greenBeanAmountInput" placeholder="예: 60kg x 10bag">
             </div>
-            <div class="green-row-break" aria-hidden="true"></div>
             <div class="field">
               <label for="greenBeanMoistureInput">수분율</label>
               <input id="greenBeanMoistureInput" inputmode="decimal" placeholder="예: 10.8%">
@@ -3041,27 +3040,6 @@
               <label for="greenBeanDensityInput">밀도</label>
               <input id="greenBeanDensityInput" inputmode="decimal" placeholder="예: 780 g/L">
             </div>
-            <div class="green-row-break" aria-hidden="true"></div>
-            <div class="field">
-              <label for="greenBeanContractDateInput">결제일</label>
-              <input id="greenBeanContractDateInput" type="date">
-            </div>
-            <div class="field">
-              <label for="greenBeanUsdPerLbInput">파운드당 $</label>
-              <input id="greenBeanUsdPerLbInput" inputmode="decimal">
-            </div>
-            <div class="field">
-              <label for="greenBeanUsdPerKgInput">kg당 $</label>
-              <input id="greenBeanUsdPerKgInput" inputmode="decimal">
-            </div>
-            <div class="field">
-              <label for="greenBeanExchangeRateInput">결제일 달러 환율</label>
-              <input id="greenBeanExchangeRateInput" inputmode="decimal">
-            </div>
-            <div class="field">
-              <label for="greenBeanExchangeRateDateInput">환율 조회 기준일</label>
-              <input id="greenBeanExchangeRateDateInput" readonly>
-            </div>
             <div class="field">
               <label for="greenBeanKrwPerKgInput">kg당 ₩</label>
               <input id="greenBeanKrwPerKgInput" inputmode="decimal">
@@ -3069,6 +3047,10 @@
             <div class="field" style="grid-column: 1 / -1;">
               <label for="greenBeanNoteInput">메모</label>
               <textarea id="greenBeanNoteInput" placeholder="수분율 특이사항, 샘플 컵 노트, 보관 위치 등을 남깁니다."></textarea>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="greenBeanBulkInput">생두 일괄 입력</label>
+              <textarea id="greenBeanBulkInput" placeholder="한 줄에 생두 하나씩 입력합니다.&#10;국가 / 이름 / 품종 / 프로세스 / 입고일 / 입고량 / 수분율 / 밀도 / kg당 원화 / 메모&#10;예: Colombia / Huila El Diviso / Caturra / Washed / 2026-09-14 / 60kg / 10.8% / 780 / 14500 / 샘플 컵 단맛 좋음"></textarea>
             </div>
             <button class="primary" type="submit" id="greenBeanSubmitButton">생두 저장</button>
             <p id="greenBeanMessage"></p>
@@ -4019,13 +4001,9 @@
       density: document.querySelector("#greenBeanDensityInput"),
       variety: document.querySelector("#greenBeanVarietyInput"),
       amount: document.querySelector("#greenBeanAmountInput"),
-      contractDate: document.querySelector("#greenBeanContractDateInput"),
-      usdPerLb: document.querySelector("#greenBeanUsdPerLbInput"),
-      usdPerKg: document.querySelector("#greenBeanUsdPerKgInput"),
-      exchangeRate: document.querySelector("#greenBeanExchangeRateInput"),
-      exchangeRateDate: document.querySelector("#greenBeanExchangeRateDateInput"),
       krwPerKg: document.querySelector("#greenBeanKrwPerKgInput"),
       note: document.querySelector("#greenBeanNoteInput"),
+      bulk: document.querySelector("#greenBeanBulkInput"),
       message: document.querySelector("#greenBeanMessage")
     };
     const roastingFields = {
@@ -5252,69 +5230,6 @@
       return `${((yieldValue * tdsValue) / doseValue).toFixed(2)}%`;
     }
 
-    function calculateUsdPerKg(usdPerLb, usdPerKg) {
-      const kgValue = numericInputValue(usdPerKg);
-      if (kgValue) return kgValue;
-      const lbValue = numericInputValue(usdPerLb);
-      return lbValue ? lbValue * 2.2046226218 : 0;
-    }
-
-    function formatCurrencyNumber(value, digits = 2) {
-      const number = Number(value || 0);
-      if (!number) return "";
-      return number.toLocaleString("ko-KR", {
-        maximumFractionDigits: digits,
-        minimumFractionDigits: digits
-      });
-    }
-
-    function calculateGreenBeanKrwPerKg() {
-      const usdPerKgValue = calculateUsdPerKg(greenBeanFields.usdPerLb.value, greenBeanFields.usdPerKg.value);
-      const exchangeRate = numericInputValue(greenBeanFields.exchangeRate.value);
-      if (!usdPerKgValue || !exchangeRate) {
-        return greenBeanFields.krwPerKg.value;
-      }
-      const krwPerKg = usdPerKgValue * exchangeRate;
-      greenBeanFields.krwPerKg.value = formatCurrencyNumber(krwPerKg, 0);
-      if (!numericInputValue(greenBeanFields.usdPerKg.value)) {
-        greenBeanFields.usdPerKg.value = formatCurrencyNumber(usdPerKgValue, 2);
-      }
-      return greenBeanFields.krwPerKg.value;
-    }
-
-    function extractUsdKrwRate(payload) {
-      if (payload?.rates?.KRW) return { rate: Number(payload.rates.KRW), date: payload.date || "" };
-      const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.rates) ? payload.rates : Array.isArray(payload) ? payload : [];
-      const row = rows.find((item) => String(item.quote || item.target || "").toUpperCase() === "KRW") || rows[0];
-      return row?.rate ? { rate: Number(row.rate), date: row.date || payload?.date || "" } : { rate: 0, date: "" };
-    }
-
-    async function fetchUsdKrwRateForDate(dateValue) {
-      if (!dateValue) return null;
-      const url = `https://api.frankfurter.dev/v2/rates?base=USD&quotes=KRW&date=${encodeURIComponent(dateValue)}`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("환율 조회에 실패했습니다.");
-      const payload = await response.json();
-      const result = extractUsdKrwRate(payload);
-      if (!result.rate) throw new Error("USD/KRW 환율을 찾지 못했습니다.");
-      return result;
-    }
-
-    async function updateGreenBeanExchangeRate() {
-      const dateValue = greenBeanFields.contractDate.value;
-      if (!dateValue) return;
-      greenBeanFields.message.textContent = "결제일 달러 환율을 조회하고 있습니다.";
-      try {
-        const result = await fetchUsdKrwRateForDate(dateValue);
-        greenBeanFields.exchangeRate.value = formatCurrencyNumber(result.rate, 2);
-        greenBeanFields.exchangeRateDate.value = result.date || dateValue;
-        calculateGreenBeanKrwPerKg();
-        greenBeanFields.message.textContent = `USD/KRW 환율 ${greenBeanFields.exchangeRate.value}을 적용했습니다.`;
-      } catch (error) {
-        greenBeanFields.message.textContent = "환율 자동 조회에 실패했습니다. 결제일 달러 환율을 직접 입력하면 kg당 원화 단가가 계산됩니다.";
-      }
-    }
-
     function parseQuickCuppingComments(value) {
       const text = normalizeText(value);
       if (!text) return [];
@@ -5403,6 +5318,95 @@
       const match = slash || korean;
       if (!match) return "";
       return `${year}-${String(match[1]).padStart(2, "0")}-${String(match[2]).padStart(2, "0")}`;
+    }
+
+    function parseGreenBeanDate(value) {
+      const text = normalizeText(value);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+      const isoLike = text.match(/^(\d{4})[./](\d{1,2})[./](\d{1,2})$/);
+      if (isoLike) return `${isoLike[1]}-${String(isoLike[2]).padStart(2, "0")}-${String(isoLike[3]).padStart(2, "0")}`;
+      return parseKoreanDate(text) || "";
+    }
+
+    function splitGreenBeanBulkLine(line) {
+      const text = String(line || "").trim();
+      if (!text) return [];
+      if (text.includes("/")) return text.split(/\s*\/\s*/);
+      if (text.includes("\t")) return text.split(/\t+/);
+      if (text.includes(",")) return text.split(/\s*,\s*/);
+      return text.split(/\s{2,}/);
+    }
+
+    function createGreenBeanRecord(fields, user) {
+      return {
+        id: makeId(),
+        origin: normalizeText(fields.origin || ""),
+        name: normalizeText(fields.name || ""),
+        variety: normalizeText(fields.variety || ""),
+        process: normalizeText(fields.process || ""),
+        receivedDate: parseGreenBeanDate(fields.receivedDate) || today(),
+        amount: normalizeText(fields.amount || ""),
+        moisture: normalizeText(fields.moisture || ""),
+        density: normalizeText(fields.density || ""),
+        krwPerKg: normalizeText(fields.krwPerKg || ""),
+        note: normalizeText(fields.note || ""),
+        createdAt: today(),
+        createdBy: userDisplayName(user)
+      };
+    }
+
+    function parseGreenBeanBulkInput(value, user) {
+      return String(value || "")
+        .split(/\n+/)
+        .map((line) => splitGreenBeanBulkLine(line))
+        .filter((parts) => parts.length)
+        .map((parts) => createGreenBeanRecord({
+          origin: parts[0],
+          name: parts[1],
+          variety: parts[2],
+          process: parts[3],
+          receivedDate: parts[4],
+          amount: parts[5],
+          moisture: parts[6],
+          density: parts[7],
+          krwPerKg: parts[8],
+          note: parts.slice(9).join(" / ")
+        }, user))
+        .filter((bean) => bean.name && bean.process);
+    }
+
+    function greenBeanDedupeKey(bean) {
+      return [
+        parseGreenBeanDate(bean.receivedDate) || "",
+        normalizeText(bean.origin || "").toLowerCase(),
+        normalizeText(bean.name || "").toLowerCase(),
+        normalizeText(bean.process || "").toLowerCase()
+      ].join("|");
+    }
+
+    function upsertGreenBeans(collection, nextBeans) {
+      const result = [...collection];
+      let inserted = 0;
+      let updated = 0;
+      nextBeans.forEach((nextBean) => {
+        const key = greenBeanDedupeKey(nextBean);
+        const index = result.findIndex((bean) => greenBeanDedupeKey(bean) === key);
+        if (index === -1) {
+          result.unshift(nextBean);
+          inserted += 1;
+          return;
+        }
+        result[index] = {
+          ...result[index],
+          ...nextBean,
+          id: result[index].id || nextBean.id,
+          createdAt: result[index].createdAt || nextBean.createdAt,
+          createdBy: result[index].createdBy || nextBean.createdBy,
+          updatedAt: today()
+        };
+        updated += 1;
+      });
+      return { beans: result, inserted, updated };
     }
 
     function splitRoasterMarker(value) {
@@ -5686,13 +5690,9 @@
       greenBeanFields.density.value = bean.density || "";
       greenBeanFields.variety.value = bean.variety || "";
       greenBeanFields.amount.value = bean.amount || "";
-      greenBeanFields.contractDate.value = bean.contractDate || "";
-      greenBeanFields.usdPerLb.value = bean.usdPerLb || "";
-      greenBeanFields.usdPerKg.value = bean.usdPerKg || "";
-      greenBeanFields.exchangeRate.value = bean.exchangeRate || "";
-      greenBeanFields.exchangeRateDate.value = bean.exchangeRateDate || "";
       greenBeanFields.krwPerKg.value = bean.krwPerKg || "";
       greenBeanFields.note.value = bean.note || "";
+      greenBeanFields.bulk.value = "";
       greenBeanFields.message.textContent = "";
       greenBeanSubmitButton.textContent = "생두 수정";
       setAppView("green");
@@ -7410,8 +7410,6 @@
               <span class="tag amber">수분율 ${escapeHtml(bean.moisture || "-")}</span>
               <span class="tag amber">밀도 ${escapeHtml(bean.density || "-")}</span>
               <span class="tag green">kg당 ₩ ${escapeHtml(bean.krwPerKg || "-")}</span>
-              <span class="tag">결제일 ${escapeHtml(bean.contractDate || "-")}</span>
-              <span class="tag">환율 ${escapeHtml(bean.exchangeRate || "-")}</span>
               <span class="tag">등록 ${escapeHtml(bean.createdBy || "-")}</span>
             </div>
           </div>
@@ -7899,42 +7897,38 @@
       event.preventDefault();
       const user = approvedSessionUser();
       if (!canManageGreenBeans(user)) return;
-      const hasDollarPrice = numericInputValue(greenBeanFields.usdPerLb.value) || numericInputValue(greenBeanFields.usdPerKg.value);
-      if (greenBeanFields.contractDate.value && hasDollarPrice && !numericInputValue(greenBeanFields.exchangeRate.value)) {
-        await updateGreenBeanExchangeRate();
+      const bulkBeans = parseGreenBeanBulkInput(greenBeanFields.bulk.value, user);
+      if (bulkBeans.length) {
+        const result = upsertGreenBeans(greenBeans, bulkBeans);
+        greenBeans = result.beans;
+        greenBeanFields.message.textContent = `생두 ${result.inserted}건 저장, ${result.updated}건 갱신했습니다.`;
+      } else {
+        const bean = {
+          ...createGreenBeanRecord({
+            name: greenBeanFields.name.value,
+            origin: greenBeanFields.origin.value,
+            process: greenBeanFields.process.value,
+            receivedDate: greenBeanFields.receivedDate.value || today(),
+            moisture: greenBeanFields.moisture.value,
+            density: greenBeanFields.density.value,
+            variety: greenBeanFields.variety.value,
+            amount: greenBeanFields.amount.value,
+            krwPerKg: greenBeanFields.krwPerKg.value,
+            note: greenBeanFields.note.value
+          }, user),
+          id: editingGreenBeanId || makeId()
+        };
+        greenBeans = editingGreenBeanId
+          ? greenBeans.map((item) => item.id === editingGreenBeanId ? { ...item, ...bean, createdAt: item.createdAt || bean.createdAt, createdBy: item.createdBy || bean.createdBy, updatedAt: today() } : item)
+          : [bean, ...greenBeans];
+        greenBeanFields.message.textContent = "생두 정보를 저장했습니다.";
       }
-      calculateGreenBeanKrwPerKg();
-      const bean = {
-        id: editingGreenBeanId || makeId(),
-        name: normalizeText(greenBeanFields.name.value),
-        origin: normalizeText(greenBeanFields.origin.value),
-        process: normalizeText(greenBeanFields.process.value),
-        receivedDate: greenBeanFields.receivedDate.value || today(),
-        moisture: normalizeText(greenBeanFields.moisture.value),
-        density: normalizeText(greenBeanFields.density.value),
-        variety: normalizeText(greenBeanFields.variety.value),
-        amount: normalizeText(greenBeanFields.amount.value),
-        contractDate: greenBeanFields.contractDate.value || "",
-        usdPerLb: normalizeText(greenBeanFields.usdPerLb.value),
-        usdPerKg: normalizeText(greenBeanFields.usdPerKg.value),
-        exchangeRate: normalizeText(greenBeanFields.exchangeRate.value),
-        exchangeRateDate: normalizeText(greenBeanFields.exchangeRateDate.value),
-        krwPerKg: normalizeText(greenBeanFields.krwPerKg.value),
-        note: normalizeText(greenBeanFields.note.value),
-        createdAt: today(),
-        createdBy: userDisplayName(user)
-      };
-      greenBeans = editingGreenBeanId
-        ? greenBeans.map((item) => item.id === editingGreenBeanId ? { ...item, ...bean, createdAt: item.createdAt || bean.createdAt, updatedAt: today() } : item)
-        : [bean, ...greenBeans];
       writeGreenBeans(greenBeans);
       populateGreenBeanRatioControls();
       greenBeanForm.reset();
       resetEditingState("green");
       greenBeanFields.receivedDate.value = today();
-      greenBeanFields.exchangeRateDate.value = "";
       greenBeanFields.krwPerKg.value = "";
-      greenBeanFields.message.textContent = "생두 정보를 저장했습니다.";
       render();
     });
 
@@ -8957,12 +8951,6 @@
       if (!event.target.matches("[data-visit-dose], [data-visit-yield], [data-visit-tds]")) return;
       const row = event.target.closest("[data-visit-extraction-row]");
       if (row) updateVisitExtractionRowYield(row);
-    });
-
-    greenBeanFields.contractDate.addEventListener("change", updateGreenBeanExchangeRate);
-    [greenBeanFields.usdPerLb, greenBeanFields.usdPerKg, greenBeanFields.exchangeRate].forEach((input) => {
-      input.addEventListener("input", calculateGreenBeanKrwPerKg);
-      input.addEventListener("change", calculateGreenBeanKrwPerKg);
     });
 
     singleOriginFields.startDate.addEventListener("change", () => {
