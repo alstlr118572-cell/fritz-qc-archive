@@ -2553,7 +2553,7 @@
         <form id="quickCuppingForm">
           <div class="field">
             <label for="quickCuppingInput">코멘트 빠른 입력</label>
-            <textarea id="quickCuppingInput" placeholder="예: 검올 #1~2 비터강하다 잘 #3~6 바디약하다"></textarea>
+            <textarea id="quickCuppingInput" placeholder="예: 검올 #1~2 비터강하다 노잘 #3~6 바디약하다"></textarea>
           </div>
           <div class="button-row">
             <button class="primary" type="submit" id="quickCuppingSubmitButton" title="배치별 코멘트 일괄 저장">코멘트 일괄 저장</button>
@@ -4986,7 +4986,7 @@
       const blend = canonicalBlendName(entry.blend || "");
       const batch = normalizeBatchRange(entry.batch || "");
       if (type === "roasting") {
-        const roaster = normalizeText(entry.roastData?.roaster || entry.roaster || "");
+        const roaster = entryRoaster(entry);
         return [type, entry.roastDate || "", blend, batch, roaster].join("|");
       }
       if (type === "espresso") {
@@ -4997,8 +4997,19 @@
         return [type, entry.visitDate || "", normalizeText(visitData.store || ""), normalizeText(visitData.customer || "")].join("|");
       }
       if (type === "correction") return "";
+      const roaster = entryRoaster(entry);
       const evaluator = normalizeUserId(entry.createdBy || "") || normalizeText(entry.evaluatorName || entry.createdByName || "");
-      return ["cupping", entry.roastDate || "", blend, batch, evaluator].join("|");
+      return ["cupping", entry.roastDate || "", blend, batch, roaster, evaluator].join("|");
+    }
+
+    function entryRoaster(entry) {
+      return normalizeText(entry?.roastData?.roaster || entry?.roaster || "");
+    }
+
+    function roastersCompatible(left, right) {
+      const leftRoaster = entryRoaster(left);
+      const rightRoaster = entryRoaster(right);
+      return !leftRoaster || !rightRoaster || leftRoaster === rightRoaster;
     }
 
     function roastingBaseKey(entry) {
@@ -5024,14 +5035,7 @@
     function findExistingEntryIndex(candidate, collection = entries, ignoreId = "") {
       const key = entryDedupeKey(candidate);
       if (!key) return -1;
-      const exactIndex = collection.findIndex((entry) => entry.id !== ignoreId && entryDedupeKey(entry) === key);
-      if (exactIndex !== -1) return exactIndex;
-      if (candidate.entryType !== "roasting") return -1;
-      const baseKey = roastingBaseKey(candidate);
-      const baseMatches = collection
-        .map((entry, index) => ({ entry, index }))
-        .filter(({ entry }) => entry.id !== ignoreId && entry.entryType === "roasting" && roastingBaseKey(entry) === baseKey);
-      return baseMatches.length === 1 ? baseMatches[0].index : -1;
+      return collection.findIndex((entry) => entry.id !== ignoreId && entryDedupeKey(entry) === key);
     }
 
     function mergeOperationalEntry(existing, next) {
@@ -5101,6 +5105,7 @@
         const shouldSync = targets.some((cuppingEntry) => (
           cuppingEntry.blend === entry.blend
           && cuppingEntry.roastDate === entry.roastDate
+          && roastersCompatible(cuppingEntry, entry)
           && batchesOverlap(cuppingEntry.batch, entry.batch)
         ));
         if (!shouldSync) return entry;
@@ -5109,6 +5114,7 @@
             isRoastingVerdictSource(candidate)
             && candidate.blend === entry.blend
             && candidate.roastDate === entry.roastDate
+            && roastersCompatible(candidate, entry)
             && batchesOverlap(candidate.batch, entry.batch)
           ))
           .map((candidate) => normalizeVerdict(candidate.verdict));
@@ -5324,7 +5330,7 @@
           batch: normalizeBatchRange(batchText),
           note
         };
-      }).filter((item) => item.blend && item.batch && item.note);
+      }).filter((item) => item.blend && item.roaster && item.batch && item.note);
       const hasOrphanBatch = parsed.some((item) => /(^|\s)#?\d+\s*(?:~|-)\s*#?\d+/.test(item.note) || /(^|\s)#\d+\b/.test(item.note));
       if (hasOrphanBatch) return [];
       const orphanText = parsed.reduce((remaining, item) => remaining.replace(item.note, ""), text);
@@ -5922,6 +5928,7 @@
     function isRoastingBatchCompletedByEvaluator(roastingEntry, completedEntries = evaluatorCompletedCuppingEntries()) {
       return completedEntries.some((entry) => (
         entry.blend === roastingEntry.blend
+        && roastersCompatible(entry, roastingEntry)
         && batchesOverlap(entry.batch, roastingEntry.batch)
       ));
     }
@@ -5941,13 +5948,15 @@
     }
 
     function groupSelectedRoastingEntries(selectedEntries) {
-      const byBlend = selectedEntries.reduce((acc, entry) => {
-        const key = entry.blend || "미분류";
+      const byBlendAndRoaster = selectedEntries.reduce((acc, entry) => {
+        const roaster = entryRoaster(entry) || "로스터기 미지정";
+        const key = `${entry.blend || "미분류"}||${roaster}`;
         if (!acc[key]) acc[key] = [];
         acc[key].push(entry);
         return acc;
       }, {});
-      return Object.entries(byBlend).flatMap(([blend, blendEntries]) => {
+      return Object.entries(byBlendAndRoaster).flatMap(([groupKey, blendEntries]) => {
+        const [blend, groupRoaster] = groupKey.split("||");
         const sorted = [...blendEntries].sort((left, right) => batchStartNumber(left.batch) - batchStartNumber(right.batch));
         const numericEntries = sorted.filter((entry) => batchNumberRange(entry.batch));
         const nonNumericEntries = sorted.filter((entry) => !batchNumberRange(entry.batch));
@@ -5973,7 +5982,7 @@
             blend,
             roastDate: group[0]?.roastDate || selectedCuppingRoastDate(),
             batch: numbers.length ? batchRangeFromNumbers(numbers) : group.map((entry) => entry.batch).join(", "),
-            roaster: roasters.length === 1 ? roasters[0] : "",
+            roaster: roasters.length === 1 ? roasters[0] : groupRoaster === "로스터기 미지정" ? "" : groupRoaster,
             sourceIds: group.map((entry) => entry.id)
           };
         });
@@ -5986,6 +5995,7 @@
         candidate.entryType === "roasting"
         && candidate.blend === entry.blend
         && candidate.roastDate === entry.roastDate
+        && roastersCompatible(entry, candidate)
         && batchesOverlap(entry.batch, candidate.batch)
       ));
     }
@@ -5997,6 +6007,7 @@
         && candidate.entryType !== "correction"
         && candidate.blend === entry.blend
         && candidate.roastDate === entry.roastDate
+        && roastersCompatible(candidate, entry)
         && batchesOverlap(candidate.batch, entry.batch)
       ));
     }
@@ -7167,19 +7178,23 @@
         return;
       }
       const grouped = candidates.reduce((acc, entry) => {
-        const key = entry.blend || "미분류";
+        const roaster = entryRoaster(entry) || "로스터기 미지정";
+        const key = `${entry.blend || "미분류"}||${roaster}`;
         if (!acc[key]) acc[key] = [];
         acc[key].push(entry);
         return acc;
       }, {});
-      cuppingBatchFields.list.innerHTML = Object.entries(grouped).map(([blend, blendEntries]) => `
+      cuppingBatchFields.list.innerHTML = Object.entries(grouped).map(([groupKey, blendEntries]) => {
+        const [blend, roaster] = groupKey.split("||");
+        const groupLabel = roaster && roaster !== "로스터기 미지정" ? `${blend} · ${roaster}` : blend;
+        return `
         <section class="comment-blend-group">
           <div class="comment-blend-head">
             <div>
-              <h4>${escapeHtml(blend)}</h4>
+              <h4>${escapeHtml(groupLabel)}</h4>
               <p class="hint">${escapeHtml(roastDate)} 로스팅 배치 ${blendEntries.length}개</p>
             </div>
-            <button type="button" data-select-cupping-blend="${escapeHtml(blend)}">전체 선택</button>
+            <button type="button" data-select-cupping-group="${escapeHtml(groupKey)}">전체 선택</button>
           </div>
           <div class="issue-type-grid">
             ${blendEntries.map((entry) => {
@@ -7187,13 +7202,14 @@
               return `
                 <label>
                   <input type="checkbox" data-cupping-roast-entry="${escapeHtml(entry.id)}" ${selectedCuppingBatchIds.has(entry.id) ? "checked" : ""}>
-                  ${escapeHtml(entry.batch || "-")} ${escapeHtml(roastData.roaster || "")}
+                  ${escapeHtml(entry.batch || "-")} ${escapeHtml(roastData.roaster || roaster || "")}
                 </label>
               `;
             }).join("")}
           </div>
         </section>
-      `).join("");
+      `;
+      }).join("");
     }
 
     function renderDashboardRecent(monthEntries) {
@@ -7660,7 +7676,7 @@
       if (!canInputCupping(approvedSessionUser())) return;
       const parsed = parseQuickCuppingComments(quickCuppingFields.input.value);
       if (!parsed.length) {
-        quickCuppingFields.message.textContent = "블렌드 식별어가 필요합니다. 예: 검올 #1~2 비터강하다 잘 #3~6 바디약하다";
+        quickCuppingFields.message.textContent = "로스터기와 블렌드 식별어가 필요합니다. 예: 검올 #1~2 비터강하다 노잘 #3~6 바디약하다";
         return;
       }
       const newEntries = parsed.map((item) => cuppingEntryFromFields({
@@ -8559,11 +8575,14 @@
     });
 
     cuppingBatchFields.list.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-select-cupping-blend]");
+      const button = event.target.closest("[data-select-cupping-group]");
       if (!button) return;
-      const blend = button.dataset.selectCuppingBlend;
+      const [blend, roaster] = button.dataset.selectCuppingGroup.split("||");
       cuppingRoastingCandidates()
-        .filter((entry) => entry.blend === blend)
+        .filter((entry) => {
+          const entryGroupRoaster = entryRoaster(entry) || "로스터기 미지정";
+          return entry.blend === blend && entryGroupRoaster === roaster;
+        })
         .forEach((entry) => selectedCuppingBatchIds.add(entry.id));
       render();
     });
