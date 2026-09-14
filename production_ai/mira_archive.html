@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f1117">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="프릳츠 QC">
@@ -2085,6 +2085,342 @@
 
       .app-shell-title h1 {
         font-size: 20px;
+      }
+    }
+
+    @media (max-width: 1180px), (hover: none) and (pointer: coarse) {
+      html {
+        width: 100%;
+        overflow-x: hidden;
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        width: 100%;
+        min-width: 0;
+        overflow-x: hidden;
+        background: var(--bg);
+      }
+
+      .shell {
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        padding: calc(8px + env(safe-area-inset-top)) 10px calc(28px + env(safe-area-inset-bottom));
+        overflow-x: hidden;
+      }
+
+      .shell.auth-mode {
+        max-width: 460px;
+        min-height: 100svh;
+        align-content: center;
+      }
+
+      .top-utility {
+        position: sticky;
+        top: 0;
+        z-index: 35;
+        margin: calc(-8px - env(safe-area-inset-top)) -10px 8px;
+        padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+        background: rgba(15, 17, 23, 0.94);
+        border-bottom: 1px solid var(--line-soft);
+        backdrop-filter: blur(14px);
+      }
+
+      .userbar {
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 6px;
+        align-items: center;
+      }
+
+      .userbar > div:first-child {
+        min-width: 0;
+        text-align: left;
+      }
+
+      .userbar strong,
+      .userbar span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .page-switch {
+        grid-column: 2 / 4;
+        grid-row: 1;
+        justify-self: end;
+      }
+
+      #passwordPanelButton,
+      #logoutButton {
+        grid-row: 2;
+      }
+
+      #passwordPanelButton {
+        grid-column: 2;
+      }
+
+      #logoutButton {
+        grid-column: 3;
+      }
+
+      .page-switch button,
+      #passwordPanelButton,
+      #logoutButton {
+        min-height: 30px;
+        padding: 0 8px;
+        font-size: 11px;
+      }
+
+      .app-shell-title {
+        position: static;
+        margin: 0;
+        padding: 8px 0 10px;
+        border-bottom: 1px solid var(--line-soft);
+        background: transparent;
+      }
+
+      h1,
+      .app-shell-title h1 {
+        font-size: 22px;
+        line-height: 1.16;
+      }
+
+      h3 {
+        font-size: 19px;
+        line-height: 1.25;
+      }
+
+      .layout,
+      .layout.viewer-mode {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+        margin-top: 10px;
+      }
+
+      .mobile-menu-toggle {
+        position: sticky;
+        top: calc(8px + env(safe-area-inset-top));
+        z-index: 30;
+        display: inline-flex;
+        grid-column: 1;
+        justify-self: start;
+        align-items: center;
+        gap: 7px;
+        width: auto;
+        min-height: 34px;
+        padding: 0 10px;
+        border-color: rgba(100, 210, 255, 0.38);
+        background: rgba(28, 31, 40, 0.96);
+        color: var(--ink);
+        font-size: 14px;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+      }
+
+      .mobile-menu-toggle::before {
+        content: "";
+        width: 13px;
+        height: 9px;
+        border-top: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        box-shadow: 0 3.5px 0 currentColor;
+      }
+
+      .app-nav {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 45;
+        display: grid;
+        align-content: start;
+        width: min(82vw, 310px);
+        max-width: calc(100vw - 38px);
+        height: 100svh;
+        margin: 0;
+        padding: calc(16px + env(safe-area-inset-top)) 12px calc(18px + env(safe-area-inset-bottom));
+        overflow-y: auto;
+        transform: translateX(-105%);
+        transition: transform 180ms ease;
+        border: 1px solid var(--line);
+        border-radius: 0 10px 10px 0;
+        background: rgba(28, 31, 40, 0.99);
+        box-shadow: 18px 0 42px rgba(0, 0, 0, 0.45);
+      }
+
+      .layout.menu-open .app-nav {
+        transform: translateX(0);
+      }
+
+      .app-nav button {
+        width: 100%;
+        min-height: 42px;
+        padding: 0 12px;
+        font-size: 14px;
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      .mobile-menu-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        display: none;
+        min-height: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      .layout.menu-open .mobile-menu-backdrop {
+        display: block;
+      }
+
+      .side,
+      .main,
+      #adminShell,
+      .panel,
+      .app-panel,
+      .cupping-panel,
+      .calendar-panel,
+      .notice-panel,
+      .record-list,
+      .dashboard-recent-box,
+      .record-item,
+      .comment-item,
+      .notice-item,
+      .qc-card,
+      .blend-card {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .side,
+      .main,
+      #adminShell {
+        grid-column: 1;
+      }
+
+      .blend-grid,
+      .category-grid,
+      .blend-meta,
+      .dashboard-recent-grid,
+      .comment-compare-grid,
+      .comment-summary,
+      .toolbar,
+      .calendar-head,
+      .board,
+      .record-item,
+      .comment-item,
+      .notice-item,
+      .notice-form,
+      .green-bean-form,
+      .single-origin-form,
+      .single-origin-lineup,
+      .visit-extraction-row,
+      .roadmap,
+      .admin-grid,
+      .form-grid,
+      .side form,
+      .auth-tabs,
+      .qc-head {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .section-title,
+      .sheet-head,
+      .calendar-head,
+      .visit-extraction-head {
+        display: grid;
+        align-items: start;
+      }
+
+      .cupping-panel,
+      .calendar-panel,
+      .notice-panel,
+      .side,
+      .record-list,
+      .comment-list,
+      .roadmap,
+      .admin-grid {
+        padding: 10px;
+      }
+
+      .dashboard-recent-box,
+      .record-item,
+      .comment-item,
+      .notice-item,
+      .qc-card,
+      .blend-card {
+        padding: 10px;
+      }
+
+      .dashboard-recent-box {
+        min-height: auto;
+      }
+
+      .record-item,
+      .comment-item {
+        gap: 8px;
+      }
+
+      .calendar-grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 3px;
+      }
+
+      .calendar-day {
+        min-width: 0;
+        min-height: 54px;
+        padding: 5px;
+      }
+
+      .calendar-day strong {
+        font-size: 12px;
+      }
+
+      .calendar-day span,
+      .calendar-weekday {
+        font-size: 10px;
+      }
+
+      .calendar-day .calendar-mini {
+        display: none;
+      }
+
+      .sheet-panel,
+      .sheet-wrap {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      .sheet-table {
+        min-width: 880px;
+        font-size: 11px;
+      }
+
+      .entry-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 7px;
+        justify-items: stretch;
+      }
+
+      .entry-actions button {
+        width: 100%;
+      }
+
+      .tag {
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
     }
   </style>
