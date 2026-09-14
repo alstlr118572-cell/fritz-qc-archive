@@ -1066,6 +1066,58 @@
       background: rgba(255, 214, 10, 0.18);
     }
 
+    .product-qc-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .product-qc-card {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      min-height: 150px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-soft);
+    }
+
+    .product-qc-card h4 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    .product-qc-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .product-subcategory-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .product-subcategory-list .tag {
+      margin: 0;
+    }
+
+    .chip-delete {
+      width: auto;
+      min-height: 0;
+      margin-left: 6px;
+      padding: 0 2px;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font-size: 14px;
+      line-height: 1;
+    }
+
     .notice-list {
       display: grid;
       gap: 8px;
@@ -1490,6 +1542,7 @@
 
       .blend-grid,
       .category-grid,
+      .product-qc-grid,
       .toolbar,
       .notice-form,
       .green-bean-form {
@@ -1578,6 +1631,7 @@
 
       .blend-grid,
       .category-grid,
+      .product-qc-grid,
       .dashboard-recent-grid,
       .comment-compare-grid,
       .toolbar,
@@ -2310,6 +2364,7 @@
 
       .blend-grid,
       .category-grid,
+      .product-qc-grid,
       .blend-meta,
       .dashboard-recent-grid,
       .comment-compare-grid,
@@ -2541,6 +2596,7 @@
         <button type="button" data-app-view="green" id="greenPageButton">생두 관리</button>
         <button type="button" data-app-view="ratios">생두 비율 이력</button>
         <button type="button" data-app-view="single-origin">싱글오리진 스케줄</button>
+        <button type="button" data-app-view="product-qc">제품 QC</button>
         <button type="button" data-app-view="roasting" id="roastingPageButton">로스팅 입력</button>
         <button type="button" data-app-view="cupping" id="cuppingPageButton">커핑 입력</button>
         <button type="button" data-app-view="espresso" id="espressoPageButton">추출 평가</button>
@@ -3056,6 +3112,28 @@
             <p id="greenBeanMessage"></p>
           </form>
           <div class="panel record-list scrollable-record-list" id="greenBeanList"></div>
+        </section>
+
+        <section class="panel cupping-panel app-panel" data-app-panel="product-qc">
+          <div class="section-title">
+            <div>
+              <h3>제품 QC</h3>
+              <p class="hint">퀵커피, 캡슐커피, 드립백, 티백, 콜드브루 제품군을 분류합니다. 세부 QC 항목은 제품별 운영 방식에 맞춰 순차적으로 확장합니다.</p>
+            </div>
+          </div>
+          <form class="notice-form" id="productSubcategoryForm">
+            <div class="field">
+              <label for="productCategoryInput">대분류</label>
+              <select id="productCategoryInput"></select>
+            </div>
+            <div class="field">
+              <label for="productSubcategoryInput">소분류</label>
+              <input id="productSubcategoryInput" placeholder="예: 퀵커피 브라운">
+            </div>
+            <button class="primary" type="submit">소분류 추가</button>
+            <p id="productSubcategoryMessage"></p>
+          </form>
+          <div class="product-qc-grid" id="productQcGrid"></div>
         </section>
 
         <section class="panel cupping-panel app-panel" data-app-panel="cupping">
@@ -3586,6 +3664,7 @@
     const sessionKey = "mira_blend_qc_session_v1";
     const savedIdKey = "mira_blend_qc_saved_user_id_v1";
     const blendCatalogKey = "mira_blend_qc_catalog_v1";
+    const productCatalogKey = "mira_product_qc_catalog_v1";
     const adminKey = "MIRA-ADMIN";
     const primaryAdminUserId = "eomms0110";
     const primaryAdminPassword = "Fritz0110!";
@@ -3595,6 +3674,13 @@
       "OEM 블렌드": ["행복마루", "문지리", "너티트리니티", "아르켓", "위드센"],
       "특수성 블렌드": ["사는낙", "신커피", "영차영차 블렌드", "크리스마스 블렌드"],
       "싱글오리진": []
+    };
+    const defaultProductCategories = {
+      "퀵커피": [],
+      "캡슐커피": [],
+      "드립백": [],
+      "티백": [],
+      "콜드브루": []
     };
     const blendNameAliases = {
       "올드독강배전": "올드독 강배전",
@@ -3658,6 +3744,7 @@
     ];
     let blendCategories = readBlendCatalog();
     let blends = Object.values(blendCategories).flat();
+    let productCatalog = readProductCatalog();
     const seedEntries = [
       {
         id: "blend-qc-seed-001",
@@ -3776,6 +3863,8 @@
     const correctionSubmitButton = document.querySelector("#correctionSubmitButton");
     const greenBeanForm = document.querySelector("#greenBeanForm");
     const greenBeanSubmitButton = document.querySelector("#greenBeanSubmitButton");
+    const productSubcategoryForm = document.querySelector("#productSubcategoryForm");
+    const productQcGrid = document.querySelector("#productQcGrid");
     const shell = document.querySelector(".shell");
     const masthead = document.querySelector("#masthead");
     const authShell = document.querySelector("#authShell");
@@ -4005,6 +4094,11 @@
       note: document.querySelector("#greenBeanNoteInput"),
       bulk: document.querySelector("#greenBeanBulkInput"),
       message: document.querySelector("#greenBeanMessage")
+    };
+    const productFields = {
+      category: document.querySelector("#productCategoryInput"),
+      subcategory: document.querySelector("#productSubcategoryInput"),
+      message: document.querySelector("#productSubcategoryMessage")
     };
     const roastingFields = {
       blend: document.querySelector("#roastBlendInput"),
@@ -4267,6 +4361,18 @@
       }, {});
     }
 
+    function normalizeProductCatalog(value) {
+      const base = Object.fromEntries(Object.keys(defaultProductCategories).map((category) => [category, []]));
+      if (!value || typeof value !== "object" || Array.isArray(value)) return cloneCatalog(defaultProductCategories);
+      return Object.entries({ ...base, ...value }).reduce((catalog, [category, list]) => {
+        const cleanList = Array.isArray(list)
+          ? Array.from(new Set(list.map((item) => normalizeText(item)).filter(Boolean)))
+          : [];
+        catalog[category] = cleanList;
+        return catalog;
+      }, {});
+    }
+
     function readBlendCatalog() {
       const parsed = readStoreValue(blendCatalogKey);
       if (!parsed) {
@@ -4289,6 +4395,27 @@
       writeStoreValue(blendCatalogKey, blendCategories);
       const sheetBlends = allEntryBlends();
       if (!sheetBlends.includes(activeBlendSheet)) activeBlendSheet = sheetBlends[0] || "";
+    }
+
+    function readProductCatalog() {
+      const parsed = readStoreValue(productCatalogKey);
+      if (!parsed) {
+        const defaults = cloneCatalog(defaultProductCategories);
+        writeStoreValue(productCatalogKey, defaults);
+        return defaults;
+      }
+      try {
+        const catalog = normalizeProductCatalog(parsed);
+        if (JSON.stringify(catalog) !== JSON.stringify(parsed)) writeStoreValue(productCatalogKey, catalog);
+        return catalog;
+      } catch {
+        return cloneCatalog(defaultProductCategories);
+      }
+    }
+
+    function writeProductCatalog(value) {
+      productCatalog = normalizeProductCatalog(value);
+      writeStoreValue(productCatalogKey, productCatalog);
     }
 
     function enforcePrimaryAdmin() {
@@ -4689,6 +4816,35 @@
             <h3>${escapeHtml(category)}</h3>
             <div class="notice-list">${items}</div>
           </div>
+        `;
+      }).join("");
+    }
+
+    function renderProductQc() {
+      const user = approvedSessionUser();
+      const editable = canManageData(user);
+      productSubcategoryForm.hidden = !editable;
+      productFields.category.innerHTML = Object.keys(productCatalog)
+        .map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`)
+        .join("");
+      productQcGrid.innerHTML = Object.entries(productCatalog).map(([category, subcategories]) => {
+        const subcategoryMarkup = subcategories.length
+          ? subcategories.map((subcategory) => `
+            <span class="tag blue">
+              ${escapeHtml(subcategory)}
+              ${editable ? `<button class="chip-delete" type="button" data-delete-product-subcategory="${escapeHtml(subcategory)}" data-product-category="${escapeHtml(category)}" title="소분류 삭제">×</button>` : ""}
+            </span>
+          `).join("")
+          : `<span class="tag">소분류 준비중</span>`;
+        return `
+          <article class="product-qc-card">
+            <div class="qc-head">
+              <h4>${escapeHtml(category)}</h4>
+              <span class="tag">${subcategories.length}개</span>
+            </div>
+            <p>${subcategories.length ? "등록된 소분류를 기준으로 제품 QC 항목을 확장합니다." : "소분류와 QC 입력 항목은 다음 단계에서 추가합니다."}</p>
+            <div class="product-subcategory-list">${subcategoryMarkup}</div>
+          </article>
         `;
       }).join("");
     }
@@ -7607,6 +7763,7 @@
       renderBlendSheetTabs();
       renderBlendSheet();
       renderGreenBeans();
+      renderProductQc();
       renderSingleOriginCalendar();
       renderSingleOriginSchedules();
       renderNonShipCalendar();
@@ -8392,6 +8549,37 @@
       blendCatalogFields.message.textContent = `${blend} 제품을 카탈로그에서 삭제했습니다.`;
       populateProductControls();
       renderBlendCatalogAdmin();
+      render();
+    });
+
+    productSubcategoryForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!canManageData(approvedSessionUser())) return;
+      const category = productFields.category.value;
+      const subcategory = normalizeText(productFields.subcategory.value);
+      if (!category || !subcategory) return;
+      const nextCatalog = cloneCatalog(productCatalog);
+      const current = nextCatalog[category] || [];
+      if (current.includes(subcategory)) {
+        productFields.message.textContent = "이미 등록된 소분류입니다.";
+        return;
+      }
+      nextCatalog[category] = [...current, subcategory];
+      writeProductCatalog(nextCatalog);
+      productFields.subcategory.value = "";
+      productFields.message.textContent = `${subcategory} 소분류를 추가했습니다.`;
+      render();
+    });
+
+    productQcGrid.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-delete-product-subcategory]");
+      if (!button || !canManageData(approvedSessionUser())) return;
+      const category = button.dataset.productCategory;
+      const subcategory = button.dataset.deleteProductSubcategory;
+      const nextCatalog = cloneCatalog(productCatalog);
+      nextCatalog[category] = (nextCatalog[category] || []).filter((item) => item !== subcategory);
+      writeProductCatalog(nextCatalog);
+      productFields.message.textContent = `${subcategory} 소분류를 삭제했습니다.`;
       render();
     });
 
