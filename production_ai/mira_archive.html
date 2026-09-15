@@ -697,6 +697,18 @@
       accent-color: var(--teal);
     }
 
+    .cupping-batch-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .cupping-batch-grid label {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      min-height: 42px;
+      padding: 10px 12px;
+    }
+
     .cupping-flow-form {
       display: grid;
       gap: 14px;
@@ -7485,7 +7497,7 @@
             </div>
             <button type="button" data-select-cupping-group="${escapeHtml(groupKey)}">전체 선택</button>
           </div>
-          <div class="issue-type-grid">
+          <div class="issue-type-grid cupping-batch-grid">
             ${blendEntries.map((entry) => {
               const roastData = normalizedRoastData(entry);
               return `
