@@ -1510,6 +1510,13 @@
       font-size: 18px;
     }
 
+    .comment-blend-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
     .comment-compare-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -7495,7 +7502,10 @@
               <h4>${escapeHtml(groupLabel)}</h4>
               <p class="hint">${escapeHtml(roastDate)} 로스팅 배치 ${blendEntries.length}개</p>
             </div>
-            <button type="button" data-select-cupping-group="${escapeHtml(groupKey)}">전체 선택</button>
+            <div class="comment-blend-actions">
+              <button type="button" data-select-cupping-group="${escapeHtml(groupKey)}">전체 선택</button>
+              <button type="button" data-clear-cupping-group="${escapeHtml(groupKey)}">선택 해제</button>
+            </div>
           </div>
           <div class="issue-type-grid cupping-batch-grid">
             ${blendEntries.map((entry) => {
@@ -8902,15 +8912,19 @@
     });
 
     cuppingBatchFields.list.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-select-cupping-group]");
+      const button = event.target.closest("[data-select-cupping-group], [data-clear-cupping-group]");
       if (!button) return;
-      const [blend, roaster] = button.dataset.selectCuppingGroup.split("||");
+      const isClear = Boolean(button.dataset.clearCuppingGroup);
+      const [blend, roaster] = (button.dataset.selectCuppingGroup || button.dataset.clearCuppingGroup).split("||");
       cuppingRoastingCandidates()
         .filter((entry) => {
           const entryGroupRoaster = entryRoaster(entry) || "로스터기 미지정";
           return entry.blend === blend && entryGroupRoaster === roaster;
         })
-        .forEach((entry) => selectedCuppingBatchIds.add(entry.id));
+        .forEach((entry) => {
+          if (isClear) selectedCuppingBatchIds.delete(entry.id);
+          else selectedCuppingBatchIds.add(entry.id);
+        });
       render();
     });
 
