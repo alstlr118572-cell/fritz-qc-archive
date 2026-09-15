@@ -3790,7 +3790,6 @@
     const productCatalogKey = "mira_product_qc_catalog_v1";
     const adminKey = "MIRA-ADMIN";
     const primaryAdminUserId = "eomms0110";
-    const primaryAdminPassword = "Fritz0110!";
     const requiredSiteTitle = "프릳츠 QC 아카이브";
     const defaultBlendCategories = {
       "메인 블렌드": ["올드독", "올드독 강배전", "잘되어 가시나", "서울시네마", "디카페인"],
@@ -4356,6 +4355,23 @@
       }
     }
 
+    function authApi(method, path, payload = null) {
+      const request = new XMLHttpRequest();
+      request.open(method, path, false);
+      request.setRequestHeader("Content-Type", "application/json");
+      request.send(payload ? JSON.stringify(payload) : null);
+      let response = {};
+      try {
+        response = request.responseText ? JSON.parse(request.responseText) : {};
+      } catch {
+        response = {};
+      }
+      if (request.status < 200 || request.status >= 300) {
+        throw new Error(response.error || "서버 인증 요청에 실패했습니다.");
+      }
+      return response;
+    }
+
     function sharedStoreError(message) {
       const error = new Error(message);
       error.sharedStore = true;
@@ -4400,11 +4416,20 @@
     }
 
     function readUsers() {
+      if (canUseSharedStore()) {
+        const session = currentSession();
+        if (!session) return [];
+        const me = authApi("GET", "/api/auth/me");
+        if (!me.user) return [];
+        if (!isPrimaryAdmin(me.user)) return [me.user];
+        const response = authApi("GET", "/api/auth/users");
+        return Array.isArray(response.users) ? response.users : [me.user];
+      }
       const seedUsers = [
         {
           id: "admin-eomms0110",
           userId: primaryAdminUserId,
-          password: primaryAdminPassword,
+          password: adminKey,
           name: "엄민식",
           team: "관리자",
           status: "approved",
@@ -4447,7 +4472,7 @@
             ...user,
             userId: user.userId || (user.role === "admin" ? "admin" : ""),
             password: normalizeUserId(user.userId) === primaryAdminUserId
-              ? (!user.password || user.password === adminKey ? primaryAdminPassword : user.password)
+              ? user.password || adminKey
               : user.password || (user.role === "admin" ? adminKey : ""),
             role: normalizeRole(user.role)
           };
@@ -4466,6 +4491,11 @@
     }
 
     function writeUsers(value, options = {}) {
+      if (canUseSharedStore()) {
+        const response = authApi("PUT", "/api/auth/users", { users: value });
+        users = Array.isArray(response.users) ? response.users : users;
+        return;
+      }
       writeStoreValue(usersKey, value, { requireShared: canUseSharedStore(), ...options });
     }
 
@@ -4516,7 +4546,7 @@
       const parsed = readStoreValue(blendCatalogKey);
       if (!parsed) {
         const defaults = cloneCatalog(defaultBlendCategories);
-        writeStoreValue(blendCatalogKey, defaults);
+        if (!canUseSharedStore()) writeStoreValue(blendCatalogKey, defaults);
         return defaults;
       }
       try {
@@ -4540,7 +4570,7 @@
       const parsed = readStoreValue(productCatalogKey);
       if (!parsed) {
         const defaults = cloneCatalog(defaultProductCategories);
-        writeStoreValue(productCatalogKey, defaults);
+        if (!canUseSharedStore()) writeStoreValue(productCatalogKey, defaults);
         return defaults;
       }
       try {
@@ -8472,34 +8502,28 @@
       const userId = normalizeUserId(authFields.loginUserId.value);
       const password = authFields.loginPassword.value;
       try {
-        refreshUsers();
+        const response = authApi("POST", "/api/auth/login", { userId, password });
+        const user = response.user;
+        if (!user) throw new Error("로그인 응답이 올바르지 않습니다.");
+        users = [user];
+        localStorage.setItem(sessionKey, JSON.stringify({ userId: user.id, loginAt: today() }));
       } catch (error) {
-        authMessages.login.textContent = error.message || "공용 사용자 저장소 연결에 실패했습니다.";
-        return;
-      }
-      const user = users.find((item) => userMatches(item, userId));
-      if (!user) {
-        authMessages.login.textContent = "사용자 승인 요청을 먼저 남겨주세요.";
-        return;
-      }
-      if (user.status !== "approved") {
-        authMessages.login.textContent = user.status === "pending" ? "아직 관리자 승인 대기 중입니다." : "승인이 거절된 사용자입니다.";
-        return;
-      }
-      if (user.password !== password) {
-        authMessages.login.textContent = "비밀번호가 맞지 않습니다.";
+        authMessages.login.textContent = error.message || "로그인에 실패했습니다.";
         return;
       }
       if (authFields.rememberId.checked) {
-        localStorage.setItem(savedIdKey, user.userId);
+        localStorage.setItem(savedIdKey, userId);
       } else {
         localStorage.removeItem(savedIdKey);
       }
-      localStorage.setItem(sessionKey, JSON.stringify({ userId: user.id, loginAt: today() }));
       authMessages.login.textContent = "";
       authFields.loginPassword.value = "";
       renderSavedId();
-      renderAuth();
+      if (canUseSharedStore()) {
+        location.reload();
+      } else {
+        renderAuth();
+      }
     });
 
     authViews.signup.addEventListener("submit", (event) => {
@@ -8508,12 +8532,6 @@
       const password = authFields.signupPassword.value;
       const name = normalizeText(authFields.signupName.value);
       const team = normalizeText(authFields.signupTeam.value);
-      try {
-        refreshUsers();
-      } catch (error) {
-        authMessages.signup.textContent = error.message || "공용 사용자 저장소 연결에 실패했습니다.";
-        return;
-      }
       if (userId.length < 3) {
         authMessages.signup.textContent = "아이디는 3자 이상으로 입력하세요.";
         return;
@@ -8522,34 +8540,43 @@
         authMessages.signup.textContent = "비밀번호는 4자 이상으로 입력하세요.";
         return;
       }
-      const existing = users.find((item) => userMatches(item, userId));
-      if (existing) {
-        authMessages.signup.textContent = existing.status === "approved"
-          ? "이미 승인된 사용자입니다. 로그인 화면에서 로그인하세요."
-          : "이미 같은 아이디로 승인 대기 중입니다.";
-        return;
+      if (canUseSharedStore()) {
+        try {
+          authApi("POST", "/api/auth/signup", { userId, password, name, team });
+        } catch (error) {
+          authMessages.signup.textContent = error.message || "사용자 승인 요청 저장에 실패했습니다.";
+          return;
+        }
+      } else {
+        const existing = users.find((item) => userMatches(item, userId));
+        if (existing) {
+          authMessages.signup.textContent = existing.status === "approved"
+            ? "이미 승인된 사용자입니다. 로그인 화면에서 로그인하세요."
+            : "이미 같은 아이디로 승인 대기 중입니다.";
+          return;
+        }
+        const nextUsers = [
+          {
+            id: "user-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7),
+            userId,
+            password,
+            name,
+            team,
+            status: "pending",
+            role: "viewer",
+            permissions: [],
+            requestedAt: today()
+          },
+          ...users
+        ];
+        try {
+          writeUsers(nextUsers, { requireShared: true });
+        } catch (error) {
+          authMessages.signup.textContent = error.message || "사용자 승인 요청 저장에 실패했습니다.";
+          return;
+        }
+        users = nextUsers;
       }
-      const nextUsers = [
-        {
-          id: "user-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7),
-          userId,
-          password,
-          name,
-          team,
-          status: "pending",
-          role: "viewer",
-          permissions: [],
-          requestedAt: today()
-        },
-        ...users
-      ];
-      try {
-        writeUsers(nextUsers, { requireShared: true });
-      } catch (error) {
-        authMessages.signup.textContent = error.message || "사용자 승인 요청 저장에 실패했습니다.";
-        return;
-      }
-      users = nextUsers;
       authViews.signup.reset();
       authMessages.signup.textContent = "사용자 승인 요청이 저장되었습니다. 관리자 승인 후 로그인할 수 있습니다.";
       renderPendingUsers();
@@ -8739,6 +8766,13 @@
     });
 
     document.querySelector("#logoutButton").addEventListener("click", () => {
+      if (canUseSharedStore()) {
+        try {
+          authApi("POST", "/api/auth/logout", {});
+        } catch {
+          // Local session cleanup still happens below.
+        }
+      }
       localStorage.removeItem(sessionKey);
       renderAuth();
       renderSavedId();
@@ -8776,16 +8810,30 @@
         passwordFields.message.textContent = "로그인 상태를 다시 확인해주세요.";
         return;
       }
-      if (passwordFields.current.value !== user.password) {
-        passwordFields.message.textContent = "현재 비밀번호가 맞지 않습니다.";
-        return;
-      }
       if (passwordFields.next.value.length < 4) {
         passwordFields.message.textContent = "새 비밀번호는 4자 이상으로 입력하세요.";
         return;
       }
       if (passwordFields.next.value !== passwordFields.confirm.value) {
         passwordFields.message.textContent = "새 비밀번호 확인이 일치하지 않습니다.";
+        return;
+      }
+      if (canUseSharedStore()) {
+        try {
+          authApi("POST", "/api/auth/password", {
+            currentPassword: passwordFields.current.value,
+            nextPassword: passwordFields.next.value
+          });
+        } catch (error) {
+          passwordFields.message.textContent = error.message || "비밀번호 변경 저장에 실패했습니다.";
+          return;
+        }
+        passwordPanel.reset();
+        passwordFields.message.textContent = "비밀번호가 변경되었습니다.";
+        return;
+      }
+      if (passwordFields.current.value !== user.password) {
+        passwordFields.message.textContent = "현재 비밀번호가 맞지 않습니다.";
         return;
       }
       const nextUsers = users.map((item) => item.id === user.id ? { ...item, password: passwordFields.next.value } : item);
