@@ -4337,24 +4337,38 @@
       }
     }
 
+    function sharedStoreError(message) {
+      const error = new Error(message);
+      error.sharedStore = true;
+      return error;
+    }
+
     function writeStoreValue(key, value, options = {}) {
       if (canUseSharedStore()) {
+        let failureMessage = "공용 저장소 연결에 실패했습니다. 저장되지 않았으니 잠시 후 다시 시도해주세요.";
         try {
           const request = new XMLHttpRequest();
           request.open("PUT", `/api/store/${encodeURIComponent(key)}`, false);
           request.setRequestHeader("Content-Type", "application/json");
           request.send(JSON.stringify({ value }));
           if (request.status === 200) return true;
-        } catch {
-          // Non-critical archive data can still fall back to this browser.
+          failureMessage = `공용 저장소 저장에 실패했습니다. 서버 응답 ${request.status || "없음"}을 확인해주세요.`;
+        } catch (error) {
+          failureMessage = error?.message
+            ? `공용 저장소 연결에 실패했습니다. ${error.message}`
+            : failureMessage;
         }
-        if (options.requireShared) {
-          throw new Error("공용 저장소 연결에 실패했습니다. 잠시 후 다시 시도해주세요.");
-        }
+        throw sharedStoreError(failureMessage);
       }
       localStorage.setItem(key, JSON.stringify(value));
       return false;
     }
+
+    window.addEventListener("error", (event) => {
+      if (!event.error?.sharedStore) return;
+      alert(event.error.message);
+      event.preventDefault();
+    });
 
     function readLocalStoreValue(key) {
       const raw = localStorage.getItem(key);
