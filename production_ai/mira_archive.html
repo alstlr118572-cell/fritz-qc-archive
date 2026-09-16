@@ -3416,7 +3416,7 @@
             </div>
             <div class="field">
               <label for="roastingBulkInput">로스팅 데이터 원문</label>
-              <textarea id="roastingBulkInput" placeholder="8/3 검댕이 110pa 53hz 홍길동&#10;올1 236/62/174.5/14:55/50/54.8&#10;올2(강) 236/55/174/14:12/45.6/55.9&#10;노올3 236/55/174/14:12/45.6/55.9"></textarea>
+              <textarea id="roastingBulkInput" placeholder="8/3 검댕이 110pa 53hz 홍길동&#10;올1 236/62/174.5/14:55/50/54.8&#10;올2(강) 236/55/174/14:12/45.6/55.9&#10;105pa 56hz&#10;올3 236/55/174/13:55/47/54.1&#10;노랭이 108pa 54hz 김민석&#10;노올4 236/52/174/14:05/45.6/53.7"></textarea>
             </div>
             <button class="primary" type="submit">일괄 저장</button>
             <p id="roastingBulkMessage"></p>
@@ -5658,6 +5658,54 @@
       return `${year}-${String(match[1]).padStart(2, "0")}-${String(match[2]).padStart(2, "0")}`;
     }
 
+    function normalizeRoasterName(value) {
+      const text = normalizeText(value);
+      const compact = text.replace(/\s+/g, "");
+      if (/검댕|검정|검은|검/.test(compact)) return "검댕이";
+      if (/노랭|노랑|노란|노/.test(compact)) return "노랭이";
+      return text;
+    }
+
+    function normalizeRoastPressure(value) {
+      const match = String(value || "").match(/(\d+(?:\.\d+)?)\s*(?:pa|파스칼)/i);
+      return match ? `${match[1]}pa` : "";
+    }
+
+    function normalizeRoastDrumSpeed(value) {
+      const match = String(value || "").match(/(\d+(?:\.\d+)?)\s*(?:hz|헤르츠)/i);
+      return match ? `${match[1]}hz` : "";
+    }
+
+    function looksLikeRoasterName(value) {
+      return Boolean(normalizeRoasterName(value).match(/^(검댕이|노랭이)$/));
+    }
+
+    function parseRoastingContextLine(line) {
+      const text = normalizeText(line.replace(/^-+|-+$/g, ""));
+      if (!text) return null;
+      const dateMatch = text.match(/(?:^|\s)(\d{1,2}(?:\/\d{1,2}|월\s*\d{1,2}일?))(?:\s|$)/);
+      const pressure = normalizeRoastPressure(text);
+      const drumSpeed = normalizeRoastDrumSpeed(text);
+      const tokens = text.split(/\s+/).filter(Boolean);
+      const roasterToken = tokens.find(looksLikeRoasterName);
+      const operatorTokens = tokens.filter((token) => {
+        if (dateMatch && token === dateMatch[1]) return false;
+        if (normalizeRoastPressure(token)) return false;
+        if (normalizeRoastDrumSpeed(token)) return false;
+        if (looksLikeRoasterName(token)) return false;
+        return !/[\/]/.test(token) && !/월|일/.test(token);
+      });
+      const hasContext = Boolean(dateMatch || pressure || drumSpeed || roasterToken);
+      if (!hasContext) return null;
+      return {
+        roastDate: dateMatch ? parseKoreanDate(dateMatch[1]) : "",
+        roaster: roasterToken ? normalizeRoasterName(roasterToken) : "",
+        pressure,
+        drumSpeed,
+        operator: normalizeText(operatorTokens.join(" "))
+      };
+    }
+
     function parseGreenBeanDate(value) {
       const text = normalizeText(value);
       if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
@@ -5823,21 +5871,17 @@
       };
       let pendingNote = "";
       lines.forEach((line) => {
-        const header = line.match(/^(\d{1,2}(?:\/\d{1,2}|월\s*\d{1,2}일?))\s+(\S+)\s+(\S*pa)\s+(\S*hz)(?:\s+(.+))?$/i);
-        if (header) {
-          defaults.roastDate = parseKoreanDate(header[1]) || defaults.roastDate;
-          defaults.roaster = header[2];
-          defaults.pressure = header[3];
-          defaults.drumSpeed = header[4];
-          defaults.operator = normalizeText(header[5] || defaults.operator);
-          return;
-        }
-        if (line.startsWith("-") && line.endsWith("-")) {
-          pendingNote = line.replace(/^-+|-+$/g, "").trim();
-          return;
-        }
         const row = line.match(/^(.+?)\s+([0-9.]+\/.+)$/);
         if (!row) {
+          const context = parseRoastingContextLine(line);
+          if (context) {
+            defaults.roastDate = context.roastDate || defaults.roastDate;
+            defaults.roaster = context.roaster || defaults.roaster;
+            defaults.pressure = context.pressure || defaults.pressure;
+            defaults.drumSpeed = context.drumSpeed || defaults.drumSpeed;
+            defaults.operator = context.operator || defaults.operator;
+            return;
+          }
           pendingNote = [pendingNote, line.replace(/^-+|-+$/g, "").trim()].filter(Boolean).join(" / ");
           return;
         }
