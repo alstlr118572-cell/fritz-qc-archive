@@ -769,15 +769,33 @@
       min-width: 0;
     }
 
+    .home-section {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+    }
+
+    .home-section .section-title {
+      margin-bottom: 0;
+    }
+
+    .home-section.compact {
+      padding: 14px;
+    }
+
     .blend-grid {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 10px;
+      gap: 14px;
     }
 
     .category-group {
       display: grid;
       gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.025);
     }
 
     .category-group h3 {
@@ -1276,6 +1294,167 @@
       margin-top: 8px;
     }
 
+    .dashboard-command {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 14px;
+      padding: 16px;
+    }
+
+    .dashboard-command-main {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .dashboard-command-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 14px;
+    }
+
+    .dashboard-command-head h3 {
+      font-size: 28px;
+    }
+
+    .dashboard-search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: 8px;
+    }
+
+    .dashboard-search-row input {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: rgba(11, 16, 24, 0.94);
+      color: var(--ink);
+      outline: none;
+    }
+
+    .dashboard-search-row input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(82, 197, 255, 0.12);
+    }
+
+    .dashboard-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .dashboard-kpi {
+      display: grid;
+      gap: 8px;
+      min-height: 110px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 110px),
+        rgba(22, 28, 39, 0.94);
+    }
+
+    .dashboard-kpi span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .dashboard-kpi strong {
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .dashboard-kpi small {
+      color: var(--muted-2);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .dashboard-kpi.pass strong {
+      color: var(--green);
+    }
+
+    .dashboard-kpi.hold strong {
+      color: var(--amber);
+    }
+
+    .dashboard-kpi.issue strong {
+      color: var(--red);
+    }
+
+    .dashboard-split-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .dashboard-detail {
+      position: sticky;
+      top: 92px;
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(82, 197, 255, 0.08), transparent 170px),
+        rgba(13, 18, 26, 0.98);
+    }
+
+    .dashboard-detail h4 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .dashboard-detail-card {
+      display: grid;
+      gap: 10px;
+      padding: 13px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .dashboard-detail-title {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .dashboard-detail-title strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .dashboard-detail dl {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 7px 10px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .dashboard-detail dt {
+      color: var(--muted-2);
+      font-weight: 900;
+    }
+
+    .dashboard-detail dd {
+      margin: 0;
+      color: var(--ink);
+      overflow-wrap: anywhere;
+    }
+
     .dashboard-recent-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1307,6 +1486,21 @@
       background: var(--surface);
     }
 
+    .dashboard-command .empty {
+      min-height: 118px;
+    }
+
+    .dashboard-command .record-item,
+    .dashboard-command .comment-item {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 12px;
+    }
+
+    .dashboard-command .record-item .date,
+    .dashboard-command .comment-date {
+      display: none;
+    }
+
     .cupping-panel {
       padding: 16px;
     }
@@ -1335,6 +1529,8 @@
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       overflow: hidden;
+      border-radius: var(--radius);
+      box-shadow: none;
     }
 
     .lane {
@@ -1350,6 +1546,17 @@
     .lane h4 {
       margin: 0 0 10px;
       font-size: 15px;
+    }
+
+    .lane h4::after {
+      content: "";
+      display: block;
+      width: 28px;
+      height: 2px;
+      margin-top: 8px;
+      border-radius: 999px;
+      background: var(--teal);
+      opacity: 0.75;
     }
 
     .qc-card {
@@ -1911,6 +2118,36 @@
         font-size: 14px;
       }
 
+      .dashboard-command,
+      .dashboard-split-grid,
+      .dashboard-kpi-grid,
+      .dashboard-search-row {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-command {
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .dashboard-command-head {
+        display: grid;
+        gap: 8px;
+      }
+
+      .dashboard-command-head h3 {
+        font-size: 21px;
+      }
+
+      .dashboard-detail {
+        position: static;
+        padding: 12px;
+      }
+
+      .dashboard-detail dl {
+        grid-template-columns: 78px minmax(0, 1fr);
+      }
+
       .blend-card {
         padding: 11px;
       }
@@ -1972,6 +2209,8 @@
 
       .calendar-grid {
         gap: 3px;
+        width: 100%;
+        min-width: 0;
       }
 
       .calendar-day {
@@ -1988,6 +2227,8 @@
         margin-top: 6px;
         padding: 2px 4px;
         font-size: 10px;
+        max-width: 100%;
+        white-space: normal;
       }
 
       .calendar-day .calendar-mini {
@@ -2752,6 +2993,36 @@
         gap: 10px;
       }
 
+      .dashboard-command,
+      .dashboard-split-grid,
+      .dashboard-kpi-grid,
+      .dashboard-search-row {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-command {
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .dashboard-command-head {
+        display: grid;
+        gap: 8px;
+      }
+
+      .dashboard-command-head h3 {
+        font-size: 21px;
+      }
+
+      .dashboard-detail {
+        position: static;
+        padding: 12px;
+      }
+
+      .dashboard-detail dl {
+        grid-template-columns: 78px minmax(0, 1fr);
+      }
+
       .dashboard-recent-box,
       .record-item,
       .comment-item,
@@ -2775,6 +3046,41 @@
 
       .toolbar {
         padding: 10px;
+      }
+
+      .calendar-head {
+        display: grid;
+        align-items: start;
+      }
+
+      .calendar-actions {
+        justify-content: start;
+      }
+
+      .calendar-grid {
+        width: 100%;
+        min-width: 0;
+        gap: 3px;
+      }
+
+      .calendar-day {
+        min-width: 0;
+        min-height: 54px;
+        padding: 5px 4px;
+      }
+
+      .calendar-day strong {
+        font-size: 13px;
+      }
+
+      .calendar-day span,
+      .single-origin-chip {
+        max-width: 100%;
+        margin-top: 5px;
+        padding: 2px 4px;
+        font-size: 9px;
+        white-space: normal;
+        overflow-wrap: anywhere;
       }
 
       .field input,
@@ -3093,23 +3399,57 @@
       </aside>
 
       <main class="main">
-        <section class="panel cupping-panel app-panel" data-app-panel="dashboard">
-          <div class="section-title">
-            <div>
-              <h3>최근 3일 QC 흐름</h3>
-              <p class="hint">최근 3일의 로스팅 데이터와 커핑 코멘트를 먼저 확인합니다.</p>
+        <section class="panel dashboard-command app-panel" data-app-panel="dashboard">
+          <div class="dashboard-command-main">
+            <div class="dashboard-command-head">
+              <div>
+                <h3>QC 종합 현황판</h3>
+                <p class="hint" id="monthDashboardHint">해당 월의 로스팅과 커핑 기록만 표시합니다.</p>
+              </div>
+              <div class="mode"><span class="mode-mark"></span><span id="dashboardMonthLabel">이번 달</span></div>
+            </div>
+            <div class="dashboard-search-row">
+              <input id="dashboardSearchInput" type="search" placeholder="블렌드, 배치, 코멘트 빠른 검색">
+              <button type="button" id="dashboardSearchButton">검색</button>
+              <button type="button" id="dashboardResetButton">초기화</button>
+            </div>
+            <div class="dashboard-kpi-grid">
+              <article class="dashboard-kpi">
+                <span>월간 로스팅</span>
+                <strong id="dashboardRoastingCount">0</strong>
+                <small id="dashboardRoastingHint">배치 기록</small>
+              </article>
+              <article class="dashboard-kpi pass">
+                <span>PASS</span>
+                <strong id="dashboardPassCount">0</strong>
+                <small>출고 가능 판정</small>
+              </article>
+              <article class="dashboard-kpi hold">
+                <span>HOLD</span>
+                <strong id="dashboardHoldCount">0</strong>
+                <small>확인 필요 판정</small>
+              </article>
+              <article class="dashboard-kpi issue">
+                <span>ISSUE</span>
+                <strong id="dashboardIssueCount">0</strong>
+                <small>출고 불가 판정</small>
+              </article>
+            </div>
+            <div class="dashboard-recent-grid">
+              <div class="dashboard-recent-box">
+                <h4>최근 로스팅 데이터</h4>
+                <div id="dashboardRoastingRecent"></div>
+              </div>
+              <div class="dashboard-recent-box">
+                <h4>최근 커핑 코멘트</h4>
+                <div id="dashboardCuppingRecent"></div>
+              </div>
             </div>
           </div>
-          <div class="dashboard-recent-grid">
-            <div class="dashboard-recent-box">
-              <h4>로스팅 데이터</h4>
-              <div id="dashboardRoastingRecent"></div>
-            </div>
-            <div class="dashboard-recent-box">
-              <h4>커핑 코멘트</h4>
-              <div id="dashboardCuppingRecent"></div>
-            </div>
-          </div>
+          <aside class="dashboard-detail" aria-label="최근 주의 배치 상세">
+            <h4>최근 주의 배치</h4>
+            <div id="dashboardDetailCard"></div>
+          </aside>
         </section>
 
         <section class="panel toolbar app-panel" data-app-panel="search">
@@ -3271,11 +3611,11 @@
           <div class="notice-list" id="singleOriginScheduleList"></div>
         </section>
 
-        <section class="app-panel" data-app-panel="dashboard">
+        <section class="panel home-section app-panel" data-app-panel="dashboard">
           <div class="section-title">
             <div>
-              <h3>이번 달 로스팅 현황판</h3>
-              <p class="hint" id="monthDashboardHint">해당 월의 로스팅과 커핑 기록만 표시합니다.</p>
+              <h3>블렌드별 월간 현황</h3>
+              <p class="hint">블렌드별 월간 흐름을 한눈에 비교합니다.</p>
             </div>
           </div>
           <section class="blend-grid" id="blendSummary" aria-label="블렌드별 QC 요약"></section>
@@ -3292,10 +3632,10 @@
           <div class="sheet-wrap" id="blendSheet"></div>
         </section>
 
-        <section class="app-panel" data-app-panel="dashboard">
+        <section class="home-section compact app-panel" data-app-panel="dashboard">
           <div class="section-title">
             <div>
-              <h3>QC 보드</h3>
+              <h3>판정별 QC 보드</h3>
               <p class="hint">판정별로 로스팅 QC를 빠르게 확인합니다.</p>
             </div>
           </div>
@@ -4362,6 +4702,16 @@
     const dashboardRoastingRecent = document.querySelector("#dashboardRoastingRecent");
     const dashboardCuppingRecent = document.querySelector("#dashboardCuppingRecent");
     const monthDashboardHint = document.querySelector("#monthDashboardHint");
+    const dashboardMonthLabel = document.querySelector("#dashboardMonthLabel");
+    const dashboardSearchInput = document.querySelector("#dashboardSearchInput");
+    const dashboardSearchButton = document.querySelector("#dashboardSearchButton");
+    const dashboardResetButton = document.querySelector("#dashboardResetButton");
+    const dashboardRoastingCount = document.querySelector("#dashboardRoastingCount");
+    const dashboardRoastingHint = document.querySelector("#dashboardRoastingHint");
+    const dashboardPassCount = document.querySelector("#dashboardPassCount");
+    const dashboardHoldCount = document.querySelector("#dashboardHoldCount");
+    const dashboardIssueCount = document.querySelector("#dashboardIssueCount");
+    const dashboardDetailCard = document.querySelector("#dashboardDetailCard");
     const recordList = document.querySelector("#recordList");
     const cuppingCommentList = document.querySelector("#cuppingCommentList");
     const roastingCorrectionList = document.querySelector("#roastingCorrectionList");
@@ -7818,7 +8168,63 @@
       }).join("");
     }
 
+    function dashboardDetailMarkup(entry) {
+      if (!entry) {
+        return `
+          <div class="dashboard-detail-card">
+            <div class="dashboard-detail-title">
+              <strong>확인할 배치 없음</strong>
+              <span class="tag">대기</span>
+            </div>
+            <p class="hint">선택 월에 로스팅 데이터가 들어오면 최신 주의 배치가 표시됩니다.</p>
+          </div>
+        `;
+      }
+      const roastData = normalizedRoastData(entry);
+      const linkedComments = linkedCuppingEntries(entry);
+      const commentText = linkedComments.length
+        ? linkedComments.map((comment) => {
+          const detail = normalizedCuppingDetail(comment);
+          return `${entryEvaluatorName(comment)}: ${detail.flavorIssue || comment.note || "기록 없음"}`;
+        }).join(" / ")
+        : "연결된 커핑 코멘트 없음";
+      return `
+        <div class="dashboard-detail-card">
+          <div class="dashboard-detail-title">
+            <strong>${escapeHtml(entry.blend || "-")} ${escapeHtml(entry.batch || "")}</strong>
+            <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
+          </div>
+          <dl>
+            <dt>로스팅일</dt>
+            <dd>${escapeHtml(entry.roastDate || "-")}</dd>
+            <dt>로스터기</dt>
+            <dd>${escapeHtml(roastData.roaster || "-")}</dd>
+            <dt>담당자</dt>
+            <dd>${escapeHtml(roastData.operator || "-")}</dd>
+            <dt>배출온도</dt>
+            <dd>${escapeHtml(roastData.dropTemp || "-")}</dd>
+            <dt>색도</dt>
+            <dd>${escapeHtml([roastData.wholeColor, roastData.groundColor].filter(Boolean).join(" / ") || "-")}</dd>
+            <dt>커핑</dt>
+            <dd>${escapeHtml(commentText)}</dd>
+          </dl>
+        </div>
+      `;
+    }
+
     function renderDashboardRecent(monthEntries) {
+      const roastingEntries = sortEntriesByDate(monthEntries.filter((entry) => entry.entryType === "roasting"));
+      const passCount = roastingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
+      const holdCount = roastingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "hold").length;
+      const issueCount = roastingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "no_ship").length;
+      const watchEntry = roastingEntries.find((entry) => normalizeVerdict(entry.verdict) !== "pass") || roastingEntries[0];
+      dashboardRoastingCount.textContent = roastingEntries.length;
+      dashboardRoastingHint.textContent = `${monthLabel(dashboardMonthKey())} 배치 기록`;
+      dashboardPassCount.textContent = passCount;
+      dashboardHoldCount.textContent = holdCount;
+      dashboardIssueCount.textContent = issueCount;
+      dashboardMonthLabel.textContent = monthLabel(dashboardMonthKey());
+      dashboardDetailCard.innerHTML = dashboardDetailMarkup(watchEntry);
       const recentRoasting = monthEntries
         .filter((entry) => entry.entryType === "roasting" && isEntryInLastDays(entry, 3))
         .slice(0, 8);
@@ -8742,6 +9148,33 @@
 
     appViewButtons.forEach((button) => {
       button.addEventListener("click", () => setAppView(button.dataset.appView));
+    });
+
+    function runDashboardSearch() {
+      const query = normalizeText(dashboardSearchInput.value);
+      filters.search.value = query;
+      selectedSearchDate = "";
+      setAppView("search");
+      render();
+    }
+
+    dashboardSearchButton.addEventListener("click", runDashboardSearch);
+
+    dashboardSearchInput.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      runDashboardSearch();
+    });
+
+    dashboardResetButton.addEventListener("click", () => {
+      dashboardSearchInput.value = "";
+      filters.search.value = "";
+      filters.category.value = "all";
+      filters.blend.value = "all";
+      filters.verdict.value = "all";
+      filters.roastLevel.value = "all";
+      selectedSearchDate = "";
+      render();
     });
 
     mobileMenuToggle.addEventListener("click", () => {
