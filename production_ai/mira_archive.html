@@ -3741,9 +3741,9 @@
                 <small>출고 가능 판정</small>
               </article>
               <article class="dashboard-kpi hold">
-                <span>HOLD</span>
+                <span>평가 대기</span>
                 <strong id="dashboardHoldCount">0</strong>
-                <small>확인 필요 판정</small>
+                <small>커핑 미연결 배치</small>
               </article>
               <article class="dashboard-kpi issue">
                 <span>ISSUE</span>
@@ -3760,7 +3760,7 @@
                   </div>
                   <div class="dashboard-viz-legend">
                     <span><i class="legend-dot pass"></i>PASS</span>
-                    <span><i class="legend-dot hold"></i>HOLD</span>
+                    <span><i class="legend-dot hold"></i>평가 대기</span>
                     <span><i class="legend-dot issue"></i>ISSUE</span>
                   </div>
                 </div>
@@ -8623,6 +8623,24 @@
       }, { pass: 0, hold: 0, issue: 0 });
     }
 
+    function dashboardEntryStatus(entry) {
+      const linkedComments = linkedCuppingEntries(entry);
+      if (normalizeVerdict(entry.verdict) === "no_ship" || linkedComments.some((comment) => normalizeVerdict(comment.verdict) === "no_ship")) {
+        return "issue";
+      }
+      return linkedComments.length ? "pass" : "hold";
+    }
+
+    function dashboardStatusCounts(value) {
+      return value.reduce((acc, entry) => {
+        const status = dashboardEntryStatus(entry);
+        if (status === "pass") acc.pass += 1;
+        else if (status === "hold") acc.hold += 1;
+        else acc.issue += 1;
+        return acc;
+      }, { pass: 0, hold: 0, issue: 0 });
+    }
+
     function renderDashboardTrendChart(roastingEntries, monthKey) {
       const [year, month] = monthKey.split("-").map(Number);
       const lastDay = new Date(year, month, 0).getDate();
@@ -8636,7 +8654,7 @@
       roastingEntries.forEach((entry) => {
         const day = Number((entry.roastDate || "").slice(8, 10));
         if (!day || !daily[day - 1]) return;
-        const verdict = normalizeVerdict(entry.verdict);
+        const verdict = dashboardEntryStatus(entry);
         daily[day - 1].total += 1;
         if (verdict === "pass") daily[day - 1].pass += 1;
         else if (verdict === "hold") daily[day - 1].hold += 1;
@@ -8683,13 +8701,13 @@
     }
 
     function renderDashboardVerdictDonut(sourceEntries) {
-      const counts = verdictCounts(sourceEntries);
+      const counts = dashboardStatusCounts(sourceEntries);
       const total = counts.pass + counts.hold + counts.issue;
       const radius = 46;
       const circumference = 2 * Math.PI * radius;
       const segments = [
         ["pass", counts.pass, "#52c5ff", "PASS"],
-        ["hold", counts.hold, "#facc15", "HOLD"],
+        ["hold", counts.hold, "#facc15", "평가 대기"],
         ["issue", counts.issue, "#ff5a67", "ISSUE"]
       ];
       let offset = 0;
@@ -8728,7 +8746,7 @@
         return acc;
       }, {});
       const blendRows = Object.entries(blendMap)
-        .map(([blend, blendEntries]) => ({ blend, entries: blendEntries, count: blendEntries.length, counts: verdictCounts(blendEntries) }))
+        .map(([blend, blendEntries]) => ({ blend, entries: blendEntries, count: blendEntries.length, counts: dashboardStatusCounts(blendEntries) }))
         .sort((left, right) => right.count - left.count)
         .slice(0, 7);
       dashboardBlendBars.innerHTML = blendRows.length
@@ -8762,7 +8780,7 @@
       const roasterNames = [...wanted, ...Object.keys(roasterMap).filter((name) => !wanted.includes(name))].slice(0, 4);
       dashboardRoasterCards.innerHTML = roasterNames.map((roaster) => {
         const roasterEntries = roasterMap[roaster] || [];
-        const counts = verdictCounts(roasterEntries);
+        const counts = dashboardStatusCounts(roasterEntries);
         const total = roasterEntries.length;
         const passWidth = total ? (counts.pass / total) * 100 : 0;
         const holdWidth = total ? (counts.hold / total) * 100 : 0;
@@ -8773,7 +8791,7 @@
               <strong>${escapeHtml(roaster)}</strong>
               <span class="tag blue">${total}개</span>
             </div>
-            <small>PASS ${counts.pass} · HOLD ${counts.hold} · ISSUE ${counts.issue}</small>
+            <small>PASS ${counts.pass} · 평가 대기 ${counts.hold} · ISSUE ${counts.issue}</small>
             <div class="dashboard-roaster-meter">
               <span class="pass" style="width:${passWidth}%; background:#52c5ff"></span>
               <span class="hold" style="width:${holdWidth}%; background:#facc15"></span>
@@ -8795,10 +8813,11 @@
 
     function renderDashboardRecent(monthEntries) {
       const roastingEntries = sortEntriesByDate(monthEntries.filter((entry) => entry.entryType === "roasting"));
-      const passCount = roastingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
-      const holdCount = roastingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "hold").length;
-      const issueCount = roastingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "no_ship").length;
-      const watchEntry = roastingEntries.find((entry) => normalizeVerdict(entry.verdict) !== "pass") || roastingEntries[0];
+      const dashboardCounts = dashboardStatusCounts(roastingEntries);
+      const passCount = dashboardCounts.pass;
+      const holdCount = dashboardCounts.hold;
+      const issueCount = dashboardCounts.issue;
+      const watchEntry = roastingEntries.find((entry) => dashboardEntryStatus(entry) !== "pass") || roastingEntries[0];
       dashboardRoastingCount.textContent = roastingEntries.length;
       dashboardRoastingHint.textContent = `${monthLabel(dashboardMonthKey())} 배치 기록`;
       dashboardPassCount.textContent = passCount;
