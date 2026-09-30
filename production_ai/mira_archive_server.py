@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import base64
 import hashlib
 import hmac
 import os
@@ -29,7 +30,13 @@ SINGLE_ORIGIN_SCHEDULES_KEY = "mira_blend_qc_single_origin_schedules_v1"
 BLEND_CATALOG_KEY = "mira_blend_qc_catalog_v1"
 PRODUCT_CATALOG_KEY = "mira_product_qc_catalog_v1"
 SESSION_COOKIE = "mira_session"
-SESSION_TTL_SECONDS = 60 * 60 * 12
+SESSION_TTL_SECONDS = 60 * 60 * 6
+SESSION_SECRET = (
+    os.environ.get("MIRA_SESSION_SECRET")
+    or SUPABASE_KEY
+    or os.environ.get("SECRET_KEY")
+    or "mira-archive-local-session-secret"
+)
 PRIMARY_ADMIN_USER_ID = os.environ.get("MIRA_PRIMARY_ADMIN_USER_ID", "eomms0110").strip().lower()
 SESSIONS = {}
 
@@ -243,17 +250,16 @@ def find_user(users, user_id):
 
 
 def issue_session(user):
-    token = secrets.token_urlsafe(32)
-    SESSIONS[token] = {
+    session = {
         "userId": user.get("id"),
         "expiresAt": time.time() + SESSION_TTL_SECONDS,
     }
-    return token
+    payload = base64.urlsafe_b64encode(json.dumps(session, separators=(",", ":")).encode("utf-8")).decode("ascii").rstrip("=")
+    signature = hmac.new(SESSION_SECRET.encode("utf-8"), payload.encode("ascii"), hashlib.sha256).hexdigest()
+    return f"{payload}.{signature}"
 
 
-def session_user_from_token(token):
-    if not token:
-        return None
+def legacy_session_user_from_token(token):
     session = SESSIONS.get(token)
     if not session:
         return None
@@ -264,7 +270,29 @@ def session_user_from_token(token):
     user = next((item for item in users if item.get("id") == session.get("userId")), None)
     if not user or user.get("status") != "approved":
         return None
-    session["expiresAt"] = time.time() + SESSION_TTL_SECONDS
+    return user
+
+
+def session_user_from_token(token):
+    if not token:
+        return None
+    if "." not in token:
+        return legacy_session_user_from_token(token)
+    payload, signature = token.rsplit(".", 1)
+    expected = hmac.new(SESSION_SECRET.encode("utf-8"), payload.encode("ascii"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(signature, expected):
+        return None
+    try:
+        padded = payload + ("=" * (-len(payload) % 4))
+        session = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8"))
+    except Exception:
+        return None
+    if float(session.get("expiresAt") or 0) < time.time():
+        return None
+    users = read_users_from_store()
+    user = next((item for item in users if item.get("id") == session.get("userId")), None)
+    if not user or user.get("status") != "approved":
+        return None
     return user
 
 
