@@ -1481,9 +1481,62 @@
       letter-spacing: 0;
     }
 
-    .dashboard-recent-box .record-item,
-    .dashboard-recent-box .comment-item {
-      background: var(--surface);
+    .dashboard-mini-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .dashboard-mini-card {
+      display: grid;
+      gap: 8px;
+      padding: 11px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-sm);
+      background: rgba(13, 18, 26, 0.86);
+    }
+
+    .dashboard-mini-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .dashboard-mini-head strong {
+      display: block;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .dashboard-mini-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .dashboard-mini-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .dashboard-more {
+      margin: 2px 0 0;
+      color: var(--muted-2);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .dashboard-lane-more {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
     }
 
     .dashboard-command .empty {
@@ -1498,6 +1551,10 @@
 
     .dashboard-command .record-item .date,
     .dashboard-command .comment-date {
+      display: none;
+    }
+
+    .dashboard-legacy-note {
       display: none;
     }
 
@@ -4260,7 +4317,7 @@
           <div class="panel record-list scrollable-record-list" id="nonShipResultList"></div>
         </section>
 
-        <section class="panel roadmap app-panel" data-app-panel="dashboard">
+        <section class="panel roadmap dashboard-legacy-note app-panel" data-app-panel="dashboard">
           <article>
             <h4>현재 범위</h4>
             <p>메인, OEM, 특수성 블렌드의 로스팅 QC 기록, 판정, 점수, 메모, JSON 내보내기를 운영합니다.</p>
@@ -4271,7 +4328,7 @@
           </article>
         </section>
 
-        <p class="footer app-panel" data-app-panel="dashboard">초기 구조: 프릳츠 블렌드 QC 독립 운영 → JSON 내보내기 → operation_ai 중앙 통제 수집/승인. 데이터 영속화가 필요해지면 localStorage 저장소만 API로 교체하면 됩니다.</p>
+        <p class="footer dashboard-legacy-note app-panel" data-app-panel="dashboard">초기 구조: 프릳츠 블렌드 QC 독립 운영 → JSON 내보내기 → operation_ai 중앙 통제 수집/승인. 데이터 영속화가 필요해지면 localStorage 저장소만 API로 교체하면 됩니다.</p>
       </main>
     </div>
 
@@ -8212,6 +8269,42 @@
       `;
     }
 
+    function dashboardMiniCardMarkup(entry) {
+      const isRoasting = entry.entryType === "roasting";
+      const detail = normalizedCuppingDetail(entry);
+      const roastData = normalizedRoastData(entry);
+      const title = isRoasting
+        ? `${entry.blend || "-"} ${entry.batch || ""}`
+        : `${entryEvaluatorName(entry)} · ${entry.blend || "-"}`;
+      const note = isRoasting
+        ? [entry.note, roastData.roaster ? `로스터기 ${roastData.roaster}` : "", roastData.operator ? `담당 ${roastData.operator}` : ""].filter(Boolean).join(" · ")
+        : (detail.flavorIssue || entry.note || "문제향미지표 기록 없음");
+      const meta = isRoasting
+        ? [
+          entry.roastDate || "-",
+          roastData.dropTemp ? `배출 ${roastData.dropTemp}` : "",
+          roastData.wholeColor ? `홀빈 ${roastData.wholeColor}` : "",
+          roastData.groundColor ? `그라운드 ${roastData.groundColor}` : ""
+        ]
+        : [
+          entry.roastDate || "-",
+          entry.batch || "범위 미기록",
+          entry.tags?.filter((tag) => tag !== "빠른입력").slice(0, 2).join(", ") || ""
+        ];
+      return `
+        <article class="dashboard-mini-card">
+          <div class="dashboard-mini-head">
+            <strong>${escapeHtml(title.trim())}</strong>
+            <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
+          </div>
+          <p class="dashboard-mini-note">${escapeHtml(note || "기록 없음")}</p>
+          <div class="dashboard-mini-meta">
+            ${meta.filter(Boolean).map((value, index) => `<span class="tag ${index === 0 ? "blue" : ""}">${escapeHtml(value)}</span>`).join("")}
+          </div>
+        </article>
+      `;
+    }
+
     function renderDashboardRecent(monthEntries) {
       const roastingEntries = sortEntriesByDate(monthEntries.filter((entry) => entry.entryType === "roasting"));
       const passCount = roastingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
@@ -8225,17 +8318,17 @@
       dashboardIssueCount.textContent = issueCount;
       dashboardMonthLabel.textContent = monthLabel(dashboardMonthKey());
       dashboardDetailCard.innerHTML = dashboardDetailMarkup(watchEntry);
-      const recentRoasting = monthEntries
-        .filter((entry) => entry.entryType === "roasting" && isEntryInLastDays(entry, 3))
-        .slice(0, 8);
-      const recentCupping = monthEntries
-        .filter((entry) => isCuppingEntry(entry) && isEntryInLastDays(entry, 3))
-        .slice(0, 8);
+      const recentRoasting = sortEntriesByDate(monthEntries
+        .filter((entry) => entry.entryType === "roasting" && isEntryInLastDays(entry, 3)))
+        .slice(0, 6);
+      const recentCupping = sortEntriesByDate(monthEntries
+        .filter((entry) => isCuppingEntry(entry) && isEntryInLastDays(entry, 3)))
+        .slice(0, 6);
       dashboardRoastingRecent.innerHTML = recentRoasting.length
-        ? recentRoasting.map((entry) => cardMarkup(entry)).join("")
+        ? `<div class="dashboard-mini-list">${recentRoasting.map((entry) => dashboardMiniCardMarkup(entry)).join("")}</div>`
         : `<div class="empty">최근 3일 로스팅 데이터가 없습니다.</div>`;
       dashboardCuppingRecent.innerHTML = recentCupping.length
-        ? recentCupping.map((entry) => cuppingCommentMarkup(entry)).join("")
+        ? `<div class="dashboard-mini-list">${recentCupping.map((entry) => dashboardMiniCardMarkup(entry)).join("")}</div>`
         : `<div class="empty">최근 3일 커핑 코멘트가 없습니다.</div>`;
     }
 
@@ -8625,9 +8718,14 @@
       renderNonShipCalendar();
       renderNonShipResults();
       Object.keys(lanes).forEach((verdict) => {
-        const laneEntries = visibleCupping.filter((entry) => normalizeVerdict(entry.verdict) === verdict);
-        lanes[verdict].innerHTML = laneEntries.length
-          ? laneEntries.map((entry) => cardMarkup(entry, true)).join("")
+        const laneEntries = sortEntriesByDate(visibleCupping
+          .filter((entry) => normalizeVerdict(entry.verdict) === verdict));
+        const shownEntries = laneEntries.slice(0, 6);
+        const moreText = laneEntries.length > shownEntries.length
+          ? `<p class="dashboard-lane-more">외 ${laneEntries.length - shownEntries.length}건은 검색에서 확인</p>`
+          : "";
+        lanes[verdict].innerHTML = shownEntries.length
+          ? `${shownEntries.map((entry) => dashboardMiniCardMarkup(entry)).join("")}${moreText}`
           : `<div class="empty">표시할 QC가 없습니다.</div>`;
       });
       recordList.innerHTML = visible.length
