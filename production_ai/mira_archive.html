@@ -1296,7 +1296,7 @@
 
     .dashboard-command {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 320px;
+      grid-template-columns: minmax(0, 1fr);
       gap: 14px;
       padding: 16px;
     }
@@ -1385,6 +1385,242 @@
 
     .dashboard-kpi.issue strong {
       color: var(--red);
+    }
+
+    .dashboard-visual-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.8fr) minmax(300px, 1fr);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .dashboard-viz-card {
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      min-width: 0;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(82, 197, 255, 0.055), transparent 145px),
+        rgba(14, 20, 30, 0.96);
+      overflow: hidden;
+    }
+
+    .dashboard-viz-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .dashboard-viz-head h4 {
+      margin: 0;
+      color: var(--ink);
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .dashboard-viz-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .dashboard-viz-legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .dashboard-viz-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--teal);
+    }
+
+    .legend-dot.pass {
+      background: var(--teal);
+    }
+
+    .legend-dot.hold {
+      background: var(--amber);
+    }
+
+    .legend-dot.issue {
+      background: var(--red);
+    }
+
+    .dashboard-line-chart svg,
+    .dashboard-donut svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .dashboard-line-chart {
+      min-height: 230px;
+    }
+
+    .dashboard-donut-wrap {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .dashboard-donut {
+      position: relative;
+      width: 150px;
+      aspect-ratio: 1;
+    }
+
+    .dashboard-donut-center {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-content: center;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .dashboard-donut-center strong {
+      color: var(--ink);
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    .dashboard-donut-center span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .dashboard-donut-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .dashboard-donut-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .dashboard-donut-row strong {
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .dashboard-blend-bars {
+      display: grid;
+      gap: 10px;
+    }
+
+    .dashboard-bar-row {
+      display: grid;
+      grid-template-columns: 94px minmax(0, 1fr) 36px;
+      gap: 9px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .dashboard-bar-label {
+      min-width: 0;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dashboard-stacked-bar {
+      display: flex;
+      height: 12px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.055);
+    }
+
+    .dashboard-stacked-bar span {
+      min-width: 2px;
+    }
+
+    .dashboard-stacked-bar .pass {
+      background: linear-gradient(90deg, #25a9ff, #52c5ff);
+    }
+
+    .dashboard-stacked-bar .hold {
+      background: var(--amber);
+    }
+
+    .dashboard-stacked-bar .issue {
+      background: var(--red);
+    }
+
+    .dashboard-lower-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.82fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .dashboard-roaster-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .dashboard-roaster-card {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+      padding: 13px;
+      border: 1px solid var(--line-soft);
+      border-radius: var(--radius-sm);
+      background: rgba(12, 17, 25, 0.88);
+    }
+
+    .dashboard-roaster-card strong {
+      color: var(--ink);
+      font-size: 18px;
+    }
+
+    .dashboard-roaster-card small {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .dashboard-roaster-meter {
+      display: flex;
+      height: 11px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .dashboard-roaster-meter span {
+      min-width: 2px;
     }
 
     .dashboard-split-grid {
@@ -2178,9 +2414,20 @@
 
       .dashboard-command,
       .dashboard-split-grid,
+      .dashboard-visual-grid,
+      .dashboard-lower-grid,
       .dashboard-kpi-grid,
       .dashboard-search-row {
         grid-template-columns: 1fr;
+      }
+
+      .dashboard-roaster-grid,
+      .dashboard-donut-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-donut {
+        justify-self: center;
       }
 
       .dashboard-command {
@@ -3053,9 +3300,20 @@
 
       .dashboard-command,
       .dashboard-split-grid,
+      .dashboard-visual-grid,
+      .dashboard-lower-grid,
       .dashboard-kpi-grid,
       .dashboard-search-row {
         grid-template-columns: 1fr;
+      }
+
+      .dashboard-roaster-grid,
+      .dashboard-donut-wrap {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-donut {
+        justify-self: center;
       }
 
       .dashboard-command {
@@ -3493,6 +3751,55 @@
                 <small>출고 불가 판정</small>
               </article>
             </div>
+            <div class="dashboard-visual-grid">
+              <article class="dashboard-viz-card">
+                <div class="dashboard-viz-head">
+                  <div>
+                    <h4>월간 로스팅</h4>
+                    <p>일별 로스팅 배치 수와 QC 판정 추이를 봅니다.</p>
+                  </div>
+                  <div class="dashboard-viz-legend">
+                    <span><i class="legend-dot pass"></i>PASS</span>
+                    <span><i class="legend-dot hold"></i>HOLD</span>
+                    <span><i class="legend-dot issue"></i>ISSUE</span>
+                  </div>
+                </div>
+                <div class="dashboard-line-chart" id="dashboardTrendChart"></div>
+              </article>
+              <article class="dashboard-viz-card">
+                <div class="dashboard-viz-head">
+                  <div>
+                    <h4>최근 3일 QC 흐름</h4>
+                    <p>최근 판정 비율을 빠르게 확인합니다.</p>
+                  </div>
+                </div>
+                <div id="dashboardVerdictDonut"></div>
+              </article>
+              <article class="dashboard-viz-card">
+                <div class="dashboard-viz-head">
+                  <div>
+                    <h4>블렌드별 월간 현황</h4>
+                    <p>주요 블렌드의 판정 분포입니다.</p>
+                  </div>
+                </div>
+                <div class="dashboard-blend-bars" id="dashboardBlendBars"></div>
+              </article>
+            </div>
+            <div class="dashboard-lower-grid">
+              <article class="dashboard-viz-card">
+                <div class="dashboard-viz-head">
+                  <div>
+                    <h4>로스터기별 배치</h4>
+                    <p>검댕이와 노랭이 배치 흐름을 비교합니다.</p>
+                  </div>
+                </div>
+                <div class="dashboard-roaster-grid" id="dashboardRoasterCards"></div>
+              </article>
+              <aside class="dashboard-detail" aria-label="최근 주의 배치 상세">
+                <h4>최근 주의 배치</h4>
+                <div id="dashboardDetailCard"></div>
+              </aside>
+            </div>
             <div class="dashboard-recent-grid">
               <div class="dashboard-recent-box">
                 <h4>최근 로스팅 데이터</h4>
@@ -3504,10 +3811,6 @@
               </div>
             </div>
           </div>
-          <aside class="dashboard-detail" aria-label="최근 주의 배치 상세">
-            <h4>최근 주의 배치</h4>
-            <div id="dashboardDetailCard"></div>
-          </aside>
         </section>
 
         <section class="panel toolbar app-panel" data-app-panel="search">
@@ -3669,7 +3972,7 @@
           <div class="notice-list" id="singleOriginScheduleList"></div>
         </section>
 
-        <section class="panel home-section app-panel" data-app-panel="dashboard">
+        <section class="panel home-section dashboard-legacy-note app-panel" data-app-panel="dashboard">
           <div class="section-title">
             <div>
               <h3>블렌드별 월간 현황</h3>
@@ -3690,7 +3993,7 @@
           <div class="sheet-wrap" id="blendSheet"></div>
         </section>
 
-        <section class="home-section compact app-panel" data-app-panel="dashboard">
+        <section class="home-section compact dashboard-legacy-note app-panel" data-app-panel="dashboard">
           <div class="section-title">
             <div>
               <h3>판정별 QC 보드</h3>
@@ -4770,6 +5073,10 @@
     const dashboardHoldCount = document.querySelector("#dashboardHoldCount");
     const dashboardIssueCount = document.querySelector("#dashboardIssueCount");
     const dashboardDetailCard = document.querySelector("#dashboardDetailCard");
+    const dashboardTrendChart = document.querySelector("#dashboardTrendChart");
+    const dashboardVerdictDonut = document.querySelector("#dashboardVerdictDonut");
+    const dashboardBlendBars = document.querySelector("#dashboardBlendBars");
+    const dashboardRoasterCards = document.querySelector("#dashboardRoasterCards");
     const recordList = document.querySelector("#recordList");
     const cuppingCommentList = document.querySelector("#cuppingCommentList");
     const roastingCorrectionList = document.querySelector("#roastingCorrectionList");
@@ -8306,6 +8613,186 @@
       `;
     }
 
+    function verdictCounts(value) {
+      return value.reduce((acc, entry) => {
+        const verdict = normalizeVerdict(entry.verdict);
+        if (verdict === "pass") acc.pass += 1;
+        else if (verdict === "hold") acc.hold += 1;
+        else acc.issue += 1;
+        return acc;
+      }, { pass: 0, hold: 0, issue: 0 });
+    }
+
+    function renderDashboardTrendChart(roastingEntries, monthKey) {
+      const [year, month] = monthKey.split("-").map(Number);
+      const lastDay = new Date(year, month, 0).getDate();
+      const daily = Array.from({ length: lastDay }, (_, index) => ({
+        day: index + 1,
+        pass: 0,
+        hold: 0,
+        issue: 0,
+        total: 0
+      }));
+      roastingEntries.forEach((entry) => {
+        const day = Number((entry.roastDate || "").slice(8, 10));
+        if (!day || !daily[day - 1]) return;
+        const verdict = normalizeVerdict(entry.verdict);
+        daily[day - 1].total += 1;
+        if (verdict === "pass") daily[day - 1].pass += 1;
+        else if (verdict === "hold") daily[day - 1].hold += 1;
+        else daily[day - 1].issue += 1;
+      });
+      const width = 620;
+      const height = 240;
+      const pad = { top: 18, right: 18, bottom: 34, left: 34 };
+      const chartWidth = width - pad.left - pad.right;
+      const chartHeight = height - pad.top - pad.bottom;
+      const maxValue = Math.max(5, ...daily.map((day) => Math.max(day.pass, day.hold, day.issue, day.total)));
+      const x = (index) => pad.left + (daily.length <= 1 ? 0 : (index / (daily.length - 1)) * chartWidth);
+      const y = (value) => pad.top + chartHeight - (value / maxValue) * chartHeight;
+      const linePath = (key) => daily.map((day, index) => `${index ? "L" : "M"} ${x(index).toFixed(1)} ${y(day[key]).toFixed(1)}`).join(" ");
+      const gridValues = [0, Math.ceil(maxValue / 2), maxValue];
+      const dayTicks = daily.filter((day) => day.day === 1 || day.day === lastDay || day.day % 5 === 0);
+      dashboardTrendChart.innerHTML = daily.some((day) => day.total)
+        ? `
+          <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(monthLabel(monthKey))} 로스팅 추이">
+            <defs>
+              <linearGradient id="dashboardTrendFill" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#52c5ff" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="#52c5ff" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <rect x="0" y="0" width="${width}" height="${height}" fill="transparent"></rect>
+            ${gridValues.map((value) => `
+              <line x1="${pad.left}" x2="${width - pad.right}" y1="${y(value).toFixed(1)}" y2="${y(value).toFixed(1)}" stroke="rgba(255,255,255,0.09)" />
+              <text x="10" y="${(y(value) + 4).toFixed(1)}" fill="rgba(226,232,240,0.58)" font-size="11">${value}</text>
+            `).join("")}
+            ${dayTicks.map((day) => `
+              <text x="${x(day.day - 1).toFixed(1)}" y="${height - 10}" text-anchor="middle" fill="rgba(226,232,240,0.55)" font-size="10">${day.day}</text>
+            `).join("")}
+            <path d="${linePath("total")} L ${x(daily.length - 1).toFixed(1)} ${height - pad.bottom} L ${pad.left} ${height - pad.bottom} Z" fill="url(#dashboardTrendFill)"></path>
+            <path d="${linePath("pass")}" fill="none" stroke="#52c5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="${linePath("hold")}" fill="none" stroke="#facc15" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path d="${linePath("issue")}" fill="none" stroke="#ff5a67" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path>
+            ${daily.filter((day) => day.total).map((day, index) => `
+              <circle cx="${x(index).toFixed(1)}" cy="${y(day.pass).toFixed(1)}" r="3" fill="#52c5ff"></circle>
+            `).join("")}
+          </svg>
+        `
+        : `<div class="empty">이 달의 로스팅 추이가 없습니다.</div>`;
+    }
+
+    function renderDashboardVerdictDonut(sourceEntries) {
+      const counts = verdictCounts(sourceEntries);
+      const total = counts.pass + counts.hold + counts.issue;
+      const radius = 46;
+      const circumference = 2 * Math.PI * radius;
+      const segments = [
+        ["pass", counts.pass, "#52c5ff", "PASS"],
+        ["hold", counts.hold, "#facc15", "HOLD"],
+        ["issue", counts.issue, "#ff5a67", "ISSUE"]
+      ];
+      let offset = 0;
+      const circles = segments.map(([, count, color]) => {
+        const length = total ? (count / total) * circumference : 0;
+        const node = `<circle cx="60" cy="60" r="${radius}" fill="none" stroke="${color}" stroke-width="18" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 60 60)" stroke-linecap="round"></circle>`;
+        offset += length;
+        return node;
+      }).join("");
+      dashboardVerdictDonut.innerHTML = total
+        ? `
+          <div class="dashboard-donut-wrap">
+            <div class="dashboard-donut">
+              <svg viewBox="0 0 120 120" role="img" aria-label="최근 3일 QC 판정 비율">
+                <circle cx="60" cy="60" r="${radius}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="18"></circle>
+                ${circles}
+              </svg>
+              <div class="dashboard-donut-center"><strong>${total}</strong><span>총 배치</span></div>
+            </div>
+            <div class="dashboard-donut-list">
+              ${segments.map(([key, count,, label]) => {
+                const pct = total ? Math.round((count / total) * 1000) / 10 : 0;
+                return `<div class="dashboard-donut-row"><i class="legend-dot ${key}"></i><span>${label}</span><strong>${count} · ${pct}%</strong></div>`;
+              }).join("")}
+            </div>
+          </div>
+        `
+        : `<div class="empty">최근 3일 판정 데이터가 없습니다.</div>`;
+    }
+
+    function renderDashboardBlendBars(roastingEntries) {
+      const blendMap = roastingEntries.reduce((acc, entry) => {
+        const blend = entry.blend || "미분류";
+        if (!acc[blend]) acc[blend] = [];
+        acc[blend].push(entry);
+        return acc;
+      }, {});
+      const blendRows = Object.entries(blendMap)
+        .map(([blend, blendEntries]) => ({ blend, entries: blendEntries, count: blendEntries.length, counts: verdictCounts(blendEntries) }))
+        .sort((left, right) => right.count - left.count)
+        .slice(0, 7);
+      dashboardBlendBars.innerHTML = blendRows.length
+        ? blendRows.map(({ blend, count, counts }) => {
+          const passWidth = count ? (counts.pass / count) * 100 : 0;
+          const holdWidth = count ? (counts.hold / count) * 100 : 0;
+          const issueWidth = count ? (counts.issue / count) * 100 : 0;
+          return `
+            <div class="dashboard-bar-row">
+              <span class="dashboard-bar-label" title="${escapeHtml(blend)}">${escapeHtml(blend)}</span>
+              <div class="dashboard-stacked-bar" aria-label="${escapeHtml(blend)} ${count}개">
+                <span class="pass" style="width:${passWidth}%"></span>
+                <span class="hold" style="width:${holdWidth}%"></span>
+                <span class="issue" style="width:${issueWidth}%"></span>
+              </div>
+              <span>${count}</span>
+            </div>
+          `;
+        }).join("")
+        : `<div class="empty">블렌드별 월간 데이터가 없습니다.</div>`;
+    }
+
+    function renderDashboardRoasterCards(roastingEntries) {
+      const wanted = ["검댕이", "노랭이"];
+      const roasterMap = roastingEntries.reduce((acc, entry) => {
+        const roaster = entryRoaster(entry) || "미지정";
+        if (!acc[roaster]) acc[roaster] = [];
+        acc[roaster].push(entry);
+        return acc;
+      }, {});
+      const roasterNames = [...wanted, ...Object.keys(roasterMap).filter((name) => !wanted.includes(name))].slice(0, 4);
+      dashboardRoasterCards.innerHTML = roasterNames.map((roaster) => {
+        const roasterEntries = roasterMap[roaster] || [];
+        const counts = verdictCounts(roasterEntries);
+        const total = roasterEntries.length;
+        const passWidth = total ? (counts.pass / total) * 100 : 0;
+        const holdWidth = total ? (counts.hold / total) * 100 : 0;
+        const issueWidth = total ? (counts.issue / total) * 100 : 0;
+        return `
+          <article class="dashboard-roaster-card">
+            <div class="dashboard-mini-head">
+              <strong>${escapeHtml(roaster)}</strong>
+              <span class="tag blue">${total}개</span>
+            </div>
+            <small>PASS ${counts.pass} · HOLD ${counts.hold} · ISSUE ${counts.issue}</small>
+            <div class="dashboard-roaster-meter">
+              <span class="pass" style="width:${passWidth}%; background:#52c5ff"></span>
+              <span class="hold" style="width:${holdWidth}%; background:#facc15"></span>
+              <span class="issue" style="width:${issueWidth}%; background:#ff5a67"></span>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function renderDashboardVisuals(monthEntries, roastingEntries) {
+      const monthKey = dashboardMonthKey();
+      const recentRoasting = roastingEntries.filter((entry) => isEntryInLastDays(entry, 3));
+      renderDashboardTrendChart(roastingEntries, monthKey);
+      renderDashboardVerdictDonut(recentRoasting);
+      renderDashboardBlendBars(roastingEntries);
+      renderDashboardRoasterCards(roastingEntries);
+    }
+
     function renderDashboardRecent(monthEntries) {
       const roastingEntries = sortEntriesByDate(monthEntries.filter((entry) => entry.entryType === "roasting"));
       const passCount = roastingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
@@ -8319,6 +8806,7 @@
       dashboardIssueCount.textContent = issueCount;
       dashboardMonthLabel.textContent = monthLabel(dashboardMonthKey());
       dashboardDetailCard.innerHTML = dashboardDetailMarkup(watchEntry);
+      renderDashboardVisuals(monthEntries, roastingEntries);
       const recentRoasting = sortEntriesByDate(monthEntries
         .filter((entry) => entry.entryType === "roasting" && isEntryInLastDays(entry, 3)))
         .slice(0, 6);
