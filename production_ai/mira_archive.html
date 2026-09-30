@@ -6343,6 +6343,44 @@
       return (isCuppingEntry(entry) && entry.entryType !== "correction") || entry.entryType === "espresso";
     }
 
+    function entrySourceIds(entry) {
+      return Array.isArray(entry?.sourceIds) ? entry.sourceIds.map(String).filter(Boolean) : [];
+    }
+
+    function sameOperationalBlend(left, right) {
+      return canonicalBlendName(left?.blend || "") === canonicalBlendName(right?.blend || "");
+    }
+
+    function cuppingCoversRoastingEntry(cuppingEntry, roastingEntry) {
+      if (!cuppingEntry || !roastingEntry || roastingEntry.entryType !== "roasting") return false;
+      if (!isCuppingEntry(cuppingEntry) || cuppingEntry.entryType === "correction") return false;
+      if (entrySourceIds(cuppingEntry).includes(String(roastingEntry.id || ""))) return true;
+      if (!sameOperationalBlend(cuppingEntry, roastingEntry)) return false;
+      if ((cuppingEntry.roastDate || "") !== (roastingEntry.roastDate || "")) return false;
+      if (!roastersCompatible(cuppingEntry, roastingEntry)) return false;
+      if (batchesOverlap(cuppingEntry.batch, roastingEntry.batch)) return true;
+      const cuppingBatch = normalizeBatchRange(cuppingEntry.batch || "");
+      const roastingBatch = normalizeBatchRange(roastingEntry.batch || "");
+      const cuppingRange = batchNumberRange(cuppingBatch);
+      const roastingRange = batchNumberRange(roastingBatch);
+      if (!cuppingBatch || !roastingBatch) return false;
+      if (!cuppingRange && !roastingRange) return normalizeText(cuppingBatch) === normalizeText(roastingBatch);
+      return !cuppingRange && Boolean(roastingRange);
+    }
+
+    function roastingMatchesCuppingEntry(roastingEntry, cuppingEntry) {
+      return cuppingCoversRoastingEntry(cuppingEntry, roastingEntry);
+    }
+
+    function verdictSourceCoversRoastingEntry(sourceEntry, roastingEntry) {
+      if (!sourceEntry || !roastingEntry || roastingEntry.entryType !== "roasting") return false;
+      if (isCuppingEntry(sourceEntry)) return cuppingCoversRoastingEntry(sourceEntry, roastingEntry);
+      if (sourceEntry.entryType !== "espresso") return false;
+      return sameOperationalBlend(sourceEntry, roastingEntry)
+        && (sourceEntry.roastDate || "") === (roastingEntry.roastDate || "")
+        && batchesOverlap(sourceEntry.batch, roastingEntry.batch);
+    }
+
     function syncRoastingVerdictsFromCupping(collection, cuppingEntries) {
       const targets = cuppingEntries.filter(isRoastingVerdictSource);
       if (!targets.length) return { entries: collection, updated: 0 };
@@ -6354,21 +6392,10 @@
           updated += 1;
           return { ...entry, verdict: "no_ship", issueLocked: true, updatedAt: today() };
         }
-        const shouldSync = targets.some((cuppingEntry) => (
-          cuppingEntry.blend === entry.blend
-          && cuppingEntry.roastDate === entry.roastDate
-          && roastersCompatible(cuppingEntry, entry)
-          && batchesOverlap(cuppingEntry.batch, entry.batch)
-        ));
+        const shouldSync = targets.some((sourceEntry) => verdictSourceCoversRoastingEntry(sourceEntry, entry));
         if (!shouldSync) return entry;
         const linkedVerdicts = collection
-          .filter((candidate) => (
-            isRoastingVerdictSource(candidate)
-            && candidate.blend === entry.blend
-            && candidate.roastDate === entry.roastDate
-            && roastersCompatible(candidate, entry)
-            && batchesOverlap(candidate.batch, entry.batch)
-          ))
+          .filter((candidate) => isRoastingVerdictSource(candidate) && verdictSourceCoversRoastingEntry(candidate, entry))
           .map((candidate) => normalizeVerdict(candidate.verdict));
         const verdict = linkedVerdicts.includes("no_ship")
           ? "no_ship"
@@ -6562,6 +6589,7 @@
           wholeColor: fields.wholeColor.value.trim(),
           groundColor: fields.groundColor.value.trim()
         },
+        sourceIds: Array.isArray(overrides.sourceIds) ? overrides.sourceIds : [],
         scores: {
           aroma: Number(fields.aroma.value || 0),
           flavor: Number(fields.flavor.value || 0),
@@ -7244,11 +7272,7 @@
     }
 
     function isRoastingBatchCompletedByEvaluator(roastingEntry, completedEntries = evaluatorCompletedCuppingEntries()) {
-      return completedEntries.some((entry) => (
-        entry.blend === roastingEntry.blend
-        && roastersCompatible(entry, roastingEntry)
-        && batchesOverlap(entry.batch, roastingEntry.batch)
-      ));
+      return completedEntries.some((entry) => cuppingCoversRoastingEntry(entry, roastingEntry));
     }
 
     function cuppingRoastingCandidates() {
@@ -7309,25 +7333,12 @@
 
     function linkedRoastingEntries(entry) {
       if (!isCuppingEntry(entry)) return [];
-      return entries.filter((candidate) => (
-        candidate.entryType === "roasting"
-        && candidate.blend === entry.blend
-        && candidate.roastDate === entry.roastDate
-        && roastersCompatible(entry, candidate)
-        && batchesOverlap(entry.batch, candidate.batch)
-      ));
+      return entries.filter((candidate) => roastingMatchesCuppingEntry(candidate, entry));
     }
 
     function linkedCuppingEntries(entry) {
       if (!entry || entry.entryType !== "roasting") return [];
-      return sortEntriesByDate(entries).filter((candidate) => (
-        isCuppingEntry(candidate)
-        && candidate.entryType !== "correction"
-        && candidate.blend === entry.blend
-        && candidate.roastDate === entry.roastDate
-        && roastersCompatible(candidate, entry)
-        && batchesOverlap(candidate.batch, entry.batch)
-      ));
+      return sortEntriesByDate(entries).filter((candidate) => cuppingCoversRoastingEntry(candidate, entry));
     }
 
     function cuppingSummaryText(entry) {
@@ -9344,6 +9355,7 @@
         blend: group.blend,
         roaster: group.roaster,
         batch: group.batch,
+        sourceIds: group.sourceIds,
         verdict,
         flavorIssue: note,
         roastDiagnosis: "",
