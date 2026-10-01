@@ -1318,6 +1318,18 @@
       font-size: 28px;
     }
 
+    .dashboard-month-nav {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .dashboard-month-nav button {
+      min-height: 38px;
+    }
+
     .dashboard-search-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto auto;
@@ -3730,7 +3742,12 @@
                 <h3>QC 종합 현황판</h3>
                 <p class="hint" id="monthDashboardHint">해당 월의 로스팅과 커핑 기록만 표시합니다.</p>
               </div>
-              <div class="mode"><span class="mode-mark"></span><span id="dashboardMonthLabel">이번 달</span></div>
+              <div class="dashboard-month-nav" aria-label="종합현황판 월 이동">
+                <button class="icon-button" type="button" id="dashboardMonthPrevButton" title="이전달">‹</button>
+                <div class="mode"><span class="mode-mark"></span><span id="dashboardMonthLabel">이번 달</span></div>
+                <button type="button" id="dashboardMonthTodayButton">이번달</button>
+                <button class="icon-button" type="button" id="dashboardMonthNextButton" title="다음달">›</button>
+              </div>
             </div>
             <div class="dashboard-search-row">
               <input id="dashboardSearchInput" type="search" placeholder="블렌드, 배치, 코멘트 빠른 검색">
@@ -5073,6 +5090,9 @@
     const dashboardCuppingRecent = document.querySelector("#dashboardCuppingRecent");
     const monthDashboardHint = document.querySelector("#monthDashboardHint");
     const dashboardMonthLabel = document.querySelector("#dashboardMonthLabel");
+    const dashboardMonthPrevButton = document.querySelector("#dashboardMonthPrevButton");
+    const dashboardMonthTodayButton = document.querySelector("#dashboardMonthTodayButton");
+    const dashboardMonthNextButton = document.querySelector("#dashboardMonthNextButton");
     const dashboardSearchInput = document.querySelector("#dashboardSearchInput");
     const dashboardSearchButton = document.querySelector("#dashboardSearchButton");
     const dashboardResetButton = document.querySelector("#dashboardResetButton");
@@ -5220,6 +5240,7 @@
     };
     let activeBlendSheet = "올드독";
     let activeAppView = "dashboard";
+    let dashboardCalendarMonth = "";
     let searchCalendarMonth = today().slice(0, 7);
     let selectedSearchDate = "";
     let roastingCalendarMonth = today().slice(0, 7);
@@ -6218,6 +6239,7 @@
     }
 
     function dashboardMonthKey() {
+      if (/^\d{4}-\d{2}$/.test(dashboardCalendarMonth)) return dashboardCalendarMonth;
       const monthKey = currentMonthKey();
       return entries.some((entry) => isEntryInMonth(entry, monthKey))
         ? monthKey
@@ -9259,9 +9281,10 @@
       const monthEntries = entries.filter((entry) => isEntryInMonth(entry, monthKey));
       const visible = activeAppView === "search" ? entries.filter(matchesFilters) : monthEntries;
       const visibleCupping = visible.filter(isCuppingEntry);
+      const monthEntryCount = monthEntries.length;
       monthDashboardHint.textContent = monthKey === currentKey
-        ? `${monthLabel(monthKey)} 데이터만 표시합니다. 이전 달 기록은 검색에서 확인합니다.`
-        : `${monthLabel(currentKey)} 데이터가 없어 최신 데이터 월인 ${monthLabel(monthKey)} 기록을 표시합니다.`;
+        ? `${monthLabel(monthKey)} 데이터만 표시합니다.`
+        : `${monthLabel(monthKey)} 데이터 ${monthEntryCount}개를 표시합니다.`;
       renderSearchCalendar();
       renderRatioCalendar();
       renderRoastingCalendar();
@@ -10420,6 +10443,21 @@
 
     nonShipCalendarClearButton.addEventListener("click", () => {
       selectedNonShipDate = "";
+      render();
+    });
+
+    dashboardMonthPrevButton.addEventListener("click", () => {
+      dashboardCalendarMonth = shiftMonthKey(dashboardMonthKey(), -1);
+      render();
+    });
+
+    dashboardMonthTodayButton.addEventListener("click", () => {
+      dashboardCalendarMonth = currentMonthKey();
+      render();
+    });
+
+    dashboardMonthNextButton.addEventListener("click", () => {
+      dashboardCalendarMonth = shiftMonthKey(dashboardMonthKey(), 1);
       render();
     });
 
