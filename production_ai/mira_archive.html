@@ -1945,6 +1945,12 @@
       color: var(--blue);
     }
 
+    .tag.pending {
+      background: rgba(148, 163, 184, 0.13);
+      border-color: rgba(148, 163, 184, 0.2);
+      color: var(--muted);
+    }
+
     .record-list {
       display: grid;
       gap: 10px;
@@ -6027,7 +6033,8 @@
       const withoutSeedEntries = value.filter((entry) => !seedEntryIds.has(entry.id)).map((entry) => {
         const normalizedEntry = normalizeRoastingEntryClassification(entry);
         const blend = canonicalBlendName(normalizedEntry.blend);
-        const verdict = normalizeVerdict(normalizedEntry.verdict);
+        let verdict = normalizeStoredVerdict(normalizedEntry.verdict);
+        if (normalizedEntry.entryType === "roasting" && verdict !== "no_ship") verdict = "";
         if (normalizedEntry !== entry || blend !== entry.blend || verdict !== entry.verdict) changed = true;
         return { ...normalizedEntry, blend, verdict };
       });
@@ -6385,8 +6392,12 @@
       return upsertOperationalEntries(collection, [nextEntry]);
     }
 
+    function isCuppingVerdictEntry(entry) {
+      return Boolean(entry) && (!entry.entryType || entry.entryType === "cupping");
+    }
+
     function isRoastingVerdictSource(entry) {
-      return (isCuppingEntry(entry) && entry.entryType !== "correction") || entry.entryType === "espresso";
+      return isCuppingVerdictEntry(entry) || entry.entryType === "espresso";
     }
 
     function entrySourceIds(entry) {
@@ -6399,7 +6410,7 @@
 
     function cuppingCoversRoastingEntry(cuppingEntry, roastingEntry) {
       if (!cuppingEntry || !roastingEntry || roastingEntry.entryType !== "roasting") return false;
-      if (!isCuppingEntry(cuppingEntry) || cuppingEntry.entryType === "correction") return false;
+      if (!isCuppingVerdictEntry(cuppingEntry)) return false;
       if (entrySourceIds(cuppingEntry).includes(String(roastingEntry.id || ""))) return true;
       if (!sameOperationalBlend(cuppingEntry, roastingEntry)) return false;
       if ((cuppingEntry.roastDate || "") !== (roastingEntry.roastDate || "")) return false;
@@ -6411,7 +6422,7 @@
       const roastingRange = batchNumberRange(roastingBatch);
       if (!cuppingBatch || !roastingBatch) return false;
       if (!cuppingRange && !roastingRange) return normalizeText(cuppingBatch) === normalizeText(roastingBatch);
-      return !cuppingRange && Boolean(roastingRange);
+      return false;
     }
 
     function roastingMatchesCuppingEntry(roastingEntry, cuppingEntry) {
@@ -6434,23 +6445,29 @@
       const result = collection.map((entry) => {
         if (entry.entryType !== "roasting") return entry;
         if (nonShipResultLocksEntry(entry)) {
-          if (normalizeVerdict(entry.verdict) === "no_ship") return entry;
+          if (normalizeStoredVerdict(entry.verdict) === "no_ship") return entry;
           updated += 1;
           return { ...entry, verdict: "no_ship", issueLocked: true, updatedAt: today() };
         }
         const shouldSync = targets.some((sourceEntry) => verdictSourceCoversRoastingEntry(sourceEntry, entry));
-        if (!shouldSync) return entry;
+        if (!shouldSync) {
+          const storedVerdict = normalizeStoredVerdict(entry.verdict);
+          if (!storedVerdict || storedVerdict === "no_ship") return entry;
+          updated += 1;
+          return { ...entry, verdict: "", updatedAt: today() };
+        }
         const linkedVerdicts = collection
           .filter((candidate) => isRoastingVerdictSource(candidate) && verdictSourceCoversRoastingEntry(candidate, entry))
-          .map((candidate) => normalizeVerdict(candidate.verdict));
+          .map((candidate) => normalizeStoredVerdict(candidate.verdict))
+          .filter(Boolean);
         const verdict = linkedVerdicts.includes("no_ship")
           ? "no_ship"
           : linkedVerdicts.includes("hold")
           ? "hold"
           : linkedVerdicts.includes("pass")
           ? "pass"
-          : normalizeVerdict(entry.verdict);
-        if (normalizeVerdict(entry.verdict) === verdict) return entry;
+          : "";
+        if (normalizeStoredVerdict(entry.verdict) === verdict) return entry;
         updated += 1;
         return { ...entry, verdict, updatedAt: today() };
       });
@@ -6850,7 +6867,7 @@
     }
 
     function createRoastingEntry({ blend, roastDate, batch, roaster, operator = "", pressure, drumSpeed, exhaust, heat, dropTemp, roastTime, wholeColor, groundColor, note = "로스팅 데이터 입력" }) {
-      const verdict = inferVerdictFromText(note, "hold");
+      const verdict = inferVerdictFromText(note, "");
       return {
         id: makeId(),
         entryType: "roasting",
@@ -6926,7 +6943,7 @@
       if (pendingNote && parsed.length) {
         const last = parsed[parsed.length - 1];
         last.note = `${last.note} - ${pendingNote}`;
-        last.verdict = inferVerdictFromText(last.note, last.verdict || "hold");
+        last.verdict = inferVerdictFromText(last.note, last.verdict || "");
       }
       parsed.skippedLabels = skippedLabels;
       return parsed;
@@ -7413,17 +7430,27 @@
       return "hold";
     }
 
+    function normalizeStoredVerdict(value) {
+      if (value === "pass") return "pass";
+      if (value === "watch") return "hold";
+      if (value === "hold") return "hold";
+      if (value === "no_ship") return "no_ship";
+      return "";
+    }
+
     function verdictLabel(verdict) {
-      const normalized = normalizeVerdict(verdict);
+      const normalized = normalizeStoredVerdict(verdict);
+      if (!normalized) return "미평가";
       const match = verdicts.find(([value]) => value === normalized);
       return match ? match[1] : "HOLD";
     }
 
     function verdictClass(verdict) {
-      const normalized = normalizeVerdict(verdict);
+      const normalized = normalizeStoredVerdict(verdict);
       if (normalized === "pass") return "green";
       if (normalized === "hold") return "amber";
-      return "red";
+      if (normalized === "no_ship") return "red";
+      return "pending";
     }
 
     function escapeHtml(value) {
@@ -7919,7 +7946,7 @@
     function matchesFilterControls(entry, includeDate = true) {
       const query = filters.search.value.trim().toLowerCase();
       const category = getBlendCategory(entry.blend);
-      const verdict = normalizeVerdict(entry.verdict);
+      const verdict = entryDisplayVerdictValue(entry);
       const cuppingDetail = normalizedCuppingDetail(entry);
       const visitData = normalizedVisitData(entry);
       const haystack = [
@@ -8057,13 +8084,14 @@
       const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${entry.id}" data-edit-type="${editType}">수정</button>`;
       const deleteButton = compact || !canDeleteEntry(entry, user) ? "" : `<button class="delete" data-delete="${entry.id}" title="QC 기록 삭제">×</button>`;
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
+      const displayVerdict = entryDisplayVerdictValue(entry);
       return `
         <article class="${compact ? "qc-card" : "record-item"}">
           ${compact ? "" : `<div class="date">${isCupping ? `로스팅 ${escapeHtml(entry.roastDate || "-")}<br>${escapeHtml(entry.batch || "범위 미기록")}` : `${entry.roastDate}<br>${escapeHtml(entry.batch || "범위 미기록")}`}</div>`}
           <div>
             <div class="qc-head">
               <h4 class="qc-title">${escapeHtml(entry.blend)} ${compact ? escapeHtml(entry.batch || "") : ""}</h4>
-              <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
+              <span class="tag ${verdictClass(displayVerdict)}">${verdictLabel(displayVerdict)}</span>
             </div>
             <p class="qc-body">${escapeHtml(isCupping ? (cuppingDetail.flavorIssue || entry.note) : entry.note)}</p>
             <div class="meta">
@@ -8178,7 +8206,7 @@
     function roastingCorrectionGroupMarkup(cuppingEntries) {
       const correctionEntries = cuppingEntries.filter((entry) => {
         const detail = normalizedCuppingDetail(entry);
-        return detail.flavorIssue || detail.roastDiagnosis || detail.solution || normalizeVerdict(entry.verdict) !== "pass";
+        return detail.flavorIssue || detail.roastDiagnosis || detail.solution || (normalizeStoredVerdict(entry.verdict) || "pass") !== "pass";
       });
       if (!correctionEntries.length) return `<div class="empty">표시할 로스팅 프로파일 변경내용이 없습니다.</div>`;
       return Object.entries(categorizedBlendMap()).map(([category, categoryBlends]) => {
@@ -8248,9 +8276,9 @@
     }
 
     function cuppingCommentSummaryMarkup(cuppingEntries) {
-      const passCount = cuppingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
-      const holdCount = cuppingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "hold").length;
-      const issueCount = cuppingEntries.filter((entry) => normalizeVerdict(entry.verdict) === "no_ship").length;
+      const passCount = cuppingEntries.filter((entry) => normalizeStoredVerdict(entry.verdict) === "pass").length;
+      const holdCount = cuppingEntries.filter((entry) => normalizeStoredVerdict(entry.verdict) === "hold").length;
+      const issueCount = cuppingEntries.filter((entry) => normalizeStoredVerdict(entry.verdict) === "no_ship").length;
       return `
         <div class="comment-summary">
           <div class="comment-stat"><span>전체</span><strong>${cuppingEntries.length}</strong></div>
@@ -8622,7 +8650,7 @@
         <div class="dashboard-detail-card">
           <div class="dashboard-detail-title">
             <strong>${escapeHtml(entry.blend || "-")} ${escapeHtml(entry.batch || "")}</strong>
-            <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
+            <span class="tag ${verdictClass(entryDisplayVerdictValue(entry))}">${verdictLabel(entryDisplayVerdictValue(entry))}</span>
           </div>
           <dl>
             <dt>로스팅일</dt>
@@ -8668,7 +8696,7 @@
         <article class="dashboard-mini-card">
           <div class="dashboard-mini-head">
             <strong>${escapeHtml(title.trim())}</strong>
-            <span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span>
+            <span class="tag ${verdictClass(entryDisplayVerdictValue(entry))}">${verdictLabel(entryDisplayVerdictValue(entry))}</span>
           </div>
           <p class="dashboard-mini-note">${escapeHtml(note || "기록 없음")}</p>
           <div class="dashboard-mini-meta">
@@ -8680,23 +8708,30 @@
 
     function verdictCounts(value) {
       return value.reduce((acc, entry) => {
-        const verdict = normalizeVerdict(entry.verdict);
+        const verdict = normalizeStoredVerdict(entry.verdict);
         if (verdict === "pass") acc.pass += 1;
         else if (verdict === "hold") acc.hold += 1;
-        else acc.issue += 1;
+        else if (verdict === "no_ship") acc.issue += 1;
         return acc;
       }, { pass: 0, hold: 0, issue: 0 });
     }
 
     function dashboardEntryStatus(entry) {
       const linkedSources = linkedVerdictSourceEntries(entry);
-      const linkedVerdicts = linkedSources.map((source) => normalizeVerdict(source.verdict));
-      if (normalizeVerdict(entry.verdict) === "no_ship" || linkedVerdicts.includes("no_ship")) return "issue";
+      const linkedVerdicts = linkedSources.map((source) => normalizeStoredVerdict(source.verdict)).filter(Boolean);
+      if (normalizeStoredVerdict(entry.verdict) === "no_ship" || linkedVerdicts.includes("no_ship")) return "issue";
       if (linkedVerdicts.includes("hold")) return "hold";
       if (linkedVerdicts.includes("pass")) return "pass";
-      const entryVerdict = normalizeVerdict(entry.verdict);
-      if (entryVerdict === "pass") return "pass";
       return "pending";
+    }
+
+    function entryDisplayVerdictValue(entry) {
+      if (!entry) return "";
+      if (entry.entryType !== "roasting") return normalizeStoredVerdict(entry.verdict);
+      const status = dashboardEntryStatus(entry);
+      if (status === "issue") return "no_ship";
+      if (status === "pending") return "";
+      return status;
     }
 
     function dashboardStatusCounts(value) {
@@ -8924,8 +8959,12 @@
           const roastingEntries = blendEntries.filter((entry) => entry.entryType === "roasting");
           const latest = roastingEntries[0] || blendEntries[0];
           const verdictEntries = roastingEntries.length ? roastingEntries : blendEntries;
-          const passCount = verdictEntries.filter((entry) => normalizeVerdict(entry.verdict) === "pass").length;
-          const watchCount = verdictEntries.filter((entry) => normalizeVerdict(entry.verdict) !== "pass").length;
+          const statusCounts = roastingEntries.length ? dashboardStatusCounts(roastingEntries) : null;
+          const passCount = statusCounts ? statusCounts.pass : verdictEntries.filter((entry) => normalizeStoredVerdict(entry.verdict) === "pass").length;
+          const watchCount = statusCounts ? statusCounts.hold + statusCounts.issue : verdictEntries.filter((entry) => {
+            const verdict = normalizeStoredVerdict(entry.verdict);
+            return verdict && verdict !== "pass";
+          }).length;
           return `
             <article class="blend-card">
               <h2>${escapeHtml(blend)}</h2>
@@ -9049,7 +9088,7 @@
                   <td>${displayCell(roastData.roastTime)}</td>
                   <td>${displayCell(roastData.wholeColor)}</td>
                   <td>${displayCell(roastData.groundColor)}</td>
-                  <td><span class="tag ${verdictClass(entry.verdict)}">${verdictLabel(entry.verdict)}</span></td>
+                  <td><span class="tag ${verdictClass(entryDisplayVerdictValue(entry))}">${verdictLabel(entryDisplayVerdictValue(entry))}</span></td>
                   <td>${displayCell(issueTags)}</td>
                   <td>${displayCell(isCuppingEntry(entry) ? entryEvaluatorName(entry) : "")}</td>
                   <td class="sheet-note">${displayCell(linkedComment || (isCuppingEntry(entry) ? cuppingDetail.flavorIssue : entry.note === "로스팅 데이터 입력" ? "" : entry.note))}</td>
@@ -9191,7 +9230,7 @@
     function issueEntriesForNonShipCalendar() {
       return entries.filter((entry) => (
         entry.entryType === "roasting"
-        && normalizeVerdict(entry.verdict) === "no_ship"
+        && normalizeStoredVerdict(entry.verdict) === "no_ship"
         && (entry.roastDate || "").slice(0, 7) === nonShipCalendarMonth
       ));
     }
@@ -9232,7 +9271,7 @@
     function syncNonShipLockedEntries() {
       let updated = 0;
       entries = entries.map((entry) => {
-        if (!nonShipResultLocksEntry(entry) || normalizeVerdict(entry.verdict) === "no_ship") return entry;
+        if (!nonShipResultLocksEntry(entry) || normalizeStoredVerdict(entry.verdict) === "no_ship") return entry;
         updated += 1;
         return { ...entry, verdict: "no_ship", issueLocked: true, updatedAt: today() };
       });
@@ -9262,7 +9301,7 @@
         return selectedNonShipDate ? resultRoastDate === selectedNonShipDate : resultRoastDate.slice(0, 7) === nonShipCalendarMonth;
       }));
       const noShipEntries = entries.filter((entry) => (
-        normalizeVerdict(entry.verdict) === "no_ship"
+        normalizeStoredVerdict(entry.verdict) === "no_ship"
         && entry.entryType === "roasting"
         && (selectedNonShipDate ? entry.roastDate === selectedNonShipDate : (entry.roastDate || "").slice(0, 7) === nonShipCalendarMonth)
       ));
@@ -9305,7 +9344,7 @@
       renderNonShipResults();
       Object.keys(lanes).forEach((verdict) => {
         const laneEntries = sortEntriesByDate(visibleCupping
-          .filter((entry) => normalizeVerdict(entry.verdict) === verdict));
+          .filter((entry) => normalizeStoredVerdict(entry.verdict) === verdict));
         const shownEntries = laneEntries.slice(0, 6);
         const moreText = laneEntries.length > shownEntries.length
           ? `<p class="dashboard-lane-more">외 ${laneEntries.length - shownEntries.length}건은 검색에서 확인</p>`
