@@ -1354,7 +1354,7 @@
 
     .dashboard-kpi-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 10px;
     }
 
@@ -1393,6 +1393,10 @@
 
     .dashboard-kpi.hold strong {
       color: var(--amber);
+    }
+
+    .dashboard-kpi.pending strong {
+      color: var(--muted);
     }
 
     .dashboard-kpi.issue strong {
@@ -3776,6 +3780,11 @@
                 <strong id="dashboardHoldCount">0</strong>
                 <small>보류 판정</small>
               </article>
+              <article class="dashboard-kpi pending">
+                <span>미평가 배치</span>
+                <strong id="dashboardPendingCount">0</strong>
+                <small>평가 대기</small>
+              </article>
               <article class="dashboard-kpi issue">
                 <span>ISSUE</span>
                 <strong id="dashboardIssueCount">0</strong>
@@ -5106,6 +5115,7 @@
     const dashboardRoastingHint = document.querySelector("#dashboardRoastingHint");
     const dashboardPassCount = document.querySelector("#dashboardPassCount");
     const dashboardHoldCount = document.querySelector("#dashboardHoldCount");
+    const dashboardPendingCount = document.querySelector("#dashboardPendingCount");
     const dashboardIssueCount = document.querySelector("#dashboardIssueCount");
     const dashboardDetailCard = document.querySelector("#dashboardDetailCard");
     const dashboardTrendChart = document.querySelector("#dashboardTrendChart");
@@ -8928,12 +8938,14 @@
       const dashboardCounts = dashboardStatusCounts(roastingEntries);
       const passCount = dashboardCounts.pass;
       const holdCount = dashboardCounts.hold;
+      const pendingCount = dashboardCounts.pending;
       const issueCount = dashboardCounts.issue;
       const watchEntry = roastingEntries.find((entry) => dashboardEntryStatus(entry) !== "pass") || roastingEntries[0];
       dashboardRoastingCount.textContent = roastingEntries.length;
       dashboardRoastingHint.textContent = `${monthLabel(dashboardMonthKey())} 배치 기록`;
       dashboardPassCount.textContent = passCount;
       dashboardHoldCount.textContent = holdCount;
+      dashboardPendingCount.textContent = pendingCount;
       dashboardIssueCount.textContent = issueCount;
       dashboardMonthLabel.textContent = monthLabel(dashboardMonthKey());
       dashboardDetailCard.innerHTML = dashboardDetailMarkup(watchEntry);
