@@ -2160,6 +2160,84 @@
       padding: 12px;
     }
 
+    .validation-summary {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .validation-card {
+      display: grid;
+      gap: 8px;
+      min-height: 92px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .validation-card span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .validation-card strong {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .validation-card strong.blue {
+      color: var(--blue);
+    }
+
+    .validation-card strong.green {
+      color: var(--green);
+    }
+
+    .validation-card strong.amber {
+      color: var(--amber);
+    }
+
+    .validation-card strong.red {
+      color: var(--red);
+    }
+
+    .validation-card small {
+      color: var(--muted-2);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .validation-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .validation-item {
+      display: grid;
+      grid-template-columns: minmax(140px, 0.8fr) minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(22, 28, 39, 0.74);
+    }
+
+    .validation-item strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .validation-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
     .user-list {
       display: grid;
       gap: 8px;
@@ -2306,6 +2384,8 @@
       .single-origin-lineup,
       .visit-extraction-row,
       .notice-item,
+      .validation-summary,
+      .validation-item,
       .roadmap,
       .admin-grid,
       .form-grid,
@@ -4697,6 +4777,16 @@
       <section class="panel cupping-panel">
         <div class="section-title">
           <div>
+            <h3>데이터 검증</h3>
+            <p class="hint">로스팅 배치 기준으로 중복, 미평가, 커핑 연결, 판정 동기화 상태를 점검합니다.</p>
+          </div>
+        </div>
+        <div class="validation-summary" id="adminValidationSummary"></div>
+        <div class="validation-list" id="adminValidationList"></div>
+      </section>
+      <section class="panel cupping-panel">
+        <div class="section-title">
+          <div>
             <h3>블렌드 종류 관리</h3>
             <p class="hint">관리자가 입력·검색·시트에 표시되는 제품 종류를 추가하거나 삭제합니다.</p>
           </div>
@@ -4974,6 +5064,8 @@
     const pendingList = document.querySelector("#pendingList");
     const appPendingList = document.querySelector("#appPendingList");
     const userList = document.querySelector("#userList");
+    const adminValidationSummary = document.querySelector("#adminValidationSummary");
+    const adminValidationList = document.querySelector("#adminValidationList");
     const rememberedIdBox = document.querySelector("#rememberedIdBox");
     const clearSavedIdButton = document.querySelector("#clearSavedIdButton");
     const passwordPanel = document.querySelector("#passwordPanel");
@@ -5883,6 +5975,7 @@
       if (isPrimaryAdmin(user)) {
         renderPendingUsers();
         renderUserList();
+        renderAdminValidation();
         renderBlendCatalogAdmin();
       }
     }
@@ -5900,6 +5993,7 @@
       if (target === "admin") {
         renderPendingUsers();
         renderUserList();
+        renderAdminValidation();
         renderBlendCatalogAdmin();
       }
     }
@@ -5953,6 +6047,158 @@
           </article>
         `).join("")
         : `<div class="empty">사용자가 없습니다.</div>`;
+    }
+
+    function roastingValidationLabel(entry) {
+      const roastData = normalizedRoastData(entry);
+      return [
+        entry.roastDate || "날짜 미기록",
+        entry.blend || "블렌드 미분류",
+        entry.batch || "배치 미기록",
+        roastData.roaster || "로스터기 미기록"
+      ].join(" · ");
+    }
+
+    function validationIssueMarkup(issue) {
+      const toneClass = issue.tone === "danger" ? "red" : issue.tone === "ok" ? "green" : issue.tone === "info" ? "blue" : "amber";
+      return `
+        <article class="validation-item">
+          <div>
+            <span class="tag ${toneClass}">${escapeHtml(issue.type)}</span>
+            <strong>${escapeHtml(issue.title)}</strong>
+          </div>
+          <div>
+            <p>${escapeHtml(issue.description)}</p>
+            ${issue.meta?.length ? `<div class="meta">${issue.meta.map((item) => `<span class="tag">${escapeHtml(item)}</span>`).join("")}</div>` : ""}
+          </div>
+          <span class="tag ${toneClass}">${escapeHtml(issue.countText || "확인")}</span>
+        </article>
+      `;
+    }
+
+    function buildAdminValidationReport() {
+      const roastingEntries = sortEntriesByDate(entries.filter((entry) => entry.entryType === "roasting"));
+      const cuppingEntries = sortEntriesByDate(entries.filter(isCuppingVerdictEntry));
+      const issues = [];
+      const duplicateGroups = Object.values(roastingEntries.reduce((acc, entry) => {
+        const key = entryDedupeKey(entry);
+        if (!key) return acc;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(entry);
+        return acc;
+      }, {})).filter((group) => group.length > 1);
+      duplicateGroups.forEach((group) => {
+        const sample = group[0];
+        issues.push({
+          type: "중복 의심",
+          tone: "danger",
+          title: roastingValidationLabel(sample),
+          description: "같은 로스팅일, 블렌드, 배치, 로스터기로 저장된 로스팅 데이터가 여러 건 있습니다.",
+          meta: group.map((entry) => `id ${entry.id || "-"}`).slice(0, 4),
+          countText: `${group.length}건`
+        });
+      });
+
+      const pendingRoasts = roastingEntries.filter((entry) => dashboardEntryStatus(entry) === "pending");
+      pendingRoasts.slice(0, 30).forEach((entry) => {
+        issues.push({
+          type: "미평가",
+          tone: "info",
+          title: roastingValidationLabel(entry),
+          description: "커핑, 추출, ISSUE 결과가 아직 연결되지 않은 로스팅 배치입니다.",
+          meta: [entry.note || "로스팅 데이터"],
+          countText: "대기"
+        });
+      });
+
+      const unlinkedCuppings = cuppingEntries.filter((entry) => !linkedRoastingEntries(entry).length);
+      unlinkedCuppings.slice(0, 30).forEach((entry) => {
+        issues.push({
+          type: "커핑 미연결",
+          tone: "amber",
+          title: [entry.roastDate || "로스팅일 미기록", entry.blend || "블렌드 미분류", entry.batch || "배치 미기록"].join(" · "),
+          description: "커핑 코멘트가 로스팅 배치와 연결되지 않았습니다. 날짜, 로스터기, 배치 범위를 확인하세요.",
+          meta: [entryEvaluatorName(entry), normalizedCuppingDetail(entry).flavorIssue || entry.note || "코멘트 없음"],
+          countText: "확인"
+        });
+      });
+
+      roastingEntries.forEach((entry) => {
+        const linkedSources = linkedVerdictSourceEntries(entry);
+        const linkedVerdicts = Array.from(new Set(linkedSources.map((source) => normalizeStoredVerdict(source.verdict)).filter(Boolean)));
+        const hasConflict = linkedVerdicts.includes("no_ship") && linkedVerdicts.some((verdict) => verdict !== "no_ship")
+          || linkedVerdicts.includes("hold") && linkedVerdicts.includes("pass");
+        const storedVerdict = normalizeStoredVerdict(entry.verdict);
+        const displayVerdict = entryDisplayVerdictValue(entry);
+        const hasStoredMismatch = storedVerdict && displayVerdict && storedVerdict !== displayVerdict;
+        if (!hasConflict && !hasStoredMismatch) return;
+        issues.push({
+          type: "판정 점검",
+          tone: "danger",
+          title: roastingValidationLabel(entry),
+          description: hasConflict
+            ? "연결된 커핑/추출 판정 안에 서로 다른 판정이 섞여 있습니다."
+            : "저장된 판정과 현재 연결 기준으로 계산한 판정이 다릅니다.",
+          meta: [
+            `저장 ${verdictLabel(storedVerdict)}`,
+            `계산 ${verdictLabel(displayVerdict)}`,
+            `연결 ${linkedSources.length}건`
+          ],
+          countText: "점검"
+        });
+      });
+
+      roastingEntries.forEach((entry) => {
+        const roastData = normalizedRoastData(entry);
+        const missing = [
+          ["로스터기", roastData.roaster],
+          ["담당자", roastData.operator],
+          ["배출온도", roastData.dropTemp],
+          ["로스팅시간", roastData.roastTime],
+          ["홀빈 색도", roastData.wholeColor],
+          ["그라운드 색도", roastData.groundColor]
+        ].filter(([, value]) => !normalizeText(value)).map(([label]) => label);
+        if (!missing.length) return;
+        issues.push({
+          type: "입력값 누락",
+          tone: "amber",
+          title: roastingValidationLabel(entry),
+          description: "로스팅 데이터의 핵심 입력값이 비어 있습니다.",
+          meta: missing,
+          countText: `${missing.length}개`
+        });
+      });
+
+      return {
+        roastingCount: roastingEntries.length,
+        pendingCount: pendingRoasts.length,
+        duplicateCount: duplicateGroups.length,
+        unlinkedCuppingCount: unlinkedCuppings.length,
+        verdictIssueCount: issues.filter((issue) => issue.type === "판정 점검").length,
+        issues
+      };
+    }
+
+    function renderAdminValidation() {
+      if (!adminValidationSummary || !adminValidationList) return;
+      const report = buildAdminValidationReport();
+      const summary = [
+        ["로스팅 배치", report.roastingCount, "전체 저장 배치", "blue"],
+        ["미평가", report.pendingCount, "판정 대기 배치", report.pendingCount ? "amber" : "green"],
+        ["중복 의심", report.duplicateCount, "동일 키 중복", report.duplicateCount ? "red" : "green"],
+        ["커핑 미연결", report.unlinkedCuppingCount, "배치 연결 없음", report.unlinkedCuppingCount ? "amber" : "green"],
+        ["판정 점검", report.verdictIssueCount, "충돌/불일치", report.verdictIssueCount ? "red" : "green"]
+      ];
+      adminValidationSummary.innerHTML = summary.map(([label, count, hint, tone]) => `
+        <article class="validation-card">
+          <span>${escapeHtml(label)}</span>
+          <strong class="${escapeHtml(tone)}">${escapeHtml(count)}</strong>
+          <small>${escapeHtml(hint)}</small>
+        </article>
+      `).join("");
+      adminValidationList.innerHTML = report.issues.length
+        ? report.issues.slice(0, 80).map(validationIssueMarkup).join("")
+        : `<div class="empty">검증할 이상 항목이 없습니다. 현재 데이터 연결 상태가 안정적입니다.</div>`;
     }
 
     function renderBlendCatalogAdmin() {
