@@ -1039,6 +1039,26 @@
       color: var(--ink);
     }
 
+    .machine-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(120px, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .machine-summary-grid .mini-stat {
+      min-height: 72px;
+    }
+
+    .machine-table {
+      min-width: 980px;
+    }
+
+    .machine-table td strong {
+      color: var(--ink);
+      font-weight: 900;
+    }
+
     .notice-panel {
       display: grid;
       gap: 12px;
@@ -3656,6 +3676,7 @@
         <button type="button" data-app-view="cupping" id="cuppingPageButton">커핑 입력</button>
         <button type="button" data-app-view="espresso" id="espressoPageButton">추출 평가</button>
         <button type="button" data-app-view="visit" id="visitPageButton">거래처 방문일지</button>
+        <button type="button" data-app-view="machine-data" id="machineDataPageButton">거래처 머신 데이터</button>
         <button type="button" data-app-view="nonship" id="nonShipPageButton">ISSUE 결과</button>
       </nav>
 
@@ -4686,6 +4707,69 @@
           <div class="panel record-list scrollable-record-list" id="visitRecentList"></div>
         </section>
 
+        <section class="panel cupping-panel app-panel" data-app-panel="machine-data">
+          <div class="section-title">
+            <div>
+              <h3>거래처 머신 데이터</h3>
+              <p class="hint">거래처별 머신 압력과 그룹별 유량을 누적 관리합니다.</p>
+            </div>
+          </div>
+          <div class="toolbar" style="margin-bottom: 12px;">
+            <div class="field" style="margin: 0;">
+              <label for="machineDataCustomerSearchInput">상호명 검색</label>
+              <input id="machineDataCustomerSearchInput" placeholder="상호명 입력">
+            </div>
+            <div class="field" style="margin: 0;">
+              <label for="machineDataMachineSearchInput">머신 검색</label>
+              <input id="machineDataMachineSearchInput" placeholder="머신명 입력">
+            </div>
+          </div>
+          <div class="machine-summary-grid" id="machineDataSummary"></div>
+          <form class="notice-form" id="machineDataForm" novalidate>
+            <div class="field">
+              <label for="machineDataStoreInput">상호명</label>
+              <input id="machineDataStoreInput" required>
+            </div>
+            <div class="field">
+              <label for="machineDataVisitDateInput">방문일자</label>
+              <input id="machineDataVisitDateInput" type="date" required>
+            </div>
+            <div class="field">
+              <label for="machineDataMachineInput">머신이름</label>
+              <input id="machineDataMachineInput" required>
+            </div>
+            <div class="field">
+              <label for="machineDataPressureInput">머신 압력</label>
+              <input id="machineDataPressureInput" inputmode="decimal" placeholder="예: 9bar">
+            </div>
+            <div class="field">
+              <label for="machineDataSecondFlowInput">초당 유량</label>
+              <input id="machineDataSecondFlowInput" inputmode="decimal" placeholder="예: 6.5">
+            </div>
+            <div class="field">
+              <label for="machineDataLeftFlowInput">왼쪽 유량</label>
+              <input id="machineDataLeftFlowInput" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="machineDataCenterFlowInput">중간 그룹 유량</label>
+              <input id="machineDataCenterFlowInput" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="machineDataRightFlowInput">오른쪽 유량</label>
+              <input id="machineDataRightFlowInput" inputmode="decimal">
+            </div>
+            <button class="primary" type="submit" id="machineDataSubmitButton">머신 데이터 저장</button>
+            <p id="machineDataMessage"></p>
+            <div class="field" style="grid-column: 1 / -1;">
+              <label for="machineDataBulkInput">엑셀 일괄 입력</label>
+              <textarea id="machineDataBulkInput" placeholder="엑셀 행을 그대로 복사해 붙여넣습니다.&#10;방문일자 / 업체명 / 머신압력 / 머신왼쪽그룹유량 / 머신중간그룹유량 / 머신오른쪽그룹유량 / 머신 그룹평균 / 초당 유량 / 머신이름"></textarea>
+            </div>
+          </form>
+          <div class="sheet-wrap">
+            <div id="machineDataList"></div>
+          </div>
+        </section>
+
         <section class="panel cupping-panel app-panel" data-app-panel="nonship">
           <div class="section-title">
             <div>
@@ -4815,6 +4899,7 @@
     const correctionIndicatorsKey = "mira_blend_qc_correction_indicators_v1";
     const greenBeansKey = "mira_blend_qc_green_beans_v1";
     const singleOriginSchedulesKey = "mira_blend_qc_single_origin_schedules_v1";
+    const customerMachineDataKey = "mira_customer_machine_data_v1";
     const usersKey = "mira_blend_qc_users_v1";
     const sessionKey = "mira_blend_qc_session_v1";
     const savedIdKey = "mira_blend_qc_saved_user_id_v1";
@@ -5011,6 +5096,8 @@
     const espressoSubmitButton = document.querySelector("#espressoSubmitButton");
     const visitForm = document.querySelector("#visitForm");
     const visitSubmitButton = document.querySelector("#visitSubmitButton");
+    const machineDataForm = document.querySelector("#machineDataForm");
+    const machineDataSubmitButton = document.querySelector("#machineDataSubmitButton");
     const nonShipResultForm = document.querySelector("#nonShipResultForm");
     const ratioNoticeForm = document.querySelector("#ratioNoticeForm");
     const correctionForm = document.querySelector("#correctionForm");
@@ -5041,6 +5128,7 @@
     const greenPageButton = document.querySelector("#greenPageButton");
     const espressoPageButton = document.querySelector("#espressoPageButton");
     const visitPageButton = document.querySelector("#visitPageButton");
+    const machineDataPageButton = document.querySelector("#machineDataPageButton");
     const nonShipPageButton = document.querySelector("#nonShipPageButton");
     const productQcPageButton = document.querySelector("#productQcPageButton");
     const authTabs = document.querySelectorAll("[data-auth-tab]");
@@ -5159,6 +5247,12 @@
     const visitCalendarClearButton = document.querySelector("#visitCalendarClearButton");
     const visitSearchInput = document.querySelector("#visitSearchInput");
     const visitAddExtractionButton = document.querySelector("#visitAddExtractionButton");
+    const machineDataSummary = document.querySelector("#machineDataSummary");
+    const machineDataList = document.querySelector("#machineDataList");
+    const machineDataSearchFields = {
+      customer: document.querySelector("#machineDataCustomerSearchInput"),
+      machine: document.querySelector("#machineDataMachineSearchInput")
+    };
     const nonShipCalendarTitle = document.querySelector("#nonShipCalendarTitle");
     const nonShipCalendarSummary = document.querySelector("#nonShipCalendarSummary");
     const nonShipCalendar = document.querySelector("#nonShipCalendar");
@@ -5331,6 +5425,18 @@
       equipment: document.querySelector("#visitEquipmentInput"),
       extra: document.querySelector("#visitExtraInput")
     };
+    const machineDataFields = {
+      store: document.querySelector("#machineDataStoreInput"),
+      visitDate: document.querySelector("#machineDataVisitDateInput"),
+      machine: document.querySelector("#machineDataMachineInput"),
+      pressure: document.querySelector("#machineDataPressureInput"),
+      secondFlow: document.querySelector("#machineDataSecondFlowInput"),
+      leftFlow: document.querySelector("#machineDataLeftFlowInput"),
+      centerFlow: document.querySelector("#machineDataCenterFlowInput"),
+      rightFlow: document.querySelector("#machineDataRightFlowInput"),
+      bulk: document.querySelector("#machineDataBulkInput"),
+      message: document.querySelector("#machineDataMessage")
+    };
     const nonShipFields = {
       blend: document.querySelector("#nonShipBlendInput"),
       roastDate: document.querySelector("#nonShipRoastDateInput"),
@@ -5374,6 +5480,7 @@
     let editingRoastingId = "";
     let editingEspressoId = "";
     let editingVisitId = "";
+    let editingMachineDataId = "";
     let editingNonShipId = "";
     let editingSingleOriginId = "";
 
@@ -5837,6 +5944,10 @@
       return hasPermission(user, "visit");
     }
 
+    function canManageCustomerMachineData(user) {
+      return isPrimaryAdmin(user) || normalizeRole(user?.role) === "account_manager";
+    }
+
     function canManageRatioNotices(user) {
       return hasPermission(user, "green");
     }
@@ -5886,6 +5997,7 @@
       if (name === "green") return canManageGreenBeans(user);
       if (name === "espresso") return canInputEspresso(user);
       if (name === "visit") return canManageVisitLogs(user);
+      if (name === "machine-data") return canManageCustomerMachineData(user);
       if (name === "nonship") return canManageNonShipResults(user);
       if (name === "product-qc") return canManageProductQc(user);
       return true;
@@ -5905,6 +6017,7 @@
       greenPageButton.hidden = !canManageGreenBeans(user);
       espressoPageButton.hidden = !canInputEspresso(user);
       visitPageButton.hidden = !canManageVisitLogs(user);
+      machineDataPageButton.hidden = !canManageCustomerMachineData(user);
       nonShipPageButton.hidden = !canManageNonShipResults(user);
       productQcPageButton.hidden = !canManageProductQc(user);
       resetButton.hidden = !canManageData(user);
@@ -5925,6 +6038,9 @@
       if (target === "visit") {
         if (!visitFields.date.value) visitFields.date.value = today();
         if (!visitFields.manager.value) visitFields.manager.value = userDisplayName(user);
+      }
+      if (target === "machine-data" && !machineDataFields.visitDate.value) {
+        machineDataFields.visitDate.value = today();
       }
       applyQcPermission(user);
       render();
@@ -6406,6 +6522,30 @@
     }
 
     let singleOriginSchedules = readSingleOriginSchedules();
+
+    function sortCustomerMachineData(value) {
+      return [...value].sort((left, right) => {
+        const dateDiff = dateTimestamp(right.visitDate) - dateTimestamp(left.visitDate);
+        if (dateDiff) return dateDiff;
+        return String(left.store || "").localeCompare(String(right.store || ""), "ko");
+      });
+    }
+
+    function readCustomerMachineData() {
+      const parsed = readStoreValue(customerMachineDataKey);
+      if (!parsed) return [];
+      try {
+        return Array.isArray(parsed) ? sortCustomerMachineData(parsed) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function writeCustomerMachineData(value) {
+      writeStoreValue(customerMachineDataKey, sortCustomerMachineData(value));
+    }
+
+    let customerMachineData = readCustomerMachineData();
 
     function readRatioNotices() {
       const parsed = readStoreValue(ratioNoticesKey);
@@ -7078,6 +7218,101 @@
       return { beans: result, inserted, updated };
     }
 
+    function machineFlowAverage(record) {
+      const values = [record.leftFlow, record.centerFlow, record.rightFlow]
+        .map(numericInputValue)
+        .filter((value) => value > 0);
+      if (!values.length) return "";
+      return (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1);
+    }
+
+    function averageMachineField(records, field) {
+      const values = records.map((record) => numericInputValue(record[field])).filter((value) => value > 0);
+      if (!values.length) return "-";
+      return (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1);
+    }
+
+    function createCustomerMachineRecord(fields, user) {
+      const record = {
+        id: fields.id || makeId(),
+        visitDate: parseGreenBeanDate(fields.visitDate) || today(),
+        store: normalizeText(fields.store || ""),
+        machine: normalizeText(fields.machine || ""),
+        pressure: normalizeText(fields.pressure || ""),
+        leftFlow: normalizeText(fields.leftFlow || ""),
+        centerFlow: normalizeText(fields.centerFlow || ""),
+        rightFlow: normalizeText(fields.rightFlow || ""),
+        groupAverage: normalizeText(fields.groupAverage || ""),
+        secondFlow: normalizeText(fields.secondFlow || ""),
+        createdAt: today(),
+        createdBy: userDisplayName(user)
+      };
+      record.groupAverage = machineFlowAverage(record) || record.groupAverage;
+      return record;
+    }
+
+    function splitMachineBulkLine(line) {
+      const text = String(line || "").trim();
+      if (!text) return [];
+      if (text.includes("\t")) return text.split(/\t+/);
+      if (text.includes("/")) return text.split(/\s*\/\s*/);
+      if (text.includes(",")) return text.split(/\s*,\s*/);
+      return text.split(/\s{2,}/);
+    }
+
+    function parseCustomerMachineBulkInput(value, user) {
+      return String(value || "")
+        .split(/\n+/)
+        .map((line) => splitMachineBulkLine(line))
+        .filter((parts) => parts.length >= 2)
+        .filter((parts) => !/방문일자|업체명|상호명/.test(parts.join(" ")))
+        .map((parts) => createCustomerMachineRecord({
+          visitDate: parts[0],
+          store: parts[1],
+          pressure: parts[2],
+          leftFlow: parts[3],
+          centerFlow: parts[4],
+          rightFlow: parts[5],
+          groupAverage: parts[6],
+          secondFlow: parts[7],
+          machine: parts[8]
+        }, user))
+        .filter((record) => record.store && record.machine);
+    }
+
+    function customerMachineDedupeKey(record) {
+      return [
+        record.visitDate || "",
+        normalizeText(record.store || "").toLowerCase(),
+        normalizeText(record.machine || "").toLowerCase()
+      ].join("|");
+    }
+
+    function upsertCustomerMachineData(collection, nextRecords) {
+      const result = [...collection];
+      let inserted = 0;
+      let updated = 0;
+      nextRecords.forEach((nextRecord) => {
+        const key = customerMachineDedupeKey(nextRecord);
+        const index = result.findIndex((record) => customerMachineDedupeKey(record) === key);
+        if (index === -1) {
+          result.unshift(nextRecord);
+          inserted += 1;
+          return;
+        }
+        result[index] = {
+          ...result[index],
+          ...nextRecord,
+          id: result[index].id || nextRecord.id,
+          createdAt: result[index].createdAt || nextRecord.createdAt,
+          createdBy: result[index].createdBy || nextRecord.createdBy,
+          updatedAt: today()
+        };
+        updated += 1;
+      });
+      return { records: sortCustomerMachineData(result), inserted, updated };
+    }
+
     function splitRoasterMarker(value) {
       let marker = compactBlendToken(value);
       let roaster = "";
@@ -7230,6 +7465,10 @@
         editingVisitId = "";
         visitSubmitButton.textContent = "방문일지 저장";
       }
+      if (!type || type === "machine-data") {
+        editingMachineDataId = "";
+        machineDataSubmitButton.textContent = "머신 데이터 저장";
+      }
       if (!type || type === "nonship") {
         editingNonShipId = "";
         nonShipSubmitButton.textContent = "결과 저장";
@@ -7361,6 +7600,23 @@
       greenBeanFields.message.textContent = "";
       greenBeanSubmitButton.textContent = "생두 수정";
       setAppView("green");
+    }
+
+    function loadCustomerMachineForEdit(record) {
+      if (!record || !canManageCustomerMachineData(approvedSessionUser())) return;
+      editingMachineDataId = record.id;
+      machineDataFields.store.value = record.store || "";
+      machineDataFields.visitDate.value = record.visitDate || today();
+      machineDataFields.machine.value = record.machine || "";
+      machineDataFields.pressure.value = record.pressure || "";
+      machineDataFields.secondFlow.value = record.secondFlow || "";
+      machineDataFields.leftFlow.value = record.leftFlow || "";
+      machineDataFields.centerFlow.value = record.centerFlow || "";
+      machineDataFields.rightFlow.value = record.rightFlow || "";
+      machineDataFields.bulk.value = "";
+      machineDataFields.message.textContent = "";
+      machineDataSubmitButton.textContent = "머신 데이터 수정";
+      setAppView("machine-data");
     }
 
     function scoreAverage(entry) {
@@ -9415,6 +9671,88 @@
         : `<div class="empty">아직 등록된 생두가 없습니다.</div>`;
     }
 
+    function filteredCustomerMachineData() {
+      const storeQuery = normalizeText(machineDataSearchFields.customer.value).toLowerCase();
+      const machineQuery = normalizeText(machineDataSearchFields.machine.value).toLowerCase();
+      return customerMachineData.filter((record) => {
+        const storeMatch = !storeQuery || normalizeText(record.store).toLowerCase().includes(storeQuery);
+        const machineMatch = !machineQuery || normalizeText(record.machine).toLowerCase().includes(machineQuery);
+        return storeMatch && machineMatch;
+      });
+    }
+
+    function machineSummaryCard(label, value, hint) {
+      return `
+        <div class="mini-stat">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+          <span>${escapeHtml(hint || "")}</span>
+        </div>
+      `;
+    }
+
+    function renderCustomerMachineData() {
+      if (!canManageCustomerMachineData(approvedSessionUser())) {
+        machineDataSummary.innerHTML = "";
+        machineDataList.innerHTML = "";
+        return;
+      }
+      const records = filteredCustomerMachineData();
+      machineDataSummary.innerHTML = [
+        machineSummaryCard("검색 결과", `${records.length}건`, "현재 조건"),
+        machineSummaryCard("왼쪽 평균", averageMachineField(records, "leftFlow"), "그룹 유량"),
+        machineSummaryCard("중간 평균", averageMachineField(records, "centerFlow"), "그룹 유량"),
+        machineSummaryCard("오른쪽 평균", averageMachineField(records, "rightFlow"), "그룹 유량"),
+        machineSummaryCard("전체그룹 평균", averageMachineField(records, "groupAverage"), "좌/중/우 평균"),
+        machineSummaryCard("평균초당유량", averageMachineField(records, "secondFlow"), "초당 유량")
+      ].join("");
+      if (!records.length) {
+        machineDataList.innerHTML = `<div class="empty">검색 조건에 맞는 거래처 머신 데이터가 없습니다.</div>`;
+        return;
+      }
+      machineDataList.innerHTML = `
+        <table class="sheet-table machine-table">
+          <thead>
+            <tr>
+              <th>방문일자</th>
+              <th>상호명</th>
+              <th>머신</th>
+              <th>압력</th>
+              <th>왼쪽</th>
+              <th>중간</th>
+              <th>오른쪽</th>
+              <th>그룹평균</th>
+              <th>초당유량</th>
+              <th>입력자</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map((record) => `
+              <tr>
+                <td>${escapeHtml(record.visitDate || "-")}</td>
+                <td><strong>${escapeHtml(record.store || "-")}</strong></td>
+                <td>${escapeHtml(record.machine || "-")}</td>
+                <td>${escapeHtml(record.pressure || "-")}</td>
+                <td>${escapeHtml(record.leftFlow || "-")}</td>
+                <td>${escapeHtml(record.centerFlow || "-")}</td>
+                <td>${escapeHtml(record.rightFlow || "-")}</td>
+                <td>${escapeHtml(record.groupAverage || machineFlowAverage(record) || "-")}</td>
+                <td>${escapeHtml(record.secondFlow || "-")}</td>
+                <td>${escapeHtml(record.createdBy || "-")}</td>
+                <td>
+                  <div class="entry-actions">
+                    <button type="button" data-edit-machine-data="${escapeHtml(record.id)}">수정</button>
+                    <button class="delete" type="button" data-delete-machine-data="${escapeHtml(record.id)}" title="머신 데이터 삭제">×</button>
+                  </div>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
     function renderSingleOriginCalendar() {
       const [year, month] = singleOriginCalendarMonth.split("-").map(Number);
       const lastDate = new Date(year, month, 0);
@@ -9595,6 +9933,7 @@
       renderBlendSheetTabs();
       renderBlendSheet();
       renderGreenBeans();
+      renderCustomerMachineData();
       renderProductQc();
       renderSingleOriginCalendar();
       renderSingleOriginSchedules();
@@ -9933,6 +10272,49 @@
       resetEditingState("green");
       greenBeanFields.receivedDate.value = today();
       greenBeanFields.krwPerKg.value = "";
+      render();
+    });
+
+    machineDataForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const user = approvedSessionUser();
+      if (!canManageCustomerMachineData(user)) return;
+      const bulkText = normalizeText(machineDataFields.bulk.value);
+      const bulkRecords = parseCustomerMachineBulkInput(bulkText, user);
+      if (bulkRecords.length) {
+        const result = upsertCustomerMachineData(customerMachineData, bulkRecords);
+        customerMachineData = result.records;
+        machineDataFields.message.textContent = `머신 데이터 ${result.inserted}건 저장, ${result.updated}건 갱신했습니다.`;
+      } else {
+        if (bulkText) {
+          machineDataFields.message.textContent = "일괄 입력에서 저장 가능한 머신 데이터를 찾지 못했습니다. 업체명과 머신이름이 포함되어 있는지 확인해주세요.";
+          return;
+        }
+        if (!normalizeText(machineDataFields.store.value) || !normalizeText(machineDataFields.machine.value)) {
+          machineDataFields.message.textContent = "상호명과 머신이름을 입력해주세요.";
+          return;
+        }
+        const record = createCustomerMachineRecord({
+          id: editingMachineDataId || makeId(),
+          store: machineDataFields.store.value,
+          visitDate: machineDataFields.visitDate.value || today(),
+          machine: machineDataFields.machine.value,
+          pressure: machineDataFields.pressure.value,
+          secondFlow: machineDataFields.secondFlow.value,
+          leftFlow: machineDataFields.leftFlow.value,
+          centerFlow: machineDataFields.centerFlow.value,
+          rightFlow: machineDataFields.rightFlow.value
+        }, user);
+        customerMachineData = editingMachineDataId
+          ? customerMachineData.map((item) => item.id === editingMachineDataId ? { ...item, ...record, createdAt: item.createdAt || record.createdAt, createdBy: item.createdBy || record.createdBy, updatedAt: today() } : item)
+          : [record, ...customerMachineData];
+        customerMachineData = sortCustomerMachineData(customerMachineData);
+        machineDataFields.message.textContent = editingMachineDataId ? "머신 데이터를 수정했습니다." : "머신 데이터를 저장했습니다.";
+      }
+      writeCustomerMachineData(customerMachineData);
+      machineDataForm.reset();
+      resetEditingState("machine-data");
+      machineDataFields.visitDate.value = today();
       render();
     });
 
@@ -10694,6 +11076,23 @@
       render();
     });
 
+    machineDataSearchFields.customer.addEventListener("input", render);
+    machineDataSearchFields.machine.addEventListener("input", render);
+
+    machineDataList.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-edit-machine-data]");
+      if (editButton) {
+        const record = customerMachineData.find((item) => item.id === editButton.dataset.editMachineData);
+        if (record) loadCustomerMachineForEdit(record);
+        return;
+      }
+      const deleteButton = event.target.closest("[data-delete-machine-data]");
+      if (!deleteButton || !canManageCustomerMachineData(approvedSessionUser())) return;
+      customerMachineData = customerMachineData.filter((record) => record.id !== deleteButton.dataset.deleteMachineData);
+      writeCustomerMachineData(customerMachineData);
+      render();
+    });
+
     ratioNoticeList.addEventListener("click", (event) => {
       const button = event.target.closest("[data-delete-notice]");
       if (!button) return;
@@ -11086,6 +11485,7 @@
     espressoFields.date.value = today();
     visitFields.date.value = today();
     visitFields.manager.value = userDisplayName(approvedSessionUser());
+    machineDataFields.visitDate.value = today();
     resetVisitExtractionRows();
     nonShipFields.date.value = today();
     nonShipFields.roastDate.value = today();
