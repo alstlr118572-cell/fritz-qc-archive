@@ -4208,7 +4208,7 @@
               <p class="hint">입고 생두의 기본 정보와 원화 단가를 관리합니다. 여러 생두는 일괄 입력으로 빠르게 저장할 수 있습니다.</p>
             </div>
           </div>
-          <form class="notice-form green-bean-form" id="greenBeanForm">
+          <form class="notice-form green-bean-form" id="greenBeanForm" novalidate>
             <div class="field">
               <label for="greenBeanOriginInput">국가</label>
               <input id="greenBeanOriginInput" placeholder="예: Colombia / Ethiopia">
@@ -9892,12 +9892,21 @@
       event.preventDefault();
       const user = approvedSessionUser();
       if (!canManageGreenBeans(user)) return;
-      const bulkBeans = parseGreenBeanBulkInput(greenBeanFields.bulk.value, user);
+      const bulkText = normalizeText(greenBeanFields.bulk.value);
+      const bulkBeans = parseGreenBeanBulkInput(bulkText, user);
       if (bulkBeans.length) {
         const result = upsertGreenBeans(greenBeans, bulkBeans);
         greenBeans = result.beans;
         greenBeanFields.message.textContent = `생두 ${result.inserted}건 저장, ${result.updated}건 갱신했습니다.`;
       } else {
+        if (bulkText) {
+          greenBeanFields.message.textContent = "일괄 입력에서 저장 가능한 생두를 찾지 못했습니다. 이름과 프로세스가 포함되어 있는지 확인해주세요.";
+          return;
+        }
+        if (!normalizeText(greenBeanFields.name.value) || !normalizeText(greenBeanFields.process.value)) {
+          greenBeanFields.message.textContent = "개별 입력은 이름과 프로세스를 입력해주세요.";
+          return;
+        }
         const bean = {
           ...createGreenBeanRecord({
             name: greenBeanFields.name.value,
