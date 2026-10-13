@@ -5839,6 +5839,7 @@
       ["green", "생두 관리"],
       ["espresso", "추출 평가"],
       ["visit", "거래처 방문일지"],
+      ["machine_data", "거래처 머신 데이터"],
       ["product_qc", "제품 QC"]
     ];
 
@@ -5848,7 +5849,7 @@
       if (normalized === "cupper") return ["cupping"];
       if (normalized === "roaster") return ["roasting", "correction"];
       if (normalized === "green_manager") return ["green"];
-      if (normalized === "account_manager") return ["espresso", "visit"];
+      if (normalized === "account_manager") return ["espresso", "visit", "machine_data"];
       return [];
     }
 
@@ -5945,7 +5946,7 @@
     }
 
     function canManageCustomerMachineData(user) {
-      return isPrimaryAdmin(user) || normalizeRole(user?.role) === "account_manager";
+      return hasPermission(user, "machine_data");
     }
 
     function canManageRatioNotices(user) {
