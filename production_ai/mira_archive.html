@@ -3578,7 +3578,7 @@
         </div>
         <div class="field">
           <label for="newPasswordInput">새 비밀번호</label>
-          <input id="newPasswordInput" type="password" required autocomplete="new-password" placeholder="4자 이상 입력">
+          <input id="newPasswordInput" type="password" required minlength="8" autocomplete="new-password" placeholder="8자 이상 입력">
         </div>
         <div class="field">
           <label for="confirmPasswordInput">새 비밀번호 확인</label>
@@ -3633,7 +3633,7 @@
           </div>
           <div class="field">
             <label for="signupPasswordInput">비밀번호</label>
-            <input id="signupPasswordInput" type="password" required autocomplete="new-password" placeholder="4자 이상 입력">
+            <input id="signupPasswordInput" type="password" required minlength="8" autocomplete="new-password" placeholder="8자 이상 입력">
           </div>
           <div class="field">
             <label for="signupNameInput">이름</label>
@@ -6131,8 +6131,8 @@
               </div>
             </div>
             <div class="pending-actions">
-              <button type="button" class="primary" data-approve="${user.id}">승인</button>
-              <button type="button" class="danger" data-reject="${user.id}">거절</button>
+              <button type="button" class="primary" data-approve="${escapeHtml(user.id)}">승인</button>
+              <button type="button" class="danger" data-reject="${escapeHtml(user.id)}">거절</button>
             </div>
           </article>
         `).join("")
@@ -8412,7 +8412,7 @@
             <div class="comment-compare-grid">
               ${lineups.map((lineup) => `
                 <article class="comment-item">
-                  <div class="comment-date">#${lineup.slot || "-"}</div>
+                  <div class="comment-date">#${escapeHtml(lineup.slot || "-")}</div>
                   <div>
                     <div class="qc-head">
                       <h4 class="qc-title">${escapeHtml(lineup.beanName || "-")}</h4>
@@ -8594,13 +8594,13 @@
       const linkedCuppings = isRoasting ? linkedCuppingEntries(entry) : [];
       const user = approvedSessionUser();
       const editType = isRoasting ? "roasting" : isEspresso ? "espresso" : "cupping";
-      const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${entry.id}" data-edit-type="${editType}">수정</button>`;
-      const deleteButton = compact || !canDeleteEntry(entry, user) ? "" : `<button class="delete" data-delete="${entry.id}" title="QC 기록 삭제">×</button>`;
+      const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${escapeHtml(entry.id)}" data-edit-type="${editType}">수정</button>`;
+      const deleteButton = compact || !canDeleteEntry(entry, user) ? "" : `<button class="delete" data-delete="${escapeHtml(entry.id)}" title="QC 기록 삭제">×</button>`;
       const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
       const displayVerdict = entryDisplayVerdictValue(entry);
       return `
         <article class="${compact ? "qc-card" : "record-item"}">
-          ${compact ? "" : `<div class="date">${isCupping ? `로스팅 ${escapeHtml(entry.roastDate || "-")}<br>${escapeHtml(entry.batch || "범위 미기록")}` : `${entry.roastDate}<br>${escapeHtml(entry.batch || "범위 미기록")}`}</div>`}
+          ${compact ? "" : `<div class="date">${isCupping ? `로스팅 ${escapeHtml(entry.roastDate || "-")}<br>${escapeHtml(entry.batch || "범위 미기록")}` : `${escapeHtml(entry.roastDate || "-")}<br>${escapeHtml(entry.batch || "범위 미기록")}`}</div>`}
           <div>
             <div class="qc-head">
               <h4 class="qc-title">${escapeHtml(entry.blend)} ${compact ? escapeHtml(entry.batch || "") : ""}</h4>
@@ -8608,7 +8608,7 @@
             </div>
             <p class="qc-body">${escapeHtml(isCupping ? (cuppingDetail.flavorIssue || entry.note) : entry.note)}</p>
             <div class="meta">
-              <span class="tag blue">${entry.roastLevel}</span>
+              <span class="tag blue">${escapeHtml(entry.roastLevel || "")}</span>
               ${isEspresso
                 ? `<span class="tag">도징 ${escapeHtml(espressoData.dose || "-")}</span>
                   <span class="tag">추출량 ${escapeHtml(espressoData.yield || "-")}</span>
@@ -9486,7 +9486,7 @@
               <div class="meta">
                 <span class="tag blue">${escapeHtml(category)}</span>
                 <span class="tag ${latest ? verdictClass(latest.verdict) : ""}">${latest ? verdictLabel(latest.verdict) : "대기"}</span>
-                <span class="tag">${latest ? latest.roastDate : "기록 대기"}</span>
+                <span class="tag">${escapeHtml(latest ? latest.roastDate : "기록 대기")}</span>
               </div>
               <div class="blend-meta">
                 <div class="mini-stat"><span>배치</span><strong>${roastingEntries.length || blendEntries.length}</strong></div>
@@ -10608,8 +10608,8 @@
         authMessages.signup.textContent = "아이디는 3자 이상으로 입력하세요.";
         return;
       }
-      if (password.length < 4) {
-        authMessages.signup.textContent = "비밀번호는 4자 이상으로 입력하세요.";
+      if (password.length < 8) {
+        authMessages.signup.textContent = "비밀번호는 8자 이상으로 입력하세요.";
         return;
       }
       if (canUseSharedStore()) {
@@ -10741,8 +10741,8 @@
       if (passwordButton) {
         const nextPassword = prompt(`${targetUser.userId} 새 비밀번호를 입력하세요.`, "");
         if (nextPassword === null) return;
-        if (nextPassword.length < 4) {
-          alert("새 비밀번호는 4자 이상으로 입력해주세요.");
+        if (nextPassword.length < 8) {
+          alert("새 비밀번호는 8자 이상으로 입력해주세요.");
           return;
         }
         users = users.map((user) => user.id === targetId ? { ...user, password: nextPassword, passwordUpdatedAt: today() } : user);
@@ -10882,8 +10882,8 @@
         passwordFields.message.textContent = "로그인 상태를 다시 확인해주세요.";
         return;
       }
-      if (passwordFields.next.value.length < 4) {
-        passwordFields.message.textContent = "새 비밀번호는 4자 이상으로 입력하세요.";
+      if (passwordFields.next.value.length < 8) {
+        passwordFields.message.textContent = "새 비밀번호는 8자 이상으로 입력하세요.";
         return;
       }
       if (passwordFields.next.value !== passwordFields.confirm.value) {

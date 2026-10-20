@@ -6,6 +6,8 @@ import hmac
 import os
 import secrets
 import time
+import re
+import threading
 from http import cookies
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -33,12 +35,20 @@ SESSION_COOKIE = "mira_session"
 SESSION_TTL_SECONDS = 60 * 60 * 6
 SESSION_SECRET = (
     os.environ.get("MIRA_SESSION_SECRET")
-    or SUPABASE_KEY
+    or (hmac.new(SUPABASE_KEY.encode(), b"mira-session-signing-v1", hashlib.sha256).hexdigest() if SUPABASE_KEY else "")
     or os.environ.get("SECRET_KEY")
-    or "mira-archive-local-session-secret"
+    or secrets.token_hex(32)
 )
 PRIMARY_ADMIN_USER_ID = os.environ.get("MIRA_PRIMARY_ADMIN_USER_ID", "eomms0110").strip().lower()
 SESSIONS = {}
+REVOKED_SESSIONS = {}
+LOGIN_ATTEMPTS = {}
+SIGNUP_ATTEMPTS = {}
+STORE_LOCK = threading.RLock()
+MACHINE_DATA_KEY = "mira_customer_machine_data_v1"
+PUBLIC_FILES = {name: ROOT / "production_ai" / name for name in (
+    "mira_archive.html", "mira_archive_sw.js", "mira_archive_manifest.json",
+    "mira_archive_icon.svg", "mira_archive_icon_192.png", "mira_archive_icon_512.png")}
 
 
 class StoreError(Exception):
@@ -66,6 +76,16 @@ def write_store(store):
         return
     STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
     STORE_PATH.write_text(json.dumps(store, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def write_store_key(key, value):
+    if STORE_PROVIDER == "supabase":
+        write_supabase_store({key: value})
+        return
+    with STORE_LOCK:
+        store = read_store()
+        store[key] = value
+        write_store(store)
 
 
 def supabase_headers(prefer=""):
@@ -163,6 +183,8 @@ def sanitize_user(user):
     clean.pop("password", None)
     clean.pop("passwordSalt", None)
     clean.pop("passwordHash", None)
+    if user:
+        clean["permissions"] = normalize_permissions(user)
     return clean
 
 
@@ -187,7 +209,7 @@ def normalize_role(role):
 def role_permissions(role):
     normalized = normalize_role(role)
     if normalized == "admin":
-        return ["cupping", "roasting", "correction", "green", "espresso", "visit", "product_qc"]
+        return ["cupping", "roasting", "correction", "green", "espresso", "visit", "machine_data", "product_qc"]
     if normalized == "cupper":
         return ["cupping"]
     if normalized == "roaster":
@@ -195,12 +217,12 @@ def role_permissions(role):
     if normalized == "green_manager":
         return ["green"]
     if normalized == "account_manager":
-        return ["espresso", "visit"]
+        return ["espresso", "visit", "machine_data"]
     return []
 
 
 def normalize_permissions(user):
-    allowed = {"cupping", "roasting", "correction", "green", "espresso", "visit", "product_qc"}
+    allowed = {"cupping", "roasting", "correction", "green", "espresso", "visit", "product_qc", "machine_data"}
     permissions = set(role_permissions(user.get("role")))
     permissions.update(value for value in user.get("permissions", []) if value in allowed)
     return sorted(permissions)
@@ -227,9 +249,86 @@ def can_write_store_key(user, key):
         return has_any_operational_permission(user)
     if key == PRODUCT_CATALOG_KEY:
         return has_permission(user, "product_qc")
+    if key == MACHINE_DATA_KEY:
+        return has_permission(user, "machine_data")
     if key == ENTRIES_KEY:
         return any(has_permission(user, permission) for permission in ("cupping", "roasting", "espresso", "visit"))
     return False
+
+
+def can_read_store_key(user, key):
+    if key in (ENTRIES_KEY, BLEND_CATALOG_KEY, RATIO_NOTICES_KEY, SINGLE_ORIGIN_SCHEDULES_KEY):
+        return True
+    return can_write_store_key(user, key)
+
+
+def entry_permission(entry):
+    return {"roasting": "roasting", "espresso": "espresso", "visit": "visit",
+            "correction": "correction"}.get(entry.get("entryType"), "cupping")
+
+
+def visible_entries(user, entries):
+    return [item for item in entries if item.get("entryType") not in ("visit", "correction")
+            or has_permission(user, entry_permission(item))]
+
+
+def validate_store_value(key, value):
+    if key in (BLEND_CATALOG_KEY, PRODUCT_CATALOG_KEY):
+        if not isinstance(value, dict):
+            raise ValueError("목록 형식이 올바르지 않습니다.")
+    elif not isinstance(value, list) or len(value) > 50000:
+        raise ValueError("저장 데이터는 목록이어야 합니다.")
+    if key not in (BLEND_CATALOG_KEY, PRODUCT_CATALOG_KEY) and any(not isinstance(item, dict) for item in value):
+        raise ValueError("기록 형식이 올바르지 않습니다.")
+    if key == ENTRIES_KEY:
+        for item in value:
+            if not isinstance(item.get("id"), str) or not item["id"]:
+                raise ValueError("기록 ID가 필요합니다.")
+            if not isinstance(item.get("entryType", ""), str):
+                raise ValueError("잘못된 기록 종류입니다.")
+    def check(item, field="", depth=0):
+        if depth > 20:
+            raise ValueError("데이터 구조가 너무 깊습니다.")
+        if isinstance(item, dict):
+            for name, child in item.items():
+                check(child, name, depth + 1)
+        elif isinstance(item, list):
+            for child in item:
+                check(child, field, depth + 1)
+        elif isinstance(item, str):
+            if len(item) > 20000 or re.search(r"<\s*/?\s*[a-zA-Z][^>]*>", item):
+                raise ValueError("허용되지 않는 입력입니다.")
+            if field == "id" and not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", item):
+                raise ValueError("잘못된 기록 ID입니다.")
+            if field == "entryType" and item not in ("", "cupping", "roasting", "espresso", "visit", "correction"):
+                raise ValueError("잘못된 기록 종류입니다.")
+    check(value)
+
+
+def merge_authorized_entries(user, previous, incoming):
+    if is_primary_admin(user):
+        return incoming
+    old = {item["id"]: item for item in previous}
+    new = {item["id"]: item for item in incoming}
+    if len(new) != len(incoming):
+        raise ValueError("중복 기록 ID입니다.")
+    for identity, item in new.items():
+        before = old.get(identity)
+        if before == item:
+            continue
+        if before and before.get("entryType") == "roasting" and not has_permission(user, "roasting"):
+            derived = {"verdict", "updatedAt", "issueLocked"}
+            if {k: v for k, v in before.items() if k not in derived} == {k: v for k, v in item.items() if k not in derived}:
+                # Verdicts are derived by the UI from authorized cupping/espresso records.
+                new[identity] = before
+                continue
+        if not has_permission(user, entry_permission(item)) or (before and not has_permission(user, entry_permission(before))):
+            raise AuthError("다른 페이지의 기록을 수정할 수 없습니다.")
+    for identity, item in old.items():
+        if identity not in new and item in visible_entries(user, [item]) and not has_permission(user, entry_permission(item)):
+            raise AuthError("다른 페이지의 기록을 삭제할 수 없습니다.")
+    hidden = [item for item in previous if item not in visible_entries(user, [item])]
+    return list(new.values()) + [item for item in hidden if item["id"] not in new]
 
 
 def read_users_from_store():
@@ -239,9 +338,7 @@ def read_users_from_store():
 
 
 def write_users_to_store(users):
-    store = read_store()
-    store[USERS_KEY] = users
-    write_store(store)
+    write_store_key(USERS_KEY, users)
 
 
 def find_user(users, user_id):
@@ -252,6 +349,7 @@ def find_user(users, user_id):
 def issue_session(user):
     session = {
         "userId": user.get("id"),
+        "version": user.get("sessionVersion", 0),
         "expiresAt": time.time() + SESSION_TTL_SECONDS,
     }
     payload = base64.urlsafe_b64encode(json.dumps(session, separators=(",", ":")).encode("utf-8")).decode("ascii").rstrip("=")
@@ -270,15 +368,21 @@ def legacy_session_user_from_token(token):
     user = next((item for item in users if item.get("id") == session.get("userId")), None)
     if not user or user.get("status") != "approved":
         return None
+    if session.get("version", 0) != user.get("sessionVersion", 0):
+        return None
     return user
 
 
 def session_user_from_token(token):
     if not token:
         return None
+    if token in REVOKED_SESSIONS:
+        return None
     if "." not in token:
         return legacy_session_user_from_token(token)
     payload, signature = token.rsplit(".", 1)
+    if not payload.isascii() or len(token) > 4096:
+        return None
     expected = hmac.new(SESSION_SECRET.encode("utf-8"), payload.encode("ascii"), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(signature, expected):
         return None
@@ -287,11 +391,16 @@ def session_user_from_token(token):
         session = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8"))
     except Exception:
         return None
-    if float(session.get("expiresAt") or 0) < time.time():
+    try:
+        if float(session.get("expiresAt") or 0) < time.time():
+            return None
+    except (ValueError, TypeError):
         return None
     users = read_users_from_store()
     user = next((item for item in users if item.get("id") == session.get("userId")), None)
     if not user or user.get("status") != "approved":
+        return None
+    if session.get("version", 0) != user.get("sessionVersion", 0):
         return None
     return user
 
@@ -321,6 +430,8 @@ def merge_admin_user_updates(existing_users, incoming_users):
         existing = by_id.get(incoming.get("id"), {})
         merged = {**existing, **incoming}
         if incoming.get("password"):
+            if not 8 <= len(str(incoming["password"])) <= 256:
+                raise ValueError("비밀번호는 8자 이상이어야 합니다.")
             merged = hash_user_password(merged, incoming.get("password"))
             merged["passwordUpdatedAt"] = today_text()
         else:
@@ -328,6 +439,7 @@ def merge_admin_user_updates(existing_users, incoming_users):
             if existing.get("passwordHash"):
                 merged["passwordHash"] = existing.get("passwordHash")
                 merged["passwordSalt"] = existing.get("passwordSalt")
+        merged["sessionVersion"] = existing.get("sessionVersion", 0) + (1 if incoming.get("password") else 0)
         next_users.append(merged)
     return apply_admin_guard(next_users)
 
@@ -337,9 +449,23 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
     def end_headers(self):
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "same-origin")
+        self.send_header("Content-Security-Policy", "object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
         super().end_headers()
+
+    def send_head(self):
+        path = unquote(urlparse(self.path).path)
+        name = path.removeprefix("/production_ai/")
+        if path == "/":
+            name = "mira_archive.html"
+        if name not in PUBLIC_FILES or path not in ("/", "/" + name, "/production_ai/" + name):
+            self.send_error(404)
+            return None
+        self.path = "/production_ai/" + name
+        return super().send_head()
 
     def send_json(self, status, payload):
         data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -356,7 +482,7 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
         if token:
             self.send_header(
                 "Set-Cookie",
-                f"{SESSION_COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL_SECONDS}",
+                f"{SESSION_COOKIE}={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={SESSION_TTL_SECONDS}" + ("; Secure" if self.headers.get("X-Forwarded-Proto") == "https" else ""),
             )
         if clear_cookie:
             self.send_header("Set-Cookie", f"{SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0")
@@ -365,9 +491,17 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
         self.wfile.write(data)
 
     def read_json_body(self):
+        origin = self.headers.get("Origin")
+        if origin and urlparse(origin).netloc != self.headers.get("Host"):
+            raise ValueError("invalid origin")
         length = int(self.headers.get("Content-Length", "0") or "0")
+        if length < 0 or length > 8 * 1024 * 1024:
+            raise ValueError("request too large")
         try:
-            return json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+            value = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+            if not isinstance(value, dict):
+                raise ValueError("invalid json")
+            return value
         except Exception as error:
             raise ValueError("invalid json") from error
 
@@ -405,7 +539,6 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
             if path == "/api/auth/users":
                 self.require_admin()
                 users = apply_admin_guard(read_users_from_store())
-                write_users_to_store(users)
                 self.send_json(200, {"users": [sanitize_user(user) for user in users]})
                 return True
         except AuthError as error:
@@ -423,11 +556,19 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
             if path == "/api/auth/login":
                 user_id = normalize_user_id(payload.get("userId"))
                 password = str(payload.get("password") or "")
+                attempt_key = (self.client_address[0], user_id)
+                failures, blocked_until = LOGIN_ATTEMPTS.get(attempt_key, (0, 0))
+                if blocked_until > time.time():
+                    self.send_json(429, {"error": "로그인 시도가 많습니다. 잠시 후 다시 시도해주세요."})
+                    return True
                 users = apply_admin_guard(read_users_from_store())
                 user = find_user(users, user_id)
-                if not user:
-                    self.send_json(404, {"error": "사용자 승인 요청을 먼저 남겨주세요."})
+                if not user or not verify_password(user, password):
+                    failures += 1
+                    LOGIN_ATTEMPTS[attempt_key] = (failures, time.time() + 60 if failures >= 5 else 0)
+                    self.send_json(403, {"error": "아이디 또는 비밀번호를 확인해주세요."})
                     return True
+                LOGIN_ATTEMPTS.pop(attempt_key, None)
                 if user.get("status") != "approved":
                     message = "아직 관리자 승인 대기 중입니다." if user.get("status") == "pending" else "승인이 거절된 사용자입니다."
                     self.send_json(403, {"error": message})
@@ -440,21 +581,28 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
                     users = apply_admin_guard(users)
                     write_users_to_store(users)
                     user = find_user(users, user_id)
-                else:
-                    write_users_to_store(users)
                 token = issue_session(user)
                 self.send_json_with_cookie(200, {"user": sanitize_user(user)}, token=token)
                 return True
             if path == "/api/auth/signup":
+                now = time.time()
+                attempts = [stamp for stamp in SIGNUP_ATTEMPTS.get(self.client_address[0], []) if now - stamp < 3600]
+                if len(attempts) >= 10:
+                    self.send_json(429, {"error": "가입 요청이 많습니다. 나중에 다시 시도해주세요."})
+                    return True
+                SIGNUP_ATTEMPTS[self.client_address[0]] = attempts + [now]
                 user_id = normalize_user_id(payload.get("userId"))
                 password = str(payload.get("password") or "")
                 name = str(payload.get("name") or "").strip()
                 team = str(payload.get("team") or "").strip()
+                if user_id == PRIMARY_ADMIN_USER_ID or not re.fullmatch(r"[a-z0-9_.-]{3,64}", user_id) or not name or len(name) > 100 or len(team) > 100:
+                    self.send_json(400, {"error": "사용자 정보를 확인해주세요."})
+                    return True
                 if len(user_id) < 3:
                     self.send_json(400, {"error": "아이디는 3자 이상으로 입력하세요."})
                     return True
-                if len(password) < 4:
-                    self.send_json(400, {"error": "비밀번호는 4자 이상으로 입력하세요."})
+                if len(password) < 8 or len(password) > 256:
+                    self.send_json(400, {"error": "비밀번호는 8자 이상 256자 이하로 입력하세요."})
                     return True
                 users = apply_admin_guard(read_users_from_store())
                 existing = find_user(users, user_id)
@@ -477,8 +625,13 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
                 return True
             if path == "/api/auth/logout":
                 token = self.session_token()
+                user = self.current_user()
+                if user:
+                    users = read_users_from_store()
+                    write_users_to_store([{**item, "sessionVersion": item.get("sessionVersion", 0) + 1} if item.get("id") == user.get("id") else item for item in users])
                 if token:
                     SESSIONS.pop(token, None)
+                    REVOKED_SESSIONS[token] = time.time() + SESSION_TTL_SECONDS
                 self.send_json_with_cookie(200, {"ok": True}, clear_cookie=True)
                 return True
             if path == "/api/auth/password":
@@ -489,12 +642,14 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
                     self.send_json(403, {"error": "현재 비밀번호가 맞지 않습니다."})
                     return True
                 next_password = str(payload.get("nextPassword") or "")
-                if len(next_password) < 4:
-                    self.send_json(400, {"error": "새 비밀번호는 4자 이상으로 입력하세요."})
+                if len(next_password) < 8 or len(next_password) > 256:
+                    self.send_json(400, {"error": "새 비밀번호는 8자 이상 256자 이하로 입력하세요."})
                     return True
-                users = [hash_user_password(item, next_password) if item.get("id") == stored.get("id") else item for item in users]
+                users = [{**hash_user_password(item, next_password), "sessionVersion": item.get("sessionVersion", 0) + 1} if item.get("id") == stored.get("id") else item for item in users]
                 write_users_to_store(apply_admin_guard(users))
-                self.send_json(200, {"ok": True})
+                REVOKED_SESSIONS[self.session_token()] = time.time() + SESSION_TTL_SECONDS
+                updated_user = next(item for item in users if item.get("id") == stored.get("id"))
+                self.send_json_with_cookie(200, {"ok": True}, token=issue_session(updated_user))
                 return True
         except (AuthError, StoreError) as error:
             self.send_json(403, {"error": str(error)})
@@ -531,11 +686,13 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
             key = unquote(parsed.path.removeprefix("/api/store/"))
             try:
                 user = self.require_user()
-                if key == USERS_KEY and not is_primary_admin(user):
+                if not can_read_store_key(user, key):
                     self.send_json(403, {"error": "관리자 권한이 필요합니다."})
                     return
                 store = read_store()
                 value = store.get(key)
+                if key == ENTRIES_KEY and isinstance(value, list):
+                    value = visible_entries(user, value)
                 if key == USERS_KEY and isinstance(value, list):
                     value = [sanitize_user(item) for item in apply_admin_guard(value)]
                 self.send_json(200, {"value": value})
@@ -575,15 +732,25 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
             return
         try:
             store = read_store()
-            store[key] = payload.get("value")
-            write_store(store)
+            value = payload.get("value")
+            validate_store_value(key, value)
+            if key == ENTRIES_KEY:
+                if any(not isinstance(item, dict) or not item.get("id") for item in value):
+                    raise ValueError("기록 ID가 필요합니다.")
+                value = merge_authorized_entries(user, store.get(key) or [], value)
+            store[key] = value
+            write_store_key(key, value)
             self.send_json(200, {"ok": True})
+        except ValueError as error:
+            self.send_json(400, {"error": str(error)})
+        except AuthError as error:
+            self.send_json(403, {"error": str(error)})
         except StoreError as error:
             self.send_json(500, {"error": str(error)})
 
 
 if __name__ == "__main__":
-    server = ThreadingHTTPServer(("0.0.0.0", PORT), MiraArchiveHandler)
+    server = ThreadingHTTPServer((os.environ.get("MIRA_BIND_HOST", "0.0.0.0" if STORE_PROVIDER == "supabase" else "127.0.0.1"), PORT), MiraArchiveHandler)
     print(f"Fritz QC Archive server: http://127.0.0.1:{PORT}/production_ai/mira_archive.html")
     print(f"Store provider: {STORE_PROVIDER}")
     print("Keep this window open while using the archive.")
