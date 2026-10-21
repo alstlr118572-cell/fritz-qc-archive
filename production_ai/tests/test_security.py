@@ -175,6 +175,41 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(parse_qs(calls[0].partition("?")[2])["key"], ["in.(" + app.BLEND_CATALOG_KEY + ")"])
 
+    def test_legacy_note_does_not_block_unrelated_save(self):
+        legacy = {**self.roast, "note": "로스팅 <Auto>", "verdict": ""}
+        app.write_store_key(app.ENTRIES_KEY, [legacy, self.visit])
+        added = {"id": "new-cup", "entryType": "cupping", "note": "정상 기록", "verdict": "pass"}
+        # Normalization may change derived fields and reorder the existing records.
+        updated = {**legacy, "verdict": "pass", "updatedAt": "2026-10-21"}
+        status, _, _ = self.request("PUT", "/api/store/" + app.ENTRIES_KEY,
+                                   {"value": [added, self.visit, updated]}, self.cookie("admin"))
+        self.assertEqual(status, 200)
+        saved = app.read_store_key(app.ENTRIES_KEY)
+        self.assertEqual(next(item for item in saved if item["id"] == legacy["id"])["note"], legacy["note"])
+        self.assertIn(added, saved)
+
+    def test_legacy_note_exception_is_bound_to_record_and_field(self):
+        legacy = {**self.roast, "note": "<Auto>"}
+        app.write_store_key(app.ENTRIES_KEY, [legacy, self.visit])
+        invalid_updates = [
+            [{**legacy, "note": "<img src=x onerror=alert(1)>"}, self.visit],
+            [legacy, self.visit, {"id": "copied", "entryType": "roasting", "note": "<Auto>"}],
+            [{**legacy, "otherNote": "<Auto>"}, self.visit],
+        ]
+        for incoming in invalid_updates:
+            status, _, _ = self.request("PUT", "/api/store/" + app.ENTRIES_KEY,
+                                       {"value": incoming}, self.cookie("admin"))
+            self.assertEqual(status, 400)
+            self.assertEqual(app.read_store_key(app.ENTRIES_KEY), [legacy, self.visit])
+
+    def test_legacy_note_preservation_does_not_bypass_permissions(self):
+        legacy = {**self.roast, "note": "<Auto>"}
+        app.write_store_key(app.ENTRIES_KEY, [legacy, self.visit])
+        status, _, _ = self.request("PUT", "/api/store/" + app.ENTRIES_KEY,
+                                   {"value": [{**legacy, "batch": "#999"}]}, self.cookie("cupper"))
+        self.assertEqual(status, 403)
+        self.assertEqual(app.read_store_key(app.ENTRIES_KEY), [legacy, self.visit])
+
 
 if __name__ == "__main__":
     unittest.main()

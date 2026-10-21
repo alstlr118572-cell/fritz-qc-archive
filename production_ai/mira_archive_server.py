@@ -289,7 +289,7 @@ def visible_entries(user, entries):
             or has_permission(user, entry_permission(item))]
 
 
-def validate_store_value(key, value):
+def validate_store_value(key, value, previous=None):
     if key in (BLEND_CATALOG_KEY, PRODUCT_CATALOG_KEY):
         if not isinstance(value, dict):
             raise ValueError("목록 형식이 올바르지 않습니다.")
@@ -303,23 +303,31 @@ def validate_store_value(key, value):
                 raise ValueError("기록 ID가 필요합니다.")
             if not isinstance(item.get("entryType", ""), str):
                 raise ValueError("잘못된 기록 종류입니다.")
-    def check(item, field="", depth=0):
+    def check(item, field="", depth=0, baseline=None):
         if depth > 20:
             raise ValueError("데이터 구조가 너무 깊습니다.")
         if isinstance(item, dict):
+            old_fields = baseline if isinstance(baseline, dict) else {}
             for name, child in item.items():
-                check(child, name, depth + 1)
+                check(child, name, depth + 1, old_fields.get(name))
         elif isinstance(item, list):
-            for child in item:
-                check(child, field, depth + 1)
+            old_items = baseline if isinstance(baseline, list) else []
+            for index, child in enumerate(item):
+                check(child, field, depth + 1, old_items[index] if index < len(old_items) else None)
         elif isinstance(item, str):
-            if len(item) > 20000 or re.search(r"<\s*/?\s*[a-zA-Z][^>]*>", item):
+            # Preserve unchanged legacy text without accepting new markup in any field.
+            if len(item) > 20000 or (item != baseline and re.search(r"<\s*/?\s*[a-zA-Z][^>]*>", item)):
                 raise ValueError("허용되지 않는 입력입니다.")
             if field == "id" and not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", item):
                 raise ValueError("잘못된 기록 ID입니다.")
             if field == "entryType" and item not in ("", "cupping", "roasting", "espresso", "visit", "correction"):
                 raise ValueError("잘못된 기록 종류입니다.")
-    check(value)
+    if key == ENTRIES_KEY and isinstance(previous, list):
+        old_by_id = {item.get("id"): item for item in previous if isinstance(item, dict)}
+        for item in value:
+            check(item, depth=1, baseline=old_by_id.get(item.get("id")))
+    else:
+        check(value)
 
 
 def merge_authorized_entries(user, previous, incoming):
@@ -766,11 +774,12 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
             return
         try:
             value = payload.get("value")
-            validate_store_value(key, value)
+            previous = (read_store_key(key) or []) if key == ENTRIES_KEY else None
+            validate_store_value(key, value, previous)
             if key == ENTRIES_KEY:
                 if any(not isinstance(item, dict) or not item.get("id") for item in value):
                     raise ValueError("기록 ID가 필요합니다.")
-                value = merge_authorized_entries(user, read_store_key(key) or [], value)
+                value = merge_authorized_entries(user, previous, value)
             write_store_key(key, value)
             self.send_json(200, {"ok": True})
         except ValueError as error:
