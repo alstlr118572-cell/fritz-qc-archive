@@ -13,7 +13,7 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, urlparse, urlencode
 
 ROOT = Path(__file__).resolve().parents[1]
 STORE_PATH = ROOT / "production_ai" / "data" / "mira_archive_store.json"
@@ -86,6 +86,23 @@ def write_store_key(key, value):
         store = read_store()
         store[key] = value
         write_store(store)
+
+
+def read_store_keys(keys):
+    if STORE_PROVIDER != "supabase":
+        store = read_store()
+        return {key: store[key] for key in keys if key in store}
+    if not keys:
+        return {}
+    query = urlencode({"select": "key,value", "key": "in.(" + ",".join(keys) + ")"})
+    rows = supabase_request(f"{SUPABASE_TABLE}?{query}")
+    if not isinstance(rows, list):
+        raise StoreError("Supabase returned an invalid store response.")
+    return {row["key"]: row.get("value") for row in rows if row.get("key") in keys}
+
+
+def read_store_key(key):
+    return read_store_keys([key]).get(key)
 
 
 def supabase_headers(prefer=""):
@@ -332,8 +349,7 @@ def merge_authorized_entries(user, previous, incoming):
 
 
 def read_users_from_store():
-    store = read_store()
-    users = store.get(USERS_KEY)
+    users = read_store_key(USERS_KEY)
     return users if isinstance(users, list) else []
 
 
@@ -680,6 +696,25 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
         if parsed.path == "/api/ping":
             self.send_json(200, {"ok": True, "store": store_status()})
             return
+        if parsed.path == "/api/bootstrap":
+            try:
+                user = self.require_user()
+                keys = [ENTRIES_KEY, BLEND_CATALOG_KEY, PRODUCT_CATALOG_KEY, RATIO_NOTICES_KEY,
+                        NON_SHIP_RESULTS_KEY, CORRECTION_INDICATORS_KEY, GREEN_BEANS_KEY,
+                        SINGLE_ORIGIN_SCHEDULES_KEY, MACHINE_DATA_KEY]
+                if is_primary_admin(user):
+                    keys.append(USERS_KEY)
+                allowed = [key for key in keys if can_read_store_key(user, key)]
+                store = read_store_keys(allowed)
+                if isinstance(store.get(ENTRIES_KEY), list):
+                    store[ENTRIES_KEY] = visible_entries(user, store[ENTRIES_KEY])
+                users = [sanitize_user(item) for item in apply_admin_guard(store.pop(USERS_KEY, []))] if is_primary_admin(user) else [sanitize_user(user)]
+                self.send_json(200, {"user": sanitize_user(user), "users": users, "store": store})
+            except AuthError as error:
+                self.send_json(401, {"error": str(error)})
+            except StoreError as error:
+                self.send_json(503, {"error": "저장소를 읽지 못했습니다. 잠시 후 다시 시도해주세요."})
+            return
         if parsed.path.startswith("/api/auth/") and self.handle_auth_get(parsed.path):
             return
         if parsed.path.startswith("/api/store/"):
@@ -689,8 +724,7 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
                 if not can_read_store_key(user, key):
                     self.send_json(403, {"error": "관리자 권한이 필요합니다."})
                     return
-                store = read_store()
-                value = store.get(key)
+                value = read_store_key(key)
                 if key == ENTRIES_KEY and isinstance(value, list):
                     value = visible_entries(user, value)
                 if key == USERS_KEY and isinstance(value, list):
@@ -731,14 +765,12 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
             self.send_json(400, {"error": "invalid json"})
             return
         try:
-            store = read_store()
             value = payload.get("value")
             validate_store_value(key, value)
             if key == ENTRIES_KEY:
                 if any(not isinstance(item, dict) or not item.get("id") for item in value):
                     raise ValueError("기록 ID가 필요합니다.")
-                value = merge_authorized_entries(user, store.get(key) or [], value)
-            store[key] = value
+                value = merge_authorized_entries(user, read_store_key(key) or [], value)
             write_store_key(key, value)
             self.send_json(200, {"ok": True})
         except ValueError as error:

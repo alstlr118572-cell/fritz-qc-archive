@@ -3,10 +3,12 @@ import json
 import tempfile
 import threading
 import unittest
+from unittest.mock import patch
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
+from urllib.parse import parse_qs
 
 
 spec = importlib.util.spec_from_file_location("archive", Path(__file__).parents[1] / "mira_archive_server.py")
@@ -129,6 +131,49 @@ class SecurityTests(unittest.TestCase):
         fresh = headers["Set-Cookie"].split(";")[0]
         self.assertEqual(self.request("POST", "/api/auth/logout", {}, fresh)[0], 200)
         self.assertEqual(self.request("GET", "/api/store/" + app.ENTRIES_KEY, cookie=fresh)[0], 401)
+
+    def test_bootstrap_matches_permission_filtered_reads(self):
+        self.assertEqual(self.request("GET", "/api/bootstrap")[0], 401)
+        for role in ("admin", "cupper", "account_manager", "viewer"):
+            cookie = self.cookie(role)
+            status, body, _ = self.request("GET", "/api/bootstrap", cookie=cookie)
+            self.assertEqual(status, 200)
+            status, individual, _ = self.request("GET", "/api/store/" + app.ENTRIES_KEY, cookie=cookie)
+            self.assertEqual(body["store"][app.ENTRIES_KEY], individual["value"])
+            self.assertNotIn("passwordHash", json.dumps(body))
+            self.assertNotIn(app.USERS_KEY, body["store"])
+            if role != "admin":
+                self.assertEqual(len(body["users"]), 1)
+                self.assertNotIn(app.GREEN_BEANS_KEY, body["store"])
+        app.write_store_key(app.MACHINE_DATA_KEY, [{"id": "m1"}])
+        _, body, _ = self.request("GET", "/api/bootstrap", cookie=self.cookie("viewer"))
+        self.assertNotIn(app.MACHINE_DATA_KEY, body["store"])
+        _, body, _ = self.request("GET", "/api/bootstrap", cookie=self.cookie("account_manager"))
+        self.assertEqual(body["store"][app.MACHINE_DATA_KEY], [{"id": "m1"}])
+
+    def test_bootstrap_uses_two_filtered_database_reads(self):
+        source = app.read_store()
+        calls = []
+        def database_request(path, method="GET", **kwargs):
+            calls.append((path, method))
+            selection = parse_qs(path.partition("?")[2])["key"][0]
+            keys = selection[4:-1].split(",")
+            return [{"key": key, "value": source[key]} for key in keys if key in source]
+        with patch.object(app, "STORE_PROVIDER", "supabase"), patch.object(app, "supabase_request", database_request):
+            status, body, _ = self.request("GET", "/api/bootstrap", cookie=self.cookie("viewer"))
+        self.assertEqual(status, 200)
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(all(method == "GET" for _, method in calls))
+        self.assertIn(app.USERS_KEY, calls[0][0])
+        self.assertNotIn(app.MACHINE_DATA_KEY, calls[1][0])
+        self.assertEqual(body["store"][app.ENTRIES_KEY], [self.roast])
+
+    def test_single_store_read_does_not_fetch_other_keys(self):
+        calls = []
+        with patch.object(app, "STORE_PROVIDER", "supabase"), patch.object(app, "supabase_request", lambda path: calls.append(path) or []):
+            self.assertIsNone(app.read_store_key(app.BLEND_CATALOG_KEY))
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(parse_qs(calls[0].partition("?")[2])["key"], ["in.(" + app.BLEND_CATALOG_KEY + ")"])
 
 
 if __name__ == "__main__":

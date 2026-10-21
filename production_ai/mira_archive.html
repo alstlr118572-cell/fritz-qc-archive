@@ -4893,6 +4893,9 @@
   </div>
 
   <script>
+    const blendNameCache = new Map();
+    const dateTimestampCache = new Map();
+    const operationalIndexCache = new WeakMap();
     const storageKey = "mira_blend_qc_entries_v1";
     const ratioNoticesKey = "mira_blend_qc_ratio_notices_v1";
     const nonShipResultsKey = "mira_blend_qc_non_ship_results_v1";
@@ -4905,6 +4908,7 @@
     const savedIdKey = "mira_blend_qc_saved_user_id_v1";
     const blendCatalogKey = "mira_blend_qc_catalog_v1";
     const productCatalogKey = "mira_product_qc_catalog_v1";
+    let bootstrapState = loadBootstrapState();
     const adminKey = "MIRA-ADMIN";
     const primaryAdminUserId = "eomms0110";
     const requiredSiteTitle = "프릳츠 QC 아카이브";
@@ -5488,8 +5492,26 @@
       return location.protocol === "http:" || location.protocol === "https:";
     }
 
+    function loadBootstrapState() {
+      if (!canUseSharedStore()) return null;
+      try {
+        const request = new XMLHttpRequest();
+        request.open("GET", "/api/bootstrap", false);
+        request.send();
+        if (request.status === 401) return { user: null, users: [], store: {} };
+        if (request.status === 200) {
+          const response = JSON.parse(request.responseText);
+          if (response.store && typeof response.store === "object" && !Array.isArray(response.store)) return response;
+        }
+      } catch {
+        // Older servers and temporary bootstrap failures use the individual read endpoints.
+      }
+      return null;
+    }
+
     function readStoreValue(key, options = {}) {
       if (canUseSharedStore()) {
+        if (bootstrapState) return bootstrapState.store[key];
         try {
           const request = new XMLHttpRequest();
           request.open("GET", `/api/store/${encodeURIComponent(key)}`, false);
@@ -5598,6 +5620,7 @@
 
     function readUsers() {
       if (canUseSharedStore()) {
+        if (bootstrapState) return bootstrapState.user ? bootstrapState.users || [bootstrapState.user] : [];
         const session = currentSession();
         if (!session) return [];
         const me = authApi("GET", "/api/auth/me");
@@ -5732,7 +5755,7 @@
       }
       try {
         const catalog = normalizeBlendCatalog(parsed);
-        if (JSON.stringify(catalog) !== JSON.stringify(parsed)) writeStoreValue(blendCatalogKey, catalog);
+        if (!canUseSharedStore() && JSON.stringify(catalog) !== JSON.stringify(parsed)) writeStoreValue(blendCatalogKey, catalog);
         return catalog;
       } catch {
         return cloneCatalog(defaultBlendCategories);
@@ -5756,7 +5779,7 @@
       }
       try {
         const catalog = normalizeProductCatalog(parsed);
-        if (JSON.stringify(catalog) !== JSON.stringify(parsed)) writeStoreValue(productCatalogKey, catalog);
+        if (!canUseSharedStore() && JSON.stringify(catalog) !== JSON.stringify(parsed)) writeStoreValue(productCatalogKey, catalog);
         return catalog;
       } catch {
         return cloneCatalog(defaultProductCategories);
@@ -5769,6 +5792,7 @@
     }
 
     function enforcePrimaryAdmin() {
+      if (canUseSharedStore()) return;
       const hasPrimaryAdmin = users.some((user) => normalizeUserId(user.userId) === primaryAdminUserId);
       if (!hasPrimaryAdmin) return;
       users = users.map((user) => {
@@ -5796,9 +5820,13 @@
     }
 
     function canonicalBlendName(value) {
+      if (blendNameCache.has(value)) return blendNameCache.get(value);
       const text = normalizeText(value);
       const compact = text.replace(/\s+/g, "");
-      return blendNameAliases[text] || blendNameAliases[compact] || text;
+      const result = blendNameAliases[text] || blendNameAliases[compact] || text;
+      if (blendNameCache.size > 4000) blendNameCache.clear();
+      blendNameCache.set(value, result);
+      return result;
     }
 
     function compactBlendToken(value) {
@@ -6379,18 +6407,11 @@
     function readEntries() {
       const parsed = readStoreValue(storageKey);
       if (!parsed) {
-        return readLocalStoreValue(storageKey) || [];
+        return canUseSharedStore() ? [] : readLocalStoreValue(storageKey) || [];
       }
       try {
         if (!Array.isArray(parsed)) return [];
         const normalized = normalizeEntryCollectionForCurrentRules(parsed);
-        if (normalized.changed && isPrimaryAdmin(approvedSessionUser())) {
-          try {
-            writeStoreValue(storageKey, normalized.entries);
-          } catch {
-            // Keep the corrected in-memory view even if this session cannot persist it yet.
-          }
-        }
         return normalized.entries;
       } catch {
         return [];
@@ -6600,16 +6621,55 @@
     }
 
     function dateTimestamp(value) {
+      if (dateTimestampCache.has(value)) return dateTimestampCache.get(value);
       const parsed = parseDateInput(value);
-      return parsed ? parsed.getTime() : 0;
+      const result = parsed ? parsed.getTime() : 0;
+      if (dateTimestampCache.size > 4000) dateTimestampCache.clear();
+      dateTimestampCache.set(value, result);
+      return result;
     }
 
     function sortEntriesByDate(value) {
-      return [...value].sort((left, right) => {
-        const dateDiff = dateTimestamp(entryDisplayDate(right)) - dateTimestamp(entryDisplayDate(left));
+      return value.map((entry) => ({ entry, timestamp: dateTimestamp(entryDisplayDate(entry)) }))
+        .sort((left, right) => {
+        const dateDiff = right.timestamp - left.timestamp;
         if (dateDiff) return dateDiff;
-        return String(right.createdAt || "").localeCompare(String(left.createdAt || ""));
+        return String(right.entry.createdAt || "").localeCompare(String(left.entry.createdAt || ""));
+      }).map(({ entry }) => entry);
+    }
+
+    function operationalGroupKey(entry) {
+      return JSON.stringify([canonicalBlendName(entry.blend || ""), entry.roastDate || ""]);
+    }
+
+    function operationalIndex(collection) {
+      if (operationalIndexCache.has(collection)) return operationalIndexCache.get(collection);
+      const sorted = sortEntriesByDate(collection);
+      const byGroup = new Map();
+      const bySourceId = new Map();
+      const rank = new Map();
+      sorted.forEach((entry, position) => {
+        rank.set(entry, position);
+        if (!isRoastingVerdictSource(entry)) return;
+        const key = operationalGroupKey(entry);
+        if (!byGroup.has(key)) byGroup.set(key, []);
+        byGroup.get(key).push(entry);
+        if (isCuppingVerdictEntry(entry)) entrySourceIds(entry).forEach((id) => {
+          if (!bySourceId.has(id)) bySourceId.set(id, []);
+          bySourceId.get(id).push(entry);
+        });
       });
+      const index = { sorted, byGroup, bySourceId, rank };
+      operationalIndexCache.set(collection, index);
+      return index;
+    }
+
+    function verdictSourceCandidates(collection, roastingEntry) {
+      const index = operationalIndex(collection);
+      const group = index.byGroup.get(operationalGroupKey(roastingEntry)) || [];
+      const explicit = index.bySourceId.get(String(roastingEntry.id || "")) || [];
+      if (!explicit.length) return group;
+      return [...new Set([...group, ...explicit])].sort((left, right) => index.rank.get(left) - index.rank.get(right));
     }
 
     function sortRatioNotices(value) {
@@ -6846,14 +6906,14 @@
           updated += 1;
           return { ...entry, verdict: "no_ship", issueLocked: true, updatedAt: today() };
         }
-        const shouldSync = targets.some((sourceEntry) => verdictSourceCoversRoastingEntry(sourceEntry, entry));
+        const shouldSync = verdictSourceCandidates(targets, entry).some((sourceEntry) => verdictSourceCoversRoastingEntry(sourceEntry, entry));
         if (!shouldSync) {
           const storedVerdict = normalizeStoredVerdict(entry.verdict);
           if (!storedVerdict || storedVerdict === "no_ship") return entry;
           updated += 1;
           return { ...entry, verdict: "", updatedAt: today() };
         }
-        const linkedVerdicts = collection
+        const linkedVerdicts = verdictSourceCandidates(collection, entry)
           .filter((candidate) => isRoastingVerdictSource(candidate) && verdictSourceCoversRoastingEntry(candidate, entry))
           .map((candidate) => normalizeStoredVerdict(candidate.verdict))
           .filter(Boolean);
@@ -7914,12 +7974,12 @@
 
     function linkedCuppingEntries(entry) {
       if (!entry || entry.entryType !== "roasting") return [];
-      return sortEntriesByDate(entries).filter((candidate) => cuppingCoversRoastingEntry(candidate, entry));
+      return verdictSourceCandidates(entries, entry).filter((candidate) => cuppingCoversRoastingEntry(candidate, entry));
     }
 
     function linkedVerdictSourceEntries(entry) {
       if (!entry || entry.entryType !== "roasting") return [];
-      return sortEntriesByDate(entries).filter((candidate) => (
+      return verdictSourceCandidates(entries, entry).filter((candidate) => (
         isRoastingVerdictSource(candidate)
         && verdictSourceCoversRoastingEntry(candidate, entry)
       ));
@@ -11502,6 +11562,7 @@
     renderSavedId();
     render();
     renderAuth();
+    bootstrapState = null;
     window.setTimeout(hideAppLoading, 450);
     window.addEventListener("load", hideAppLoading, { once: true });
 
