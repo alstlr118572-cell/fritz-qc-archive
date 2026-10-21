@@ -6485,7 +6485,7 @@
     }
 
     let nonShipResults = readNonShipResults();
-    let entries = readEntries();
+    let entries = [];
 
     function readCorrectionIndicators() {
       const parsed = readStoreValue(correctionIndicatorsKey);
@@ -6584,6 +6584,9 @@
     }
 
     let ratioNotices = readRatioNotices();
+
+    // Batch classification reads both collections while normalizing stored entries.
+    entries = readEntries();
 
     function today() {
       const date = new Date();
