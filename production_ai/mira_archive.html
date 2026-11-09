@@ -3577,11 +3577,29 @@
     .report-chart figcaption span { color: var(--muted); }
     .report-chart svg { width: 100%; height: auto; display: block; margin-top: 8px; overflow: visible; }
     .report-missing { margin: 12px 0; padding: 10px 12px; border-left: 2px solid var(--muted-2); background: var(--surface-3); color: var(--muted); font-size: 13px; }
-    .report-comment-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .report-comment-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
     .report-comment { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-3); }
     .report-comment h4 { margin: 0 0 8px; }
     .report-comment p, .report-source p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
-    .report-comment .report-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+    .report-flavor-visuals { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 24px; margin: 20px 0; }
+    .report-flavor-visuals h5 { font-size: 14px; margin: 0 0 12px; }
+    .report-flavor-bar { display: grid; grid-template-columns: minmax(80px, 120px) minmax(0, 1fr) 32px; gap: 8px; align-items: center; margin: 10px 0; font-size: 12px; }
+    .report-flavor-bar strong { text-align: right; font-variant-numeric: tabular-nums; }
+    .report-flavor-track { height: 12px; background: var(--surface-2); overflow: hidden; border-radius: 2px; }
+    .report-flavor-track i { display: block; height: 100%; }
+    .report-flavor-days { display: flex; gap: 3px; align-items: end; height: 152px; padding-top: 18px; }
+    .report-flavor-day { flex: 1; min-width: 0; text-align: center; }
+    .report-flavor-day-track { display: flex; flex-direction: column-reverse; height: 110px; background: var(--surface-2); border-bottom: 1px solid var(--muted-2); }
+    .report-flavor-day-track i { display: block; flex-shrink: 0; min-width: 0; }
+    .report-flavor-day.no-evaluation .report-flavor-day-track { background: repeating-linear-gradient(135deg, transparent, transparent 3px, var(--line-soft) 3px, var(--line-soft) 4px); border-bottom-color: var(--line); }
+    .report-flavor-day small { display: block; height: 20px; margin-top: 5px; font-size: 10px; color: var(--muted); white-space: nowrap; }
+    .report-flavor-key { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--muted); margin-top: 10px; }
+    .report-flavor-key i { display: inline-block; width: 8px; height: 8px; background: var(--muted); margin-right: 4px; }
+    .report-flavor-key .unrecorded { background: transparent; border: 1px solid var(--line); }
+    .report-date-list { margin-top: 18px; border-top: 1px solid var(--line); }
+    .report-date-list > details { border-bottom: 1px solid var(--line); }
+    .report-date-list summary { font-size: 13px; }
+    .report-date-list summary small { color: var(--muted); margin-left: 8px; }
     .report-comment summary { cursor: pointer; color: var(--teal); padding: 8px 0; }
     .report-source { padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
     .report-source small { color: var(--muted); }
@@ -3602,6 +3620,9 @@
       .report-kpis article { padding-left: 8px; }
       .report-kpis strong { font-size: 23px; }
       .report-comment-grid { grid-template-columns: 1fr; }
+      .report-flavor-visuals { grid-template-columns: 1fr; gap: 20px; }
+      .report-flavor-bar { grid-template-columns: 108px minmax(0, 1fr) 30px; }
+      .report-flavor-days { gap: 2px; }
       .report-table, .report-table tbody, .report-table tr, .report-table td { display: block; }
       .report-table thead { display: none; }
       .report-table tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
@@ -10112,6 +10133,45 @@
       return String(detail).split(/(?:^|\s*\/\s*|\r?\n)(?:로스팅\s*문제\s*진단|솔루션|변경\s*내용)\s*:/)[0].replace(/^문제향미지표\s*:\s*/, "").trim();
     }
 
+    function reportIssueTypes(entry) {
+      return [...new Set((Array.isArray(entry.tags) ? entry.tags : []).filter((tag) => issueTypePatterns.some(([label]) => label === tag)))];
+    }
+
+    function reportFlavorTimeline(comments, period) {
+      const days = [];
+      for (let date = period.start; date <= period.end; date = shiftDateInput(date, 1)) {
+        days.push({ date, comments: [], types: new Map(), total: 0 });
+      }
+      const byDate = new Map(days.map((day) => [day.date, day]));
+      comments.forEach((entry) => {
+        const day = byDate.get(entry.roastDate);
+        if (!day) return;
+        day.comments.push(entry);
+        reportIssueTypes(entry).forEach((type) => {
+          day.types.set(type, (day.types.get(type) || 0) + 1);
+          day.total += 1;
+        });
+      });
+      return days;
+    }
+
+    function reportFlavorVisualMarkup(group, period) {
+      const types = [...group.types].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko"));
+      const colors = ["#50c5e8", "#f39c72", "#ed728b", "#c5a1ed", "#60c6ac", "#8eb5f4", "#e5b85c", "#a7c96b", "#e08bc5", "#6dcbd1", "#bca28a", "#a5aebd"];
+      const color = (type) => colors[issueTypePatterns.findIndex(([label]) => label === type) % colors.length];
+      const maxType = Math.max(1, ...types.map(([, count]) => count));
+      const days = reportFlavorTimeline(group.comments, period);
+      const maxDay = Math.max(1, ...days.map((day) => day.total));
+      const ranking = types.length ? types.map(([type, count]) => `<div class="report-flavor-bar" role="img" aria-label="${escapeHtml(type)} ${count}건"><span>${escapeHtml(type)}</span><div class="report-flavor-track"><i style="width:${count / maxType * 100}%;background:${color(type)}"></i></div><strong>${count}</strong></div>`).join("") : `<div class="report-missing">선택된 문제향미 유형 없음</div>`;
+      const daily = days.map((day, index) => {
+        const details = [...day.types].map(([type, count]) => `${type} ${count}건`).join(", ");
+        const label = `${day.date} · ${day.comments.length ? `평가 ${day.comments.length}건 · ${details || "선택된 문제향미 유형 없음"}` : "평가 기록 없음"}`;
+        const tick = days.length <= 7 || index === 0 || index === days.length - 1 || (index + 1) % 5 === 0;
+        return `<div class="report-flavor-day ${day.comments.length ? "" : "no-evaluation"}" role="img" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"><div class="report-flavor-day-track">${types.filter(([type]) => day.types.has(type)).map(([type]) => `<i style="height:${day.types.get(type) / maxDay * 100}%;background:${color(type)}"></i>`).join("")}</div><small>${tick ? day.date.slice(8) : ""}</small></div>`;
+      }).join("");
+      return `<div class="report-flavor-visuals"><div><h5>문제향미 빈도 <small>(건)</small></h5>${ranking}</div><div><h5>날짜별 문제향미 <small>최대 ${maxDay === 1 && !types.length ? 0 : maxDay}건/일</small></h5><div class="report-flavor-days" role="group" aria-label="${escapeHtml(group.blend)} 로스팅일별 문제향미 추이">${daily}</div><div class="report-flavor-key"><span><i></i>평가 있음</span><span><i class="unrecorded"></i>평가 없음</span><span>${escapeHtml(period.start)} ~ ${escapeHtml(period.end)}</span></div><p class="report-footnote">로스팅일 기준 · 유형별 색상은 왼쪽 그래프와 동일 · 한 평가의 여러 문제유형은 각각 집계</p></div></div><div class="report-date-list">${days.filter((day) => day.comments.length).map((day) => `<details><summary>${escapeHtml(day.date)}<small>평가 ${day.comments.length}건 · 문제유형 ${day.total}건</small></summary>${day.comments.map(reportCommentSourceMarkup).join("")}</details>`).join("")}</div>`;
+    }
+
     function buildQcReport(collection, period, blend = "", roaster = "") {
       const matches = (entry) => (!blend || canonicalBlendName(entry.blend) === blend) && (!roaster || entryRoaster(entry) === roaster);
       const inPeriod = (entry) => /^\d{4}-\d{2}-\d{2}$/.test(entry.roastDate || "") && entry.roastDate >= period.start && entry.roastDate <= period.end;
@@ -10139,7 +10199,7 @@
         const group = cuppingGroups.get(name);
         group.comments.push(comment);
         group.evaluators.add(entryEvaluatorName(comment));
-        const tags = new Set((Array.isArray(comment.tags) ? comment.tags : []).filter((tag) => issueTypePatterns.some(([label]) => label === tag)));
+        const tags = reportIssueTypes(comment);
         tags.forEach((tag) => group.types.set(tag, (group.types.get(tag) || 0) + 1));
       }
       return { roasting, counts, groups: [...groups.values()], cuppingGroups: [...cuppingGroups.values()], unmatched, issues, commentCount: comments.size };
@@ -10212,7 +10272,7 @@
             });
             const decisions = verdictCounts(group.comments);
             const summary = types.length ? `가장 많이 기록된 문제향미: ${types.filter(([, count]) => count === types[0][1]).map(([type]) => type).join(", ")} (${types[0][1]}건)` : "선택된 문제향미 유형 없음";
-            return `<article class="report-comment"><h4>${displayCell(group.blend)}</h4><p>평가자 ${group.evaluators.size}명 · ${group.comments.length}건</p><p>${escapeHtml(summary)}</p><p class="report-footnote">평가 기록 PASS ${decisions.pass} · HOLD ${decisions.hold} · ISSUE ${decisions.issue}</p><div class="report-tags">${types.map(([type, count]) => `<span class="tag amber">${escapeHtml(type)} ${count}건</span>`).join("")}</div><p class="report-footnote">문제향미 빈도는 평가 기록당 1회입니다. 동일 배치에 대한 서로 다른 평가를 합산 판정하지 않습니다.</p>${[...evaluatorGroups].map(([name, comments]) => {
+            return `<article class="report-comment"><h4>${displayCell(group.blend)}</h4><p>평가자 ${group.evaluators.size}명 · ${group.comments.length}건</p><p>${escapeHtml(summary)}</p><p class="report-footnote">평가 기록 PASS ${decisions.pass} · HOLD ${decisions.hold} · ISSUE ${decisions.issue}</p>${reportFlavorVisualMarkup(group, period)}<p class="report-footnote">문제향미 빈도는 평가 기록당 1회입니다. 동일 배치에 대한 서로 다른 평가를 합산 판정하지 않습니다.</p>${[...evaluatorGroups].map(([name, comments]) => {
               const sorted = [...comments].sort((a, b) => String(b.roastDate).localeCompare(String(a.roastDate)));
               return `<div class="report-source"><strong>${escapeHtml(name)}</strong><small> · ${comments.length}건 · 최근 ${displayCell(sorted[0].roastDate)}</small><p>${escapeHtml(reportFlavorComment(sorted[0]) || "코멘트 미기록")}</p></div><details><summary>${escapeHtml(name)} · 기간 내 전체 원문</summary>${sorted.map(reportCommentSourceMarkup).join("")}</details>`;
             }).join("")}</article>`;

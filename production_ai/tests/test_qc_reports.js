@@ -53,6 +53,31 @@ assert.ok(html.includes("평가 A") && html.includes("평가 B"));
 assert.ok(html.includes("시작온도 · 미수집"));
 assert.ok(html.includes("산점도"));
 assert.ok(!html.includes("PRIVATE SOLUTION"));
+assert.ok(html.includes('class="report-flavor-bar"'), "issue counts must have proportional bars");
+assert.ok(html.includes('class="report-flavor-days"'), "include a dated visual timeline");
+assert.ok(html.includes('class="report-date-list"'), "retain expandable chronological source comments");
+assert.equal((html.match(/class="report-flavor-day /g) || []).length, 31);
+context.timelineFixture = [
+  ...Array.from({length: 7}, (_, index) => ({ id: `trend-${index}`, roastDate: index < 4 ? "2026-10-02" : "2026-10-05", batch: "#1~3", tags: ["향미톤 낮음", "향미톤 낮음"], evaluatorName: `평가 ${index % 2}` })),
+  {id:"no-types",roastDate:"2026-10-06",tags:[]},
+  {id:"outside",roastDate:"2026-11-01",tags:["향미톤 낮음"]}
+];
+const timeline = read('reportFlavorTimeline(timelineFixture, reportPeriod("2026-10-01", "month")).map(day => ({date:day.date,count:day.comments.length,total:day.total,types:[...day.types]}))');
+assert.equal(timeline.length, 31);
+assert.equal(timeline.reduce((sum, day) => sum + day.total, 0), 7, "seven range comments must produce seven events, not 21 batch events");
+assert.deepEqual(timeline[1], {date:"2026-10-02",count:4,total:4,types:[["향미톤 낮음",4]]});
+assert.equal(timeline[4].total, 3);
+assert.equal(timeline[5].count, 1, "evaluated with no issue types must be distinct from no evaluation");
+assert.equal(timeline[5].total, 0);
+assert.equal(timeline[6].count, 0);
+assert.equal(read('reportFlavorTimeline([], reportPeriod("2027-01-01", "week")).length'), 7);
+assert.equal(read('reportFlavorTimeline([], reportPeriod("2028-02-01", "month")).length'), 29);
+const trendHtml = read('reportFlavorVisualMarkup({blend:"올드독",comments:timelineFixture.slice(0,8),types:new Map([["향미톤 낮음",7]])}, reportPeriod("2026-10-01", "month"))');
+assert.ok(trendHtml.includes('aria-label="향미톤 낮음 7건"'));
+assert.ok(trendHtml.includes('width:100%'));
+assert.ok(trendHtml.includes('2026-10-02 · 평가 4건 · 향미톤 낮음 4건'));
+assert.ok(trendHtml.includes('2026-10-06 · 평가 1건 · 선택된 문제향미 유형 없음'));
+assert.ok(trendHtml.includes('2026-10-07 · 평가 기록 없음'));
 listeners.get("#reportWeekButton:click")[0]();
 assert.equal(elements.get("#reportDateInput").type, "date");
 listeners.get("#reportNextButton:click")[0]();
