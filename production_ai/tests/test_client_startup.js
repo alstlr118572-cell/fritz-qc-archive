@@ -13,8 +13,9 @@ const records = [
   { id: "cupping", entryType: "cupping", blend: "올드독", batch: "#1", roastDate: "2026-10-20", verdict: "pass", note: "OK" }
 ];
 
-function runStartup(sharedStore) {
+function runStartup(sharedStore, options = {}) {
   const elements = new Map();
+  const listeners = new Map();
   const values = new Set(["value", "innerHTML", "textContent", "className", "href", "id", "type", "placeholder", "title", "innerText"]);
   function element(selector) {
     if (elements.has(selector)) return elements.get(selector);
@@ -28,6 +29,11 @@ function runStartup(sharedStore) {
         if (key === "classList") return { add: noop, remove: noop, toggle: noop, contains: () => false };
         if (key === "querySelector") return (child) => element(selector + child);
         if (key === "querySelectorAll") return () => [];
+        if (key === "addEventListener") return (type, handler) => {
+          const eventKey = selector + ":" + type;
+          if (!listeners.has(eventKey)) listeners.set(eventKey, []);
+          listeners.get(eventKey).push(handler);
+        };
         if (key === "closest") return () => null;
         if (key === "matches") return () => false;
         if (key === "length") return 0;
@@ -44,8 +50,14 @@ function runStartup(sharedStore) {
   class FakeXHR {
     open(method, url) { this.method = method; this.url = url; }
     setRequestHeader() {}
-    send() {
+    send(body) {
       requests.push([this.method, this.url]);
+      if (this.method === "PUT" && options.allowWrites) {
+        this.status = options.writeStatus || 200;
+        options.onWrite?.(JSON.parse(body), this.url);
+        this.responseText = JSON.stringify(this.status === 200 ? {ok:true} : {error:"Test save failure"});
+        return;
+      }
       assert.equal(this.method, "GET", "startup must not write records");
       assert.equal(this.url, "/api/bootstrap");
       this.status = 200;
@@ -69,7 +81,7 @@ function runStartup(sharedStore) {
   context.window = context;
   vm.runInContext(source, context);
   assert.equal(requests.length, 1);
-  return { context, elements };
+  return { context, elements, requests, listeners };
 }
 
 const fixture = {
@@ -83,3 +95,4 @@ assert.equal(vm.runInContext('entries.find((entry) => entry.id === "custom-blend
 assert.deepEqual(JSON.parse(JSON.stringify(fixture.mira_blend_qc_entries_v1)), records);
 assert.equal(vm.runInContext("entries.length", runStartup({}).context), 0);
 console.log("Client startup: text batches, custom blends, verdict sync and read-only bootstrap passed.");
+module.exports = { runStartup };

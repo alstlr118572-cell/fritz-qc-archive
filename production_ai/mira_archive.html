@@ -6982,7 +6982,7 @@
     function normalizeBatchRange(value) {
       const text = normalizeText(value);
       if (!text) return "";
-      const compact = text.replace(/\s+/g, "").replace(/-/g, "~");
+      const compact = text.replace(/\s+/g, "").replace(/[-～〜∼–—−]/g, "~");
       const match = compact.match(/^#?(\d+)~#?(\d+)$/);
       if (match) return `#${match[1]}~#${match[2]}`;
       const single = compact.match(/^#?(\d+)$/);
@@ -7062,7 +7062,7 @@
     }
 
     function parseQuickCuppingComments(value) {
-      const text = normalizeText(value);
+      const text = normalizeText(value).replace(/(\d)\s*[～〜∼–—−]\s*(?=#?\d)/g, "$1~");
       if (!text) return [];
       const tokenPattern = /(검\s*(?:올|잘|서|디|다카|행복|행|문지리|문|너티|너|아르켓|아르|위드센|위|사는낙|사낙|신커피|신|영차영차|영차|크리스마스|크리)(?:\s*\(?강(?:배전)?\)?)?|노\s*(?:올|잘|서|디|다카|행복|행|문지리|문|너티|너|아르켓|아르|위드센|위|사는낙|사낙|신커피|신|영차영차|영차|크리스마스|크리)(?:\s*\(?강(?:배전)?\)?)?|올(?:\s*\(?강(?:배전)?\)?)?|잘|서|디|다카|행복|행|문지리|문|너티|너|아르켓|아르|위드센|위|사는낙|사낙|신커피|신|영차영차|영차|크리스마스|크리)\s*(#?\d+(?:\s*(?:~|-)\s*#?\d+)?)/g;
       const matches = Array.from(text.matchAll(tokenPattern));
@@ -7101,6 +7101,7 @@
       const note = normalizeText(overrides.note || cuppingDetailNote(cuppingDetail) || cuppingDetail.flavorIssue);
       return {
         id: overrides.id || editingCuppingId || makeId(),
+        entryType: "cupping",
         blend: overrides.blend || fields.blend.value,
         roastDate: overrides.roastDate || roastDateFromCuppingDate(cuppingDate),
         cuppingDate,
@@ -7869,7 +7870,11 @@
     }
 
     function batchNumberRange(batch) {
-      const normalized = normalizeBatchRange(batch);
+      const label = normalizeBatchRange(batch);
+      // Packaging and weight notes do not change a batch's numeric identity.
+      // Strong-roast markers must remain separate until blend classification is resolved.
+      if (/\(\s*강(?:배전)?\s*\)/.test(label)) return null;
+      const normalized = normalizeBatchRange(label.replace(/(?:\s*\([^()]*\))+\s*$/, ""));
       const range = normalized.match(/^#(\d+)~#(\d+)$/);
       if (range) {
         const start = Number(range[1]);
@@ -10119,7 +10124,16 @@
       const selectedIssueTypes = selectedCuppingBatchIssueTypes();
       const candidates = cuppingRoastingCandidates();
       const selectedEntries = candidates.filter((entry) => selectedCuppingBatchIds.has(entry.id));
+      if (selectedEntries.length !== selectedCuppingBatchIds.size) {
+        cuppingBatchFields.message.textContent = "선택한 배치의 상태가 변경되었습니다. 배치 목록을 확인한 뒤 다시 선택해주세요. 코멘트는 유지됩니다.";
+        return;
+      }
       const groupedEntries = groupSelectedRoastingEntries(selectedEntries);
+      const groupedSourceIds = new Set(groupedEntries.flatMap((group) => group.sourceIds));
+      if (groupedSourceIds.size !== selectedEntries.length || selectedEntries.some((entry) => !groupedSourceIds.has(entry.id))) {
+        cuppingBatchFields.message.textContent = "선택 배치와 평가 대상이 일치하지 않아 저장하지 않았습니다. 코멘트는 유지됩니다.";
+        return;
+      }
       const cuppingDate = fields.roastDate.value || today();
       const verdict = normalizeVerdict(cuppingBatchFields.verdict?.value || inferVerdictFromText(note, "hold"));
       const newEntries = groupedEntries.map((group) => cuppingEntryFromFields({
@@ -10139,12 +10153,12 @@
       }));
       const upserted = upsertOperationalEntries(entries, newEntries);
       const verdictSync = syncRoastingVerdictsFromCupping(upserted.entries, newEntries);
+      writeEntries(verdictSync.entries);
       entries = verdictSync.entries;
-      writeEntries(entries);
       cuppingBatchFields.comment.value = "";
       clearCuppingBatchIssueTypes();
       selectedCuppingBatchIds = new Set();
-      cuppingBatchFields.message.textContent = `${upserted.inserted}개 신규 저장, ${upserted.updated}개 기존 코멘트 수정, ${verdictSync.updated}개 로스팅 배치 판정을 동기화했습니다.`;
+      cuppingBatchFields.message.textContent = `${selectedEntries.length}개 배치에 코멘트를 적용했습니다. 평가 기록 ${upserted.inserted}개 신규 저장, ${upserted.updated}개 수정, ${verdictSync.updated}개 배치 판정 동기화.`;
       render();
     });
 
