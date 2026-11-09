@@ -10152,7 +10152,9 @@
     function reportGroupOrder(group) {
       const main = ["올드독", "잘되어 가시나", "서울시네마", "디카페인"];
       const index = main.indexOf(group.blend);
-      return index < 0 ? 100 : index * 3 + (group.roaster === "검댕이" ? 0 : group.roaster === "노랭이" ? 1 : 2);
+      if (index < 0) return 100;
+      if (!["검댕이", "노랭이"].includes(group.roaster)) return 90 + index;
+      return index * 2 + (group.roaster === "노랭이" ? 1 : 0);
     }
 
     function reportFlavorTimeline(comments, period) {

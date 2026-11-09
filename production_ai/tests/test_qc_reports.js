@@ -107,16 +107,16 @@ vm.runInContext('activeAppView="reports"; reportAnchor="2026-10-31"; renderQcRep
 assert.ok(!vm.runInContext('reportContent.innerHTML', locked).includes("SECRET DISPOSAL"));
 const orderRecords = [
   ["너티트리니티","노랭이"], ["디카페인","노랭이"], ["서울시네마","노랭이"], ["잘되어 가시나","노랭이"],
-  ["올드독","노랭이"], ["서울시네마","검댕이"], ["잘되어 가시나","검댕이"], ["올드독","검댕"]
+  ["올드독","노랭이"], ["서울시네마","검댕이"], ["잘되어 가시나","검댕이"], ["올드독","검댕"], ["올드독",""]
 ].map(([blend,roaster],index)=>roast(`order-${index}`,"#1",{blend,roastDate:blend==="너티트리니티"?"2026-01-10":"2026-10-31",roastData:{roaster,roastTime:"14:00",dropTemp:"175"}}));
 const ordered = runStartup({mira_blend_qc_entries_v1:orderRecords}).context;
 assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(buildQcReport(entries,reportPeriod("2026-10-31","year")).groups.map(group=>[group.blend,group.roaster]))',ordered)),[
   ["올드독","검댕이"],["올드독","노랭이"],["잘되어 가시나","검댕이"],["잘되어 가시나","노랭이"],
-  ["서울시네마","검댕이"],["서울시네마","노랭이"],["디카페인","노랭이"],["너티트리니티","노랭이"]
+  ["서울시네마","검댕이"],["서울시네마","노랭이"],["디카페인","노랭이"],["올드독",""],["너티트리니티","노랭이"]
 ]);
 vm.runInContext('activeAppView="reports";reportAnchor="2026-10-31";renderQcReport()',ordered);
 const annualHtml = vm.runInContext('reportContent.innerHTML',ordered);
 assert.ok(annualHtml.includes("너티트리니티"), "a low-volume blend must keep its January history in the annual chart when October is selected");
 assert.ok(annualHtml.includes("2026-10 평균 미기록 · 0배치"));
-assert.equal(vm.runInContext('buildQcReport(entries,reportPeriod(reportAnchor,"month")).roasting.length',ordered),7,"monthly KPI must not include annual background batches");
+assert.equal(vm.runInContext('buildQcReport(entries,reportPeriod(reportAnchor,"month")).roasting.length',ordered),8,"monthly KPI must not include annual background batches");
 console.log("QC reports: date boundaries, metrics, batch counts, filters, evaluator separation, issue locks, privacy and read-only rendering passed.");
