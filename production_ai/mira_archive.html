@@ -3623,10 +3623,14 @@
     .report-flavor-key { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; color: var(--muted); margin-top: 10px; }
     .report-flavor-key i { display: inline-block; width: 8px; height: 8px; background: var(--muted); margin-right: 4px; }
     .report-flavor-key .unrecorded { background: transparent; border: 1px solid var(--line); }
-    .report-date-list { margin-top: 18px; border-top: 1px solid var(--line); }
-    .report-date-list > details { border-bottom: 1px solid var(--line); }
-    .report-date-list summary { font-size: 13px; }
-    .report-date-list summary small { color: var(--muted); margin-left: 8px; }
+    .report-comment-timeline { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+    .report-comment-timeline h5 { font-size: 14px; margin: 0; }
+    .report-cumulative-svg { display: block; width: 100%; height: auto; margin-top: 12px; }
+    .report-cumulative-point { cursor: pointer; }
+    .report-cumulative-point:hover circle, .report-cumulative-point:focus circle, .report-cumulative-point[aria-pressed="true"] circle { stroke: var(--ink); stroke-width: 2; }
+    .report-timeline-legend { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; font-size: 11px; color: var(--muted); }
+    .report-timeline-legend i { display: inline-block; width: 8px; height: 8px; margin-right: 4px; }
+    .report-timeline-detail { padding: 12px 0; margin-top: 12px; border-top: 1px solid var(--line); }
     .report-comment summary { cursor: pointer; color: var(--teal); padding: 8px 0; }
     .report-source { padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
     .report-source small { color: var(--muted); }
@@ -5593,6 +5597,7 @@
     let activeAppView = "dashboard";
     let reportMode = "month";
     let reportAgtronInterval = "month";
+    const reportTimelineRows = new Map();
     let reportAnchor = today();
     let dashboardCalendarMonth = "";
     let searchCalendarMonth = today().slice(0, 7);
@@ -10223,7 +10228,48 @@
         const tick = monthly || days.length <= 7 || index === 0 || index === days.length - 1 || ((index + 1) % 5 === 0 && index < days.length - 2);
         return `<div class="report-flavor-day ${day.comments.length ? "" : "no-evaluation"}" role="img" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"><div class="report-flavor-day-track">${types.filter(([type]) => day.types.has(type)).map(([type]) => `<i style="height:${day.types.get(type) / maxDay * 100}%;background:${color(type)}"></i>`).join("")}</div><small>${tick ? (monthly ? `${Number(day.date.slice(5))}월` : day.date.slice(8)) : ""}</small></div>`;
       }).join("");
-      return `<div class="report-flavor-visuals"><div><h5>문제향미 빈도 <small>(건)</small></h5>${ranking}</div><div><h5>${monthly ? "월별" : "날짜별"} 문제향미 <small>최대 ${maxDay === 1 && !types.length ? 0 : maxDay}건/${monthly ? "월" : "일"}</small></h5><div class="report-flavor-days" role="group" aria-label="${escapeHtml(group.blend)} 로스팅일 기준 문제향미 추이">${daily}</div><div class="report-flavor-key"><span><i></i>평가 있음</span><span><i class="unrecorded"></i>평가 없음</span><span>${escapeHtml(period.start)} ~ ${escapeHtml(period.end)}</span></div><p class="report-footnote">로스팅일 기준 · 유형별 색상은 왼쪽 그래프와 동일 · 한 평가의 여러 문제유형은 각각 집계</p></div></div><div class="report-date-list">${days.filter((day) => day.comments.length).map((day) => `<details><summary>${escapeHtml(day.date)}<small>평가 ${day.comments.length}건 · 문제유형 ${day.total}건</small></summary>${day.comments.slice().sort((a,b) => String(a.roastDate).localeCompare(String(b.roastDate))).map(reportCommentSourceMarkup).join("")}</details>`).join("")}</div>`;
+      return `<div class="report-flavor-visuals"><div><h5>문제향미 빈도 <small>(건)</small></h5>${ranking}</div><div><h5>${monthly ? "월별" : "날짜별"} 문제향미 <small>최대 ${maxDay === 1 && !types.length ? 0 : maxDay}건/${monthly ? "월" : "일"}</small></h5><div class="report-flavor-days" role="group" aria-label="${escapeHtml(group.blend)} 로스팅일 기준 문제향미 추이">${daily}</div><div class="report-flavor-key"><span><i></i>평가 있음</span><span><i class="unrecorded"></i>평가 없음</span><span>${escapeHtml(period.start)} ~ ${escapeHtml(period.end)}</span></div><p class="report-footnote">로스팅일 기준 · 유형별 색상은 왼쪽 그래프와 동일 · 한 평가의 여러 문제유형은 각각 집계</p></div></div>${reportCommentTimelineMarkup(group, period)}`;
+    }
+
+    function reportCommentTimelineModel(comments, period) {
+      let evaluations = 0;
+      const counts = new Map();
+      return reportFlavorTimeline(comments, period).map((bucket) => {
+        evaluations += bucket.comments.length;
+        bucket.types.forEach((count, type) => counts.set(type, (counts.get(type) || 0) + count));
+        return { date: bucket.date, comments: bucket.comments, evaluations, types: new Map(counts) };
+      });
+    }
+
+    function reportCommentTimelineMarkup(group, period) {
+      const periods = reportCommentTimelineModel(group.comments, period);
+      if (!periods.length || !periods.at(-1).evaluations) return "";
+      const colors = ["#50c5e8", "#f39c72", "#ed728b", "#c5a1ed", "#60c6ac", "#8eb5f4", "#e5b85c", "#a7c96b", "#e08bc5", "#6dcbd1", "#bca28a", "#a5aebd"];
+      const series = [{ name: "전체 평가", color: "var(--ink)", value: (bucket) => bucket.evaluations, comments: (bucket) => bucket.comments },
+        ...issueTypePatterns.filter(([type]) => periods.at(-1).types.has(type)).map(([type]) => ({ name: type, color: colors[issueTypePatterns.findIndex(([label]) => label === type) % colors.length], value: (bucket) => bucket.types.get(type) || 0, comments: (bucket) => bucket.comments.filter((entry) => reportIssueTypes(entry).includes(type)) }))];
+      const width = Math.max(280, Math.min(1000, (Number(reportContent.clientWidth) || 900) - 40));
+      const height = 250, left = 42, right = width - 18, top = 24, bottom = 212;
+      const rawMax = Math.max(...series.map((line) => line.value(periods.at(-1))));
+      const step = Math.max(1, Math.ceil(rawMax / 4));
+      const max = step * Math.ceil(rawMax / step);
+      const x = (index) => left + (right - left) * index / periods.length;
+      const y = (value) => bottom - (bottom - top) * value / max;
+      const grid = Array.from({ length: max / step + 1 }, (_, index) => index * step).map((value) => `<line x1="${left}" x2="${right}" y1="${y(value)}" y2="${y(value)}" stroke="var(--line)"/><text x="${left - 7}" y="${y(value) + 4}" text-anchor="end" fill="var(--muted)" font-size="11">${value}</text>`).join("");
+      const tickEvery = Math.max(1, Math.ceil(periods.length / (width < 450 ? 4 : 8)));
+      const ticks = periods.map((bucket, index) => (index % tickEvery === 0 && index < periods.length - 1 - tickEvery * 0.85) || index === periods.length - 1 ? `<text x="${x(index + 1)}" y="234" text-anchor="${index === periods.length - 1 ? "end" : "middle"}" fill="var(--muted)" font-size="11">${escapeHtml(bucket.date.slice(5))}</text>` : "").join("");
+      const lines = series.map((line, seriesIndex) => {
+        const points = periods.map((bucket, index) => `${x(index + 1)},${y(line.value(bucket))}`).join(" ");
+        return `<polyline data-cumulative-series="${escapeHtml(line.name)}" points="${x(0)},${y(0)} ${points}" fill="none" stroke="${line.color}" stroke-width="${seriesIndex ? 1.7 : 2.2}" ${seriesIndex ? "" : 'stroke-dasharray="5 3"'}/>`;
+      }).join("");
+      const points = series.map((line) => periods.map((bucket, index) => {
+        const comments = line.comments(bucket);
+        if (!comments.length) return "";
+        const key = `timeline-${reportTimelineRows.size}`;
+        reportTimelineRows.set(key, { date: bucket.date, name: line.name, comments });
+        const label = `${bucket.date} · ${line.name} 누적 ${line.value(bucket)}건 · 해당 기간 ${comments.length}건`;
+        return `<g class="report-cumulative-point" role="button" tabindex="0" data-report-timeline-row="${key}" aria-pressed="false" aria-label="${escapeHtml(label)}"><title>${escapeHtml(label)}</title><circle cx="${x(index + 1)}" cy="${y(line.value(bucket))}" r="10" fill="transparent"/><circle cx="${x(index + 1)}" cy="${y(line.value(bucket))}" r="2.5" fill="${line.color}"/></g>`;
+      }).join("")).join("");
+      return `<div class="report-comment-timeline"><h5>커핑 코멘트 누적 추이</h5><div class="report-timeline-legend">${series.map((line) => `<span><i style="background:${line.color}"></i>${escapeHtml(line.name)} ${line.value(periods.at(-1))}건</span>`).join("")}</div><svg class="report-cumulative-svg" viewBox="0 0 ${width} ${height}" role="group" aria-label="${escapeHtml(group.blend)} 커핑 코멘트 누적 선 그래프, 가로축 로스팅일, 세로축 누적 건수"><text x="${left}" y="14" fill="var(--muted)" font-size="11">누적 건수</text>${grid}${lines}${points}${ticks}</svg><p class="report-footnote">로스팅일 기준 · 선택 기간 시작부터 누적 · 범위 코멘트는 평가 1건, 문제향미는 유형별 1건씩 집계</p><div class="report-timeline-detail" aria-live="polite" hidden></div></div>`;
     }
 
     function buildQcReport(collection, period, blend = "", roaster = "") {
@@ -10416,6 +10462,7 @@
 
     function renderQcReport() {
       if (activeAppView !== "reports") return;
+      reportTimelineRows.clear();
       const period = reportPeriod(reportAnchor, reportMode);
       document.querySelector("#reportPeriodLabel").textContent = `${period.start} ~ ${period.end} 집계 · ${reportAnchor.slice(0,4)}년 누적 그래프 · 로스팅일 기준`;
       reportDateInput.value = reportAnchor.slice(0,4);
@@ -10487,10 +10534,37 @@
     reportBlendInput.addEventListener("change", renderQcReport);
     reportRoasterInput.addEventListener("change", renderQcReport);
     reportContent.addEventListener("click", (event) => {
+      const close = event.target.closest("[data-close-report-timeline]");
+      if (close?.dataset.closeReportTimeline === "true") {
+        const timeline = close.closest(".report-comment-timeline");
+        const active = timeline.querySelector('[data-report-timeline-row][aria-pressed="true"]');
+        close.closest(".report-timeline-detail").hidden = true;
+        timeline.querySelectorAll("[data-report-timeline-row]").forEach((button) => button.setAttribute("aria-pressed","false"));
+        active?.focus?.({preventScroll:true});
+        return;
+      }
+      const button = event.target.closest("[data-report-timeline-row]");
+      const record = reportTimelineRows.get(button?.dataset.reportTimelineRow);
+      if (record) {
+        const timeline = button.closest(".report-comment-timeline");
+        const detail = timeline.querySelector(".report-timeline-detail");
+        timeline.querySelectorAll(".report-timeline-detail").forEach((panel) => { panel.hidden = true; });
+        timeline.querySelectorAll("[data-report-timeline-row]").forEach((item) => item.setAttribute("aria-pressed",String(item === button)));
+        detail.innerHTML = `<div class="report-section-head"><strong>${escapeHtml(record.date)} · ${escapeHtml(record.name)} · ${record.comments.length}건</strong><button type="button" class="icon-button" data-close-report-timeline="true" title="코멘트 닫기" aria-label="코멘트 닫기">×</button></div>${record.comments.slice().sort((a,b) => String(a.roastDate).localeCompare(String(b.roastDate))).map(reportCommentSourceMarkup).join("")}`;
+        detail.hidden = false;
+        detail.scrollIntoView?.({block:"nearest",behavior:"smooth"});
+        return;
+      }
       const mode = event.target.closest("[data-agtron-interval]")?.dataset.agtronInterval;
       if (mode !== "week" && mode !== "month") return;
       reportAgtronInterval = mode;
       renderQcReport();
+    });
+    reportContent.addEventListener("keydown", (event) => {
+      if ((event.key === "Enter" || event.key === " ") && event.target.closest("[data-report-timeline-row]")) {
+        event.preventDefault();
+        event.target.closest("[data-report-timeline-row]").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      }
     });
     let reportResizeTimer;
     window.addEventListener("resize", () => {

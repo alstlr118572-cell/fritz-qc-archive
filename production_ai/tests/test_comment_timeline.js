@@ -1,0 +1,52 @@
+const assert = require("node:assert/strict");
+const vm = require("node:vm");
+const { runStartup } = require("./test_client_startup");
+const roasts = Array.from({length:4},(_,index)=>({id:`r${index+1}`,entryType:"roasting",blend:"올드독",roastDate:"2026-09-01",batch:`#${index+1}`,roastData:{roaster:"검댕이"}}));
+const cup=(id,author,name,batch,verdict,note)=>({id,createdBy:author,evaluatorName:name,entryType:"cupping",blend:"올드독",roastDate:"2026-09-01",batch,verdict,note,roastData:{roaster:"검댕이"}});
+const comments=[cup("a1","a","평가 A","#1~3","pass","Good A / 로스팅 문제 진단: SECRET"),cup("a2","a","평가 A","#4","hold","Hold A"),cup("b1","b","평가 B","#1~4","no_ship","Other B")];
+const {context,listeners,requests}=runStartup({mira_blend_qc_entries_v1:[...roasts,...comments]});
+const read=code=>JSON.parse(vm.runInContext(`JSON.stringify(${code})`,context));
+context.timelineInput=[...comments,
+  {...comments[0],id:"a3",roastDate:"2026-09-03",tags:["향미톤 낮음","단맛 부족","단맛 부족"]},
+  {...comments[0],id:"same-name",createdBy:"different-account",verdict:""},
+  {...comments[2],id:"oct",roastDate:"2026-10-01"}
+];
+const model=read('reportCommentTimelineModel(timelineInput,reportPeriod("2026-09-01","month")).map(bucket=>({...bucket,types:Object.fromEntries(bucket.types)}))');
+assert.equal(model.length,30,"include quiet dates to retain the time scale");
+assert.deepEqual(model.slice(0,4).map(bucket=>bucket.evaluations),[4,4,5,5]);
+assert.equal(model[0].evaluations,4,"record count, not the number of batches in a range");
+assert.equal(model[2].types["단맛 부족"],1,"deduplicate a type within one evaluation");
+assert.equal(model[2].types["향미톤 낮음"],1,"multiple distinct types count independently");
+assert.deepEqual(model[29].types,model[2].types,"carry cumulative counts over quiet dates");
+const annual=read('reportCommentTimelineModel(timelineInput,reportPeriod("2026-09-01","year")).map(bucket=>bucket.evaluations)');
+assert.equal(annual.length,12);
+assert.equal(annual[8],5);
+assert.equal(annual[9],6);
+assert.equal(annual[11],6);
+assert.equal(read('reportCommentTimelineModel([],reportPeriod("2026-09-01","month")).at(-1).evaluations'),0);
+vm.runInContext('activeAppView="reports";reportAnchor="2026-09-01";renderQcReport()',context);
+const html=read('reportContent.innerHTML');
+assert.ok(html.includes("커핑 코멘트 누적 추이"));
+assert.ok(!html.includes('class="report-date-list"'),"replace the textual date listing with the visual timeline");
+assert.ok(html.includes('data-cumulative-series="전체 평가"'));
+assert.ok(html.includes('가로축 로스팅일, 세로축 누적 건수'));
+assert.ok(!html.includes('report-timeline-track'));
+assert.equal(read('reportCommentTimelineMarkup({comments:[],blend:"올드독"},reportPeriod("2026-09-01","month"))'),"");
+const key=vm.runInContext('Array.from(reportTimelineRows).find(([,row])=>row.name==="전체 평가")[0]',context);
+const detail={hidden:true,innerHTML:""};
+const button={dataset:{reportTimelineRow:key},closest:()=>timeline,setAttribute(name,value){this[name]=value;}};
+const other={setAttribute(name,value){this[name]=value;}};
+const timeline={querySelector:()=>detail,querySelectorAll:selector=>selector===".report-timeline-detail"?[detail]:[button,other]};
+const click=listeners.get("#reportContent:click")[0];
+click({target:{closest:selector=>selector==="[data-report-timeline-row]"?button:null}});
+assert.equal(detail.hidden,false);
+assert.ok(detail.innerHTML.includes("Good A")&&detail.innerHTML.includes("Hold A"));
+assert.ok(detail.innerHTML.includes("Other B")&&!detail.innerHTML.includes("SECRET"));
+assert.equal(button["aria-pressed"],"true");
+assert.equal(other["aria-pressed"],"false");
+const close={dataset:{closeReportTimeline:"true"},closest:selector=>selector===".report-timeline-detail"?detail:timeline};
+click({target:{closest:selector=>selector==="[data-close-report-timeline]"?close:null}});
+assert.equal(detail.hidden,true);
+assert.equal(button["aria-pressed"],"false");
+assert.equal(requests.length,1,"timeline interactions must not write or refetch the shared store");
+console.log("Cumulative comment lines: record counts, type deduplication, quiet dates, monthly/yearly accumulation, source drilldown and read-only controls passed.");

@@ -56,7 +56,7 @@ assert.ok(html.includes("산점도"));
 assert.ok(!html.includes("PRIVATE SOLUTION"));
 assert.ok(html.includes('class="report-flavor-bar"'), "issue counts must have proportional bars");
 assert.ok(html.includes('class="report-flavor-days"'), "include a dated visual timeline");
-assert.ok(html.includes('class="report-date-list"'), "retain expandable chronological source comments");
+assert.ok(html.includes('class="report-comment-timeline"'), "show chronological comments as evaluator-separated bars");
 assert.equal((html.match(/class="report-flavor-day /g) || []).length, 31);
 context.timelineFixture = [
   ...Array.from({length: 7}, (_, index) => ({ id: `trend-${index}`, roastDate: index < 4 ? "2026-10-02" : "2026-10-05", batch: "#1~3", tags: ["향미톤 낮음", "향미톤 낮음"], evaluatorName: `평가 ${index % 2}` })),
