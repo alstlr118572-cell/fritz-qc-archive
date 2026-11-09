@@ -3545,6 +3545,88 @@
         min-height: 44px;
       }
     }
+    .report-page { min-width: 0; padding: 24px; }
+    .report-header, .report-controls, .report-period-nav, .report-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .report-header h2 { margin: 0; font-size: 24px; }
+    .report-header p { margin: 4px 0 0; color: var(--muted); }
+    .report-controls { padding: 18px 0; margin-top: 14px; border-block: 1px solid var(--line); }
+    .report-controls .field { margin: 0; min-width: 130px; flex: 1; }
+    .report-controls input, .report-controls select { width: 100%; min-width: 0; }
+    .report-segments { display: flex; gap: 3px; padding: 3px; background: var(--field); border: 1px solid var(--line); border-radius: 7px; }
+    .report-segments button { border: 0; background: transparent; min-height: 38px; }
+    .report-segments button[aria-pressed="true"] { background: var(--surface-2); color: var(--teal); }
+    .report-period-nav button { width: 40px; min-height: 40px; padding: 0; }
+    .report-period-nav input { flex: 1; width: 155px; }
+    .report-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 22px 0; }
+    .report-kpis article { border-left: 2px solid var(--line); padding: 4px 12px; }
+    .report-kpis small { display: block; color: var(--muted); }
+    .report-kpis strong { font-size: 28px; font-variant-numeric: tabular-nums; }
+    .report-section { padding: 24px 0; border-top: 1px solid var(--line); }
+    .report-section h3 { margin: 0; font-size: 19px; }
+    .report-section-head { margin-bottom: 16px; }
+    .report-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+    .report-legend span::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--teal); margin-right: 5px; }
+    .report-legend .hold::before { background: var(--amber); }
+    .report-legend .issue::before { background: var(--red); }
+    .report-legend .pending::before { background: var(--muted); }
+    .report-group { padding: 18px 0; border-top: 1px solid var(--line-soft); break-inside: avoid; }
+    .report-group h4 { margin: 0 0 12px; font-size: 17px; }
+    .report-group h4 small { font-weight: 400; color: var(--muted); margin-left: 10px; }
+    .report-chart { margin: 12px 0 22px; }
+    .report-chart figcaption { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+    .report-chart figcaption span { color: var(--muted); }
+    .report-chart svg { width: 100%; height: auto; display: block; margin-top: 8px; overflow: visible; }
+    .report-missing { margin: 12px 0; padding: 10px 12px; border-left: 2px solid var(--muted-2); background: var(--surface-3); color: var(--muted); font-size: 13px; }
+    .report-comment-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .report-comment { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-3); }
+    .report-comment h4 { margin: 0 0 8px; }
+    .report-comment p, .report-source p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 6px 0; }
+    .report-comment .report-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+    .report-comment summary { cursor: pointer; color: var(--teal); padding: 8px 0; }
+    .report-source { padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
+    .report-source small { color: var(--muted); }
+    .report-table-wrap { width: 100%; overflow-x: auto; }
+    .report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .report-table th, .report-table td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .report-table td:last-child { overflow-wrap: anywhere; white-space: pre-wrap; }
+    .report-footnote { font-size: 12px; color: var(--muted); margin: 12px 0; }
+    @media (max-width: 700px) {
+      .report-page { padding: 16px 12px; }
+      .report-header h2 { font-size: 21px; }
+      .report-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .report-controls .field { min-width: 0; }
+      .report-controls .report-period-nav { grid-column: 1 / -1; }
+      .report-segments { grid-column: 1 / -1; }
+      .report-segments button { flex: 1; }
+      .report-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 4px; }
+      .report-kpis article { padding-left: 8px; }
+      .report-kpis strong { font-size: 23px; }
+      .report-comment-grid { grid-template-columns: 1fr; }
+      .report-table, .report-table tbody, .report-table tr, .report-table td { display: block; }
+      .report-table thead { display: none; }
+      .report-table tr { padding: 10px 0; border-bottom: 1px solid var(--line); }
+      .report-table td { padding: 3px 0; border: 0; }
+      .report-table td::before { content: attr(data-label); display: inline-block; width: 68px; color: var(--muted); }
+    }
+    @media print {
+      body:has(.report-page:not([hidden])) { background: white; color: #111; }
+      body:has(.report-page:not([hidden])) .top-utility,
+      body:has(.report-page:not([hidden])) .masthead,
+      body:has(.report-page:not([hidden])) #appNav,
+      body:has(.report-page:not([hidden])) #mobileMenuToggle,
+      body:has(.report-page:not([hidden])) #mobileMenuBackdrop,
+      body:has(.report-page:not([hidden])) #qcInputPanel,
+      body:has(.report-page:not([hidden])) .report-controls,
+      body:has(.report-page:not([hidden])) #reportPrintButton { display: none !important; }
+      body:has(.report-page:not([hidden])) .shell,
+      body:has(.report-page:not([hidden])) #appShell,
+      body:has(.report-page:not([hidden])) .main { display: block !important; width: 100%; max-width: none; margin: 0; padding: 0; }
+      .report-page { --ink: #111; --muted: #555; --muted-2: #777; --line: #ddd; --line-soft: #ddd; --surface-3: #fff; --teal: #087f9a; --red: #c42f42; --amber: #946600; background: white; box-shadow: none; border: 0; }
+      .report-page::before { content: "프릳츠 QC 아카이브"; display: block; margin-bottom: 12px; font-size: 12px; }
+      .report-chart, .report-comment { break-inside: avoid; }
+      .report-chart svg { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .report-table-wrap { overflow: visible; }
+    }
   </style>
 </head>
 <body class="loading-active">
@@ -3665,6 +3747,7 @@
       <button class="mobile-menu-backdrop" type="button" id="mobileMenuBackdrop" aria-label="메뉴 닫기"></button>
       <nav class="panel app-nav" id="appNav" aria-label="QC 페이지">
         <button type="button" class="active" data-app-view="dashboard">QC 종합 현황판</button>
+        <button type="button" data-app-view="reports">QC 리포트</button>
         <button type="button" data-app-view="search">검색</button>
         <button type="button" data-app-view="comments">커핑 코멘트</button>
         <button type="button" data-app-view="corrections">로스팅 프로파일 변경내용</button>
@@ -3846,6 +3929,26 @@
       </aside>
 
       <main class="main">
+        <section class="panel app-panel report-page" data-app-panel="reports" hidden>
+          <div class="report-header">
+            <div><h2>QC 리포트</h2><p id="reportPeriodLabel"></p></div>
+            <button type="button" id="reportPrintButton" title="리포트 인쇄 또는 PDF 저장" aria-label="리포트 인쇄 또는 PDF 저장">인쇄 / PDF</button>
+          </div>
+          <div class="report-controls">
+            <div class="report-segments" role="group" aria-label="리포트 기간">
+              <button type="button" id="reportWeekButton" aria-pressed="false">주간</button>
+              <button type="button" id="reportMonthButton" aria-pressed="true">월간</button>
+            </div>
+            <div class="report-period-nav">
+              <button type="button" id="reportPrevButton" title="이전 기간" aria-label="이전 기간">‹</button>
+              <input type="month" id="reportDateInput" aria-label="리포트 기준 월">
+              <button type="button" id="reportNextButton" title="다음 기간" aria-label="다음 기간">›</button>
+            </div>
+            <div class="field"><label for="reportBlendInput">블렌드</label><select id="reportBlendInput"><option value="">전체 블렌드</option></select></div>
+            <div class="field"><label for="reportRoasterInput">로스터기</label><select id="reportRoasterInput"><option value="">전체 로스터기</option></select></div>
+          </div>
+          <div id="reportContent" aria-live="polite"></div>
+        </section>
         <section class="panel dashboard-command app-panel" data-app-panel="dashboard">
           <div class="dashboard-command-main">
             <div class="dashboard-command-head">
@@ -5126,6 +5229,10 @@
     const adminPageButton = document.querySelector("#adminPageButton");
     const appViewButtons = document.querySelectorAll("[data-app-view]");
     const appPanels = document.querySelectorAll("[data-app-panel]");
+    const reportContent = document.querySelector("#reportContent");
+    const reportDateInput = document.querySelector("#reportDateInput");
+    const reportBlendInput = document.querySelector("#reportBlendInput");
+    const reportRoasterInput = document.querySelector("#reportRoasterInput");
     const roastingPageButton = document.querySelector("#roastingPageButton");
     const cuppingPageButton = document.querySelector("#cuppingPageButton");
     const correctionPageButton = document.querySelector("[data-app-view='corrections']");
@@ -5458,6 +5565,8 @@
     };
     let activeBlendSheet = "올드독";
     let activeAppView = "dashboard";
+    let reportMode = "month";
+    let reportAnchor = today();
     let dashboardCalendarMonth = "";
     let searchCalendarMonth = today().slice(0, 7);
     let selectedSearchDate = "";
@@ -9985,8 +10094,186 @@
         : `${entryHints}<div class="empty">아직 저장된 ISSUE 소진 결과가 없습니다.</div>`;
     }
 
+    function reportPeriod(anchor, mode) {
+      const start = parseDateInput(anchor) || parseDateInput(today());
+      if (mode === "week") start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+      else start.setDate(1);
+      const end = new Date(start.getTime());
+      if (mode === "week") end.setDate(end.getDate() + 6);
+      else end.setMonth(end.getMonth() + 1, 0);
+      return { start: formatDateInput(start), end: formatDateInput(end) };
+    }
+
+    function reportMetricValue(value, metric) {
+      const text = String(value ?? "").trim();
+      if (!text) return null;
+      if (metric === "roastTime") {
+        const match = text.match(/^(\d{1,3})[:"](\d{1,2})$/);
+        return match && Number(match[2]) < 60 && Number(match[1]) * 60 + Number(match[2]) > 0
+          ? Number(match[1]) * 60 + Number(match[2]) : null;
+      }
+      if (!/^\d+(?:\.\d+)?(?:\s*°?C)?$/i.test(text)) return null;
+      const number = Number(text.replace(/\s*°?C$/i, ""));
+      return Number.isFinite(number) && number > 0 ? number : null;
+    }
+
+    function reportMetricLabel(value, metric) {
+      if (value === null || !Number.isFinite(value)) return "미기록";
+      if (metric === "roastTime") {
+        const seconds = Math.round(value);
+        return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+      }
+      return `${value.toFixed(1)}°C`;
+    }
+
+    function reportFlavorComment(entry) {
+      // Old records can contain private diagnosis/solution text in the combined note.
+      const detail = entry.cuppingDetail?.flavorIssue || entry.flavorIssue || entry.note || "";
+      return String(detail).split(/(?:^|\s*\/\s*|\r?\n)(?:로스팅\s*문제\s*진단|솔루션|변경\s*내용)\s*:/)[0].replace(/^문제향미지표\s*:\s*/, "").trim();
+    }
+
+    function buildQcReport(collection, period, blend = "", roaster = "") {
+      const matches = (entry) => (!blend || canonicalBlendName(entry.blend) === blend) && (!roaster || entryRoaster(entry) === roaster);
+      const inPeriod = (entry) => /^\d{4}-\d{2}-\d{2}$/.test(entry.roastDate || "") && entry.roastDate >= period.start && entry.roastDate <= period.end;
+      const roasting = collection.filter((entry) => entry.entryType === "roasting" && inPeriod(entry) && matches(entry))
+        .sort((a, b) => a.roastDate.localeCompare(b.roastDate) || String(a.batch).localeCompare(String(b.batch), "ko", { numeric: true }) || String(a.id).localeCompare(String(b.id)));
+      const comments = new Map();
+      const groups = new Map();
+      const issues = [];
+      const counts = { pass: 0, hold: 0, pending: 0, issue: 0 };
+      for (const entry of roasting) {
+        const status = dashboardEntryStatus(entry);
+        counts[status] += 1;
+        const linked = linkedCuppingEntries(entry).filter(isCuppingVerdictEntry);
+        linked.forEach((comment) => comments.set(comment.id, comment));
+        if (status === "issue") issues.push({ entry, comments: linked });
+        const key = JSON.stringify([canonicalBlendName(entry.blend), entryRoaster(entry)]);
+        if (!groups.has(key)) groups.set(key, { blend: canonicalBlendName(entry.blend), roaster: entryRoaster(entry), entries: [] });
+        groups.get(key).entries.push(entry);
+      }
+      const unmatched = collection.filter((entry) => isCuppingVerdictEntry(entry) && inPeriod(entry) && matches(entry) && !comments.has(entry.id));
+      const cuppingGroups = new Map();
+      for (const comment of comments.values()) {
+        const name = canonicalBlendName(comment.blend);
+        if (!cuppingGroups.has(name)) cuppingGroups.set(name, { blend: name, comments: [], types: new Map(), evaluators: new Set() });
+        const group = cuppingGroups.get(name);
+        group.comments.push(comment);
+        group.evaluators.add(entryEvaluatorName(comment));
+        const tags = new Set((Array.isArray(comment.tags) ? comment.tags : []).filter((tag) => issueTypePatterns.some(([label]) => label === tag)));
+        tags.forEach((tag) => group.types.set(tag, (group.types.get(tag) || 0) + 1));
+      }
+      return { roasting, counts, groups: [...groups.values()], cuppingGroups: [...cuppingGroups.values()], unmatched, issues, commentCount: comments.size };
+    }
+
+    function reportScatterMarkup(group, metric, title) {
+      const points = group.entries.map((entry, index) => ({ entry, index, value: reportMetricValue(normalizedRoastData(entry)[metric], metric) })).filter((point) => point.value !== null);
+      if (!points.length) return `<div class="report-missing">${title} · 유효한 기록 없음 (${group.entries.length}배치)</div>`;
+      const values = points.map((point) => point.value);
+      const min = Math.min(...values), max = Math.max(...values);
+      const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+      const spread = Math.max((max - min) * 0.15, metric === "roastTime" ? 8 : 0.5);
+      const low = Math.max(0, min - spread), high = max + spread;
+      const width = Math.max(300, Math.min(1400, Number(reportContent.clientWidth) || 900));
+      const height = 180, left = 52, right = width - 16, top = 14, bottom = 148;
+      const x = (index) => group.entries.length === 1 ? (left + right) / 2 : left + index / (group.entries.length - 1) * (right - left);
+      const y = (value) => bottom - (value - low) / (high - low) * (bottom - top);
+      const grid = Array.from({ length: 4 }, (_, i) => {
+        const value = low + (high - low) * i / 3;
+        return `<line x1="${left}" y1="${y(value)}" x2="${right}" y2="${y(value)}" stroke="var(--line)"/><text x="${left - 7}" y="${y(value) + 4}" text-anchor="end" fill="var(--muted)" font-size="11">${reportMetricLabel(value, metric).replace("°C", "")}</text>`;
+      }).join("");
+      const ticks = [...new Set([0, Math.floor((group.entries.length - 1) / 2), group.entries.length - 1])];
+      const colors = { pass: "var(--teal)", hold: "var(--amber)", issue: "var(--red)", pending: "var(--muted)" };
+      const dots = points.map(({ entry, index, value }) => {
+        const status = dashboardEntryStatus(entry);
+        const label = `${entry.roastDate} ${entry.batch} · ${reportMetricLabel(value, metric)} · ${status.toUpperCase()}`;
+        return `<circle cx="${x(index)}" cy="${y(value)}" r="${status === "issue" ? 4 : 2.8}" fill="${colors[status]}" opacity="0.9"><title>${escapeHtml(label)}</title></circle>`;
+      }).join("");
+      return `<figure class="report-chart"><figcaption><strong>${title}</strong><span>평균 ${reportMetricLabel(mean, metric)} · 범위 ${reportMetricLabel(min, metric)} ~ ${reportMetricLabel(max, metric)} · ${points.length}/${group.entries.length}배치</span></figcaption>
+        <svg style="height:180px" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(`${group.blend} ${group.roaster} ${title} 배치별 산점도, ${points.length}개 기록`)}"><title>${title} · 로스팅 일자 및 배치 순</title>${grid}${dots}${ticks.map((index) => `<text x="${x(index)}" y="170" text-anchor="${index === 0 ? "start" : index === group.entries.length - 1 ? "end" : "middle"}" fill="var(--muted)" font-size="11">${escapeHtml(group.entries[index].roastDate.slice(5))} ${escapeHtml(group.entries[index].batch)}</text>`).join("")}</svg></figure>`;
+    }
+
+    function reportCommentSourceMarkup(entry) {
+      return `<div class="report-source"><strong>${escapeHtml(entryEvaluatorName(entry))}</strong><small> · ${displayCell(entry.roastDate)} · ${displayCell(entryRoaster(entry))} · ${displayCell(entry.batch)} · ${verdictLabel(normalizeStoredVerdict(entry.verdict))}</small><p>${escapeHtml(reportFlavorComment(entry) || "코멘트 미기록")}</p></div>`;
+    }
+
+    function renderQcReport() {
+      if (activeAppView !== "reports") return;
+      const period = reportPeriod(reportAnchor, reportMode);
+      document.querySelector("#reportPeriodLabel").textContent = `${period.start} ~ ${period.end} · ${reportMode === "week" ? "주간 · 월요일~일요일" : "월간"} · 로스팅일 기준`;
+      document.querySelector("#reportWeekButton").setAttribute("aria-pressed", String(reportMode === "week"));
+      document.querySelector("#reportMonthButton").setAttribute("aria-pressed", String(reportMode === "month"));
+      reportDateInput.type = reportMode === "week" ? "date" : "month";
+      reportDateInput.setAttribute("aria-label", reportMode === "week" ? "리포트 기준일" : "리포트 기준 월");
+      reportDateInput.value = reportMode === "week" ? reportAnchor : reportAnchor.slice(0, 7);
+      const options = (input, values, label) => {
+        const previous = input.value;
+        input.innerHTML = `<option value="">${label}</option>` + values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("");
+        input.value = values.includes(previous) ? previous : "";
+      };
+      const roasts = entries.filter((entry) => entry.entryType === "roasting");
+      options(reportBlendInput, [...new Set(roasts.map((entry) => canonicalBlendName(entry.blend)).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko")), "전체 블렌드");
+      options(reportRoasterInput, [...new Set(roasts.map(entryRoaster).filter(Boolean))].sort(), "전체 로스터기");
+      document.querySelector("#reportPeriodLabel").textContent += ` · ${reportBlendInput.value || "전체 블렌드"} / ${reportRoasterInput.value || "전체 로스터기"}`;
+      const model = buildQcReport(entries, period, reportBlendInput.value, reportRoasterInput.value);
+      const statuses = [["로스팅 배치", model.roasting.length], ["PASS", model.counts.pass], ["HOLD", model.counts.hold], ["미평가", model.counts.pending], ["ISSUE", model.counts.issue]];
+      reportContent.innerHTML = `<div class="report-kpis">${statuses.map(([label, value]) => `<article><small>${label}</small><strong>${value.toLocaleString()}</strong></article>`).join("")}</div>
+        <p class="report-footnote">평가 기록 ${model.commentCount}건 · 배치별 판정은 종합 현황판과 동일한 연결 기준입니다. 진행 중인 기간은 현재 저장된 데이터까지 집계합니다.</p>
+        <section class="report-section"><div class="report-section-head"><h3>블렌드별 로스팅 동향</h3><div class="report-legend"><span>PASS</span><span class="hold">HOLD</span><span class="pending">미평가</span><span class="issue">ISSUE</span></div></div>
+          ${model.groups.length ? model.groups.map((group) => `<div class="report-group"><h4>${displayCell(group.blend)}<small>${displayCell(group.roaster || "로스터기 미기록")} · ${group.entries.length}배치</small></h4><div class="report-missing">시작온도 · 미수집</div>${reportScatterMarkup(group, "roastTime", "로스팅 시간")}${reportScatterMarkup(group, "dropTemp", "배출온도")}</div>`).join("") : `<div class="empty">선택한 기간에 로스팅 기록이 없습니다.</div>`}
+        </section>
+        <section class="report-section"><div class="report-section-head"><h3>커핑 종합</h3><span class="tag">평가 기록 기준</span></div><div class="report-comment-grid">
+          ${model.cuppingGroups.length ? model.cuppingGroups.map((group) => {
+            const types = [...group.types].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko"));
+            const evaluatorGroups = new Map();
+            group.comments.forEach((comment) => {
+              const name = entryEvaluatorName(comment);
+              if (!evaluatorGroups.has(name)) evaluatorGroups.set(name, []);
+              evaluatorGroups.get(name).push(comment);
+            });
+            const decisions = verdictCounts(group.comments);
+            const summary = types.length ? `가장 많이 기록된 문제향미: ${types.filter(([, count]) => count === types[0][1]).map(([type]) => type).join(", ")} (${types[0][1]}건)` : "선택된 문제향미 유형 없음";
+            return `<article class="report-comment"><h4>${displayCell(group.blend)}</h4><p>평가자 ${group.evaluators.size}명 · ${group.comments.length}건</p><p>${escapeHtml(summary)}</p><p class="report-footnote">평가 기록 PASS ${decisions.pass} · HOLD ${decisions.hold} · ISSUE ${decisions.issue}</p><div class="report-tags">${types.map(([type, count]) => `<span class="tag amber">${escapeHtml(type)} ${count}건</span>`).join("")}</div><p class="report-footnote">문제향미 빈도는 평가 기록당 1회입니다. 동일 배치에 대한 서로 다른 평가를 합산 판정하지 않습니다.</p>${[...evaluatorGroups].map(([name, comments]) => {
+              const sorted = [...comments].sort((a, b) => String(b.roastDate).localeCompare(String(a.roastDate)));
+              return `<div class="report-source"><strong>${escapeHtml(name)}</strong><small> · ${comments.length}건 · 최근 ${displayCell(sorted[0].roastDate)}</small><p>${escapeHtml(reportFlavorComment(sorted[0]) || "코멘트 미기록")}</p></div><details><summary>${escapeHtml(name)} · 기간 내 전체 원문</summary>${sorted.map(reportCommentSourceMarkup).join("")}</details>`;
+            }).join("")}</article>`;
+          }).join("") : `<div class="empty">선택한 로스팅 배치에 연결된 커핑 평가가 없습니다.</div>`}
+        </div>${model.unmatched.length ? `<details class="report-missing"><summary>연결 확인이 필요한 커핑 기록 ${model.unmatched.length}건 · 배치 판정 집계에서 제외</summary>${model.unmatched.map(reportCommentSourceMarkup).join("")}</details>` : ""}</section>
+        <section class="report-section"><div class="report-section-head"><h3>ISSUE 배치</h3><span class="tag red">${model.issues.length}배치</span></div>
+          ${model.issues.length ? `<div class="report-table-wrap"><table class="report-table"><thead><tr><th>로스팅일</th><th>블렌드</th><th>로스터기</th><th>배치</th><th>커핑 코멘트</th></tr></thead><tbody>${model.issues.map(({ entry, comments }) => `<tr><td data-label="로스팅일">${displayCell(entry.roastDate)}</td><td data-label="블렌드">${displayCell(entry.blend)}</td><td data-label="로스터기">${displayCell(entryRoaster(entry))}</td><td data-label="배치">${displayCell(entry.batch)}</td><td data-label="커핑">${escapeHtml(comments.map((comment) => `${entryEvaluatorName(comment)}: ${reportFlavorComment(comment)}`).join("\n") || "연결된 커핑 코멘트 없음")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">선택한 기간에 ISSUE 배치가 없습니다.</div>`}
+        </section><section class="report-section"><h3>환경지표</h3><p class="report-missing">미수집 · 로스팅실 / 사일로 / 생두 창고 / MD 창고 온습도</p></section>`;
+    }
+
+    document.querySelector("#reportWeekButton").addEventListener("click", () => { reportMode = "week"; renderQcReport(); });
+    document.querySelector("#reportMonthButton").addEventListener("click", () => { reportMode = "month"; renderQcReport(); });
+    reportDateInput.addEventListener("change", () => {
+      const value = reportDateInput.value;
+      if (value && parseDateInput(reportMode === "month" ? `${value}-01` : value)) {
+        reportAnchor = reportMode === "month" ? `${value}-01` : value;
+        renderQcReport();
+      }
+    });
+    function moveReportPeriod(direction) {
+      const date = parseDateInput(reportPeriod(reportAnchor, reportMode).start);
+      if (reportMode === "week") date.setDate(date.getDate() + direction * 7);
+      else date.setMonth(date.getMonth() + direction);
+      reportAnchor = formatDateInput(date);
+      renderQcReport();
+    }
+    document.querySelector("#reportPrevButton").addEventListener("click", () => moveReportPeriod(-1));
+    document.querySelector("#reportNextButton").addEventListener("click", () => moveReportPeriod(1));
+    reportBlendInput.addEventListener("change", renderQcReport);
+    reportRoasterInput.addEventListener("change", renderQcReport);
+    document.querySelector("#reportPrintButton").addEventListener("click", () => window.print());
+    let reportResizeTimer;
+    window.addEventListener("resize", () => {
+      if (activeAppView !== "reports") return;
+      clearTimeout(reportResizeTimer);
+      reportResizeTimer = setTimeout(renderQcReport, 150);
+    });
+
     function render() {
       entries = unifiedOperationalEntries(entries);
+      renderQcReport();
       const currentKey = currentMonthKey();
       const monthKey = dashboardMonthKey();
       const monthEntries = entries.filter((entry) => isEntryInMonth(entry, monthKey));
