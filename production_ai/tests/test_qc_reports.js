@@ -24,6 +24,7 @@ const read = (code) => JSON.parse(vm.runInContext(`JSON.stringify(${code})`, con
 assert.deepEqual(read('reportPeriod("2026-11-01", "week")'), { start: "2026-10-26", end: "2026-11-01" });
 assert.deepEqual(read('reportPeriod("2027-01-01", "week")'), { start: "2026-12-28", end: "2027-01-03" });
 assert.deepEqual(read('reportPeriod("2028-02-20", "month")'), { start: "2028-02-01", end: "2028-02-29" });
+assert.deepEqual(read('reportPeriod("2028-02-20", "year")'), { start: "2028-01-01", end: "2028-12-31" });
 assert.equal(read('reportMetricValue(\'14"05\', "roastTime")'), 845);
 assert.equal(read('reportMetricValue("14:05", "roastTime")'), 845);
 for (const value of ["", "14:60", "bad", "0:00"]) {
@@ -80,12 +81,18 @@ assert.ok(trendHtml.includes('<small>31</small>'));
 assert.ok(trendHtml.includes('2026-10-02 · 평가 4건 · 향미톤 낮음 4건'));
 assert.ok(trendHtml.includes('2026-10-06 · 평가 1건 · 선택된 문제향미 유형 없음'));
 assert.ok(trendHtml.includes('2026-10-07 · 평가 기록 없음'));
-listeners.get("#reportWeekButton:click")[0]();
-assert.equal(elements.get("#reportDateInput").type, "date");
+assert.equal(read('reportFlavorTimeline(timelineFixture.slice(0,8),reportPeriod("2026-10-01","year")).length'),12);
+assert.equal(read('reportFlavorTimeline(timelineFixture.slice(0,8),reportPeriod("2026-10-01","year")).reduce((sum,month)=>sum+month.total,0)'),7);
+elements.get("#reportMonthInput").value = "";
+listeners.get("#reportMonthInput:change")[0]();
+assert.equal(read('reportMode'), "year");
+assert.equal(elements.get("#reportDateInput").value, "2026");
 listeners.get("#reportNextButton:click")[0]();
-assert.equal(read('reportPeriod(reportAnchor, reportMode).start'), "2026-11-02");
-listeners.get("#reportMonthButton:click")[0]();
-assert.equal(elements.get("#reportDateInput").type, "month");
+assert.equal(read('reportPeriod(reportAnchor, reportMode).start'), "2027-01-01");
+elements.get("#reportMonthInput").value = "09";
+listeners.get("#reportMonthInput:change")[0]();
+assert.equal(read('reportAnchor'), "2027-09-01");
+assert.equal(read('reportMode'), "month");
 assert.equal(requests.length, 1, "reports must not fetch repeatedly or write any data");
 vm.runInContext('users = users.map(user => ({...user,userId:"viewer",role:"viewer",permissions:[]})); setAppView("reports")', context);
 assert.equal(read('activeAppView'), "reports", "approved read-only users may view the public report");
@@ -98,4 +105,18 @@ const locked = runStartup({
 assert.equal(vm.runInContext('buildQcReport(entries, reportPeriod("2026-10-31", "month")).issues.length', locked), 1);
 vm.runInContext('activeAppView="reports"; reportAnchor="2026-10-31"; renderQcReport()', locked);
 assert.ok(!vm.runInContext('reportContent.innerHTML', locked).includes("SECRET DISPOSAL"));
+const orderRecords = [
+  ["너티트리니티","노랭이"], ["디카페인","노랭이"], ["서울시네마","노랭이"], ["잘되어 가시나","노랭이"],
+  ["올드독","노랭이"], ["서울시네마","검댕이"], ["잘되어 가시나","검댕이"], ["올드독","검댕"]
+].map(([blend,roaster],index)=>roast(`order-${index}`,"#1",{blend,roastDate:blend==="너티트리니티"?"2026-01-10":"2026-10-31",roastData:{roaster,roastTime:"14:00",dropTemp:"175"}}));
+const ordered = runStartup({mira_blend_qc_entries_v1:orderRecords}).context;
+assert.deepEqual(JSON.parse(vm.runInContext('JSON.stringify(buildQcReport(entries,reportPeriod("2026-10-31","year")).groups.map(group=>[group.blend,group.roaster]))',ordered)),[
+  ["올드독","검댕이"],["올드독","노랭이"],["잘되어 가시나","검댕이"],["잘되어 가시나","노랭이"],
+  ["서울시네마","검댕이"],["서울시네마","노랭이"],["디카페인","노랭이"],["너티트리니티","노랭이"]
+]);
+vm.runInContext('activeAppView="reports";reportAnchor="2026-10-31";renderQcReport()',ordered);
+const annualHtml = vm.runInContext('reportContent.innerHTML',ordered);
+assert.ok(annualHtml.includes("너티트리니티"), "a low-volume blend must keep its January history in the annual chart when October is selected");
+assert.ok(annualHtml.includes("2026-10 평균 미기록 · 0배치"));
+assert.equal(vm.runInContext('buildQcReport(entries,reportPeriod(reportAnchor,"month")).roasting.length',ordered),7,"monthly KPI must not include annual background batches");
 console.log("QC reports: date boundaries, metrics, batch counts, filters, evaluator separation, issue locks, privacy and read-only rendering passed.");
