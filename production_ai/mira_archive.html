@@ -3608,25 +3608,6 @@
       .report-table td { padding: 3px 0; border: 0; }
       .report-table td::before { content: attr(data-label); display: inline-block; width: 68px; color: var(--muted); }
     }
-    @media print {
-      body:has(.report-page:not([hidden])) { background: white; color: #111; }
-      body:has(.report-page:not([hidden])) .top-utility,
-      body:has(.report-page:not([hidden])) .masthead,
-      body:has(.report-page:not([hidden])) #appNav,
-      body:has(.report-page:not([hidden])) #mobileMenuToggle,
-      body:has(.report-page:not([hidden])) #mobileMenuBackdrop,
-      body:has(.report-page:not([hidden])) #qcInputPanel,
-      body:has(.report-page:not([hidden])) .report-controls,
-      body:has(.report-page:not([hidden])) #reportPrintButton { display: none !important; }
-      body:has(.report-page:not([hidden])) .shell,
-      body:has(.report-page:not([hidden])) #appShell,
-      body:has(.report-page:not([hidden])) .main { display: block !important; width: 100%; max-width: none; margin: 0; padding: 0; }
-      .report-page { --ink: #111; --muted: #555; --muted-2: #777; --line: #ddd; --line-soft: #ddd; --surface-3: #fff; --teal: #087f9a; --red: #c42f42; --amber: #946600; background: white; box-shadow: none; border: 0; }
-      .report-page::before { content: "프릳츠 QC 아카이브"; display: block; margin-bottom: 12px; font-size: 12px; }
-      .report-chart, .report-comment { break-inside: avoid; }
-      .report-chart svg { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      .report-table-wrap { overflow: visible; }
-    }
   </style>
 </head>
 <body class="loading-active">
@@ -3932,7 +3913,6 @@
         <section class="panel app-panel report-page" data-app-panel="reports" hidden>
           <div class="report-header">
             <div><h2>QC 리포트</h2><p id="reportPeriodLabel"></p></div>
-            <button type="button" id="reportPrintButton" title="리포트 인쇄 또는 PDF 저장" aria-label="리포트 인쇄 또는 PDF 저장">인쇄 / PDF</button>
           </div>
           <div class="report-controls">
             <div class="report-segments" role="group" aria-label="리포트 기간">
@@ -10263,7 +10243,6 @@
     document.querySelector("#reportNextButton").addEventListener("click", () => moveReportPeriod(1));
     reportBlendInput.addEventListener("change", renderQcReport);
     reportRoasterInput.addEventListener("change", renderQcReport);
-    document.querySelector("#reportPrintButton").addEventListener("click", () => window.print());
     let reportResizeTimer;
     window.addEventListener("resize", () => {
       if (activeAppView !== "reports") return;
