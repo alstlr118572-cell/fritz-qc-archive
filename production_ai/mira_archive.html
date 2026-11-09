@@ -3577,6 +3577,8 @@
     .agtron-toolbar { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 18px 0 8px; }
     .agtron-figure { margin: 20px 0; padding-top: 16px; border-top: 1px solid var(--line); }
     .agtron-figure h5 { margin: 0; font-size: 14px; }
+    .agtron-mean-svg { display: block; width: 100%; height: 210px; margin-top: 8px; }
+    .agtron-dispersion-title { margin-top: 24px !important; }
     .agtron-chart { display: flex; gap: 3px; height: 148px; align-items: end; margin-top: 12px; }
     .agtron-bucket { flex: 1; min-width: 0; text-align: center; }
     .agtron-bucket.selected { background: rgba(82, 197, 255, 0.07); outline: 1px solid var(--line-strong); }
@@ -10335,6 +10337,60 @@
       return `평균 ${stats.mean.toFixed(2)} · 표준편차 ${stats.sd === null ? "측정 부족" : stats.sd.toFixed(2)} · 최솟값 ${stats.min.toFixed(2)} / 최댓값 ${stats.max.toFixed(2)} · 범위폭 ${stats.range.toFixed(2)} · ${stats.n}건`;
     }
 
+    function agtronMeanPlot(buckets, requestedWidth = 900) {
+      const values = buckets.flatMap((bucket) => [bucket.whole.mean, bucket.ground.mean]).filter(Number.isFinite);
+      if (!values.length) return null;
+      const min = Math.min(...values), max = Math.max(...values);
+      const padding = Math.max(1, (max - min) * 0.25);
+      const low = Math.max(0, min - padding), high = max + padding;
+      const width = Math.max(240, Math.min(1400, requestedWidth));
+      const left = 48, right = width - 18, top = 28, bottom = 165;
+      const x = (index) => left + (index + 0.5) / buckets.length * (right - left);
+      // Only the display axis is inverted; measured values and statistics stay unchanged.
+      const y = (value) => top + (value - low) / (high - low) * (bottom - top);
+      const points = [], paths = {};
+      for (const kind of ["whole", "ground"]) {
+        let previous = false;
+        paths[kind] = buckets.map((bucket, index) => {
+          const stats = bucket[kind];
+          if (!Number.isFinite(stats.mean)) { previous = false; return ""; }
+          const point = { kind, index, value: stats.mean, n: stats.n, x: x(index), y: y(stats.mean) };
+          points.push(point);
+          const command = `${previous ? "L" : "M"}${point.x},${point.y}`;
+          previous = true;
+          return command;
+        }).join(" ");
+      }
+      return { width, left, right, top, bottom, low, high, points, paths };
+    }
+
+    function reportAgtronMeanMarkup(group, buckets, weekly) {
+      const plot = agtronMeanPlot(buckets, Number(reportContent.clientWidth) || 900);
+      if (!plot) return "";
+      const colors = { whole: "var(--teal)", ground: "var(--rust)" };
+      const selected = (bucket) => !weekly && reportMode === "month" && bucket.start.slice(0,7) === reportAnchor.slice(0,7);
+      const grid = Array.from({ length: 4 }, (_, index) => {
+        const value = plot.low + (plot.high - plot.low) * index / 3;
+        const y = plot.top + (plot.bottom - plot.top) * index / 3;
+        return `<line x1="${plot.left}" x2="${plot.right}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${plot.left - 7}" y="${y + 4}" text-anchor="end" fill="var(--muted)" font-size="11">${value.toFixed(1)}</text>`;
+      }).join("");
+      const backgrounds = buckets.map((bucket, index) => selected(bucket) ? `<rect x="${plot.left + index / buckets.length * (plot.right - plot.left)}" y="${plot.top}" width="${(plot.right - plot.left) / buckets.length}" height="${plot.bottom - plot.top}" fill="var(--teal)" opacity="0.07"/>` : "").join("");
+      const series = ["whole", "ground"].map((kind) => `<path d="${plot.paths[kind]}" fill="none" stroke="${colors[kind]}" stroke-width="1.5" ${kind === "ground" ? 'stroke-dasharray="4 3"' : ""}/>`).join("");
+      const points = plot.points.map((point) => {
+        const bucket = buckets[point.index];
+        const showValue = buckets.length <= 6 || (plot.width >= 720 && buckets.length <= 12) || selected(bucket);
+        const label = `${bucket.start} ~ ${bucket.end} · ${point.kind === "whole" ? "홀빈" : "그라운드"} 평균 ${point.value.toFixed(2)} · 측정 ${point.n}건`;
+        return `<circle class="agtron-mean-point" data-series="${point.kind}" data-mean="${point.value}" cx="${point.x}" cy="${point.y}" r="2.5" fill="${colors[point.kind]}"><title>${escapeHtml(label)}</title></circle>${showValue ? `<text x="${point.x}" y="${point.y + (point.kind === "whole" ? -9 : 15)}" text-anchor="middle" fill="${colors[point.kind]}" font-size="10">${point.value.toFixed(2)}</text>` : ""}`;
+      }).join("");
+      const ticks = buckets.map((bucket, index) => {
+        const show = buckets.length <= 12 || index === 0 || index === buckets.length - 1 || (index % 8 === 0 && index < buckets.length - 3);
+        const label = weekly ? bucket.start.slice(5).replace("-", "/") : `${Number(bucket.start.slice(5,7))}월`;
+        const x = plot.left + (index + 0.5) / buckets.length * (plot.right - plot.left);
+        return show ? `<text x="${x}" y="198" text-anchor="middle" fill="var(--muted)" font-size="10">${label}</text>` : "";
+      }).join("");
+      return `<h5>아그트론 평균 색도 · ${weekly ? "주간" : "월간"}</h5><p class="report-footnote">위쪽: 낮은 아그트론·어두운 배전 / 아래쪽: 높은 아그트론·밝은 배전</p><svg class="agtron-mean-svg" viewBox="0 0 ${plot.width} 210" role="img" aria-label="${escapeHtml(group.blend)} ${escapeHtml(group.roaster)} 평균 아그트론, 낮은 값이 위쪽인 반전 축">${backgrounds}${grid}${series}${points}${ticks}</svg><div class="agtron-key"><span><i></i>홀빈 평균</span><span><i class="ground"></i>그라운드 평균</span></div>`;
+    }
+
     function reportAgtronMarkup(group) {
       const weekly = reportAgtronInterval === "week";
       const period = reportPeriod(reportAnchor, weekly ? reportMode : "year");
@@ -10351,7 +10407,7 @@
         return `<div class="agtron-bucket ${selected ? "selected" : ""}" role="img" aria-label="${escapeHtml(description)}" title="${escapeHtml(description)}"><div class="agtron-track">${[["whole",bucket.whole],["ground",bucket.ground]].map(([kind,stats]) => `<i class="agtron-mark ${kind} ${stats.sd === null ? "missing" : ""}" ${stats.sd === null ? "" : `style="height:${stats.sd / scale * 100}%"`}></i>`).join("")}</div><small>${tick ? label : ""}</small></div>`;
       }).join("");
       const cell = (stats) => stats.n ? `<strong>${stats.mean.toFixed(2)} / ${stats.sd === null ? "-" : stats.sd.toFixed(2)}</strong><small>최소 ${stats.min.toFixed(2)} ~ 최대 ${stats.max.toFixed(2)} · 폭 ${stats.range.toFixed(2)} · n=${stats.n}${stats.n === 1 ? " · 편차 판단 불가" : ""}</small>` : "측정 없음";
-      return `<div class="agtron-figure"><div class="report-section-head"><h5>아그트론 표준편차 · ${weekly ? "주간" : "월간"}</h5><span class="report-footnote">${period.start} ~ ${period.end} · ${measurable ? `세로축 최대 ${maxSd.toFixed(2)}` : "표준편차 산출 불가 (기간별 2건 미만)"}</span></div><div class="agtron-chart" role="group" aria-label="${escapeHtml(group.blend)} ${escapeHtml(group.roaster)} 아그트론 배치 간 편차">${bars}</div><div class="agtron-key"><span><i></i>홀빈</span><span><i class="ground"></i>그라운드</span><span><i class="missing"></i>측정 2건 미만</span></div><details><summary>기간별 평균·표준편차·범위·측정 수</summary><table class="agtron-table"><thead><tr><th>로스팅 기간</th><th>홀빈 평균 / 표준편차</th><th>그라운드 평균 / 표준편차</th></tr></thead><tbody>${buckets.map((bucket) => `<tr><td>${bucket.start.slice(5)}<small>~ ${bucket.end.slice(5)}</small></td><td>${cell(bucket.whole)}</td><td>${cell(bucket.ground)}</td></tr>`).join("")}</tbody></table></details></div>`;
+      return `<div class="agtron-figure">${reportAgtronMeanMarkup(group, buckets, weekly)}<div class="report-section-head agtron-dispersion-title"><h5>아그트론 표준편차 · ${weekly ? "주간" : "월간"}</h5><span class="report-footnote">${period.start} ~ ${period.end} · ${measurable ? `세로축 최대 ${maxSd.toFixed(2)}` : "표준편차 산출 불가 (기간별 2건 미만)"}</span></div><div class="agtron-chart" role="group" aria-label="${escapeHtml(group.blend)} ${escapeHtml(group.roaster)} 아그트론 배치 간 편차">${bars}</div><div class="agtron-key"><span><i></i>홀빈</span><span><i class="ground"></i>그라운드</span><span><i class="missing"></i>측정 2건 미만</span></div><details><summary>기간별 평균·표준편차·범위·측정 수</summary><table class="agtron-table"><thead><tr><th>로스팅 기간</th><th>홀빈 평균 / 표준편차</th><th>그라운드 평균 / 표준편차</th></tr></thead><tbody>${buckets.map((bucket) => `<tr><td>${bucket.start.slice(5)}<small>~ ${bucket.end.slice(5)}</small></td><td>${cell(bucket.whole)}</td><td>${cell(bucket.ground)}</td></tr>`).join("")}</tbody></table></details></div>`;
     }
 
     function reportCommentSourceMarkup(entry) {
