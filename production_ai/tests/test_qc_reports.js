@@ -75,6 +75,8 @@ assert.equal(read('reportFlavorTimeline([], reportPeriod("2028-02-01", "month"))
 const trendHtml = read('reportFlavorVisualMarkup({blend:"올드독",comments:timelineFixture.slice(0,8),types:new Map([["향미톤 낮음",7]])}, reportPeriod("2026-10-01", "month"))');
 assert.ok(trendHtml.includes('aria-label="향미톤 낮음 7건"'));
 assert.ok(trendHtml.includes('width:100%'));
+assert.ok(!trendHtml.includes('<small>30</small>'), "avoid adjacent 30/31 labels overlapping on mobile");
+assert.ok(trendHtml.includes('<small>31</small>'));
 assert.ok(trendHtml.includes('2026-10-02 · 평가 4건 · 향미톤 낮음 4건'));
 assert.ok(trendHtml.includes('2026-10-06 · 평가 1건 · 선택된 문제향미 유형 없음'));
 assert.ok(trendHtml.includes('2026-10-07 · 평가 기록 없음'));
