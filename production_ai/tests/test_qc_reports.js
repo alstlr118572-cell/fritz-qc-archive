@@ -118,5 +118,7 @@ vm.runInContext('activeAppView="reports";reportAnchor="2026-10-31";renderQcRepor
 const annualHtml = vm.runInContext('reportContent.innerHTML',ordered);
 assert.ok(annualHtml.includes("너티트리니티"), "a low-volume blend must keep its January history in the annual chart when October is selected");
 assert.ok(annualHtml.includes("2026-10 평균 미기록 · 0배치"));
+assert.ok(annualHtml.includes('r="1.8"'), "annual background points should stay small");
+assert.ok(annualHtml.includes('r="2.3"'), "monthly focus points should stay small but distinct");
 assert.equal(vm.runInContext('buildQcReport(entries,reportPeriod(reportAnchor,"month")).roasting.length',ordered),8,"monthly KPI must not include annual background batches");
 console.log("QC reports: date boundaries, metrics, batch counts, filters, evaluator separation, issue locks, privacy and read-only rendering passed.");

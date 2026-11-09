@@ -10260,7 +10260,7 @@
         const status = dashboardEntryStatus(entry);
         const highlighted = reportMode === "month" && entry.roastDate >= selectedMonth.start && entry.roastDate <= selectedMonth.end;
         const label = `${entry.roastDate} ${entry.batch} · ${reportMetricLabel(value, metric)} · ${status.toUpperCase()}`;
-        return `<circle cx="${x(index)}" cy="${y(value)}" r="${status === "issue" ? 4 : highlighted ? 3.2 : 2.5}" fill="${highlighted ? "var(--teal)" : "var(--muted-2)"}" stroke="${status === "issue" ? "var(--red)" : status === "hold" ? "var(--amber)" : "none"}" stroke-width="1.5" opacity="${highlighted ? 1 : 0.7}"><title>${escapeHtml(label)}</title></circle>`;
+        return `<circle cx="${x(index)}" cy="${y(value)}" r="${status === "issue" ? 3 : highlighted ? 2.3 : 1.8}" fill="${highlighted ? "var(--teal)" : "var(--muted-2)"}" stroke="${status === "issue" ? "var(--red)" : status === "hold" ? "var(--amber)" : "none"}" stroke-width="1.1" opacity="${highlighted ? 1 : 0.7}"><title>${escapeHtml(label)}</title></circle>`;
       }).join("");
       const monthKey = reportAnchor.slice(0,7);
       const monthlyValues = points.filter(({entry}) => entry.roastDate.slice(0,7) === monthKey).map(({value}) => value);
