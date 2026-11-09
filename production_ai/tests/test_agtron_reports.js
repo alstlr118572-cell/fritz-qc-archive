@@ -1,0 +1,48 @@
+const assert = require("node:assert/strict");
+const vm = require("node:vm");
+const { runStartup } = require("./test_client_startup");
+const roast = (id, date, whole, ground, extra = {}) => ({id, entryType:"roasting", blend:"올드독", batch:`#${id}`, roastDate:date, roastData:{roaster:"검댕이",wholeColor:whole,groundColor:ground},...extra});
+const records = [roast("1","2026-09-01","50","60"),roast("2","2026-09-02",54,62),
+  roast("3","2026-09-07","",64),roast("4","2026-09-08","bad",""),
+  roast("5","2026-10-01",90,95),roast("6","2026-09-01",80,85,{roastData:{roaster:"노랭이",wholeColor:80,groundColor:85}})];
+const { context, elements, listeners, requests } = runStartup({mira_blend_qc_entries_v1:records});
+const read = (code) => JSON.parse(vm.runInContext(`JSON.stringify(${code})`,context));
+assert.deepEqual(read('agtronStats([50,54])'),{n:2,mean:52,sd:2,min:50,max:54,range:4});
+assert.deepEqual(read('agtronStats([])'),{n:0,mean:null,sd:null,min:null,max:null,range:null});
+assert.equal(read('agtronStats([50]).sd'),null,"a single batch cannot establish consistency");
+assert.equal(read('agtronStats([50,50]).sd'),0,"identical measured batches have genuine zero dispersion");
+assert.equal(read('agtronValue(0)'),0);
+for(const value of ["",null,"abc","50°C",-1,"Infinity"]){context.bad=value;assert.equal(read('agtronValue(bad)'),null);}
+vm.runInContext('const testBlack = entries.filter(e=>e.entryType==="roasting" && reportRoaster(e)==="검댕이");',context);
+const weeks=read('agtronBuckets(testBlack,reportPeriod("2026-09-15","month"),"week")');
+assert.equal(weeks.length,5);
+assert.equal(weeks[0].start,"2026-09-01");
+assert.equal(weeks[0].end,"2026-09-06");
+assert.equal(weeks[4].end,"2026-09-30");
+assert.equal(weeks[0].whole.sd,2);
+assert.equal(weeks[0].ground.sd,1);
+assert.equal(weeks[1].whole.n,0,"missing/invalid values must not become zeros");
+assert.equal(weeks[1].ground.n,1);
+assert.equal(weeks[1].ground.sd,null);
+const months=read('agtronBuckets(testBlack,reportPeriod("2026-09-15","year"),"month")');
+assert.equal(months.length,12);
+assert.equal(months[8].whole.n,2);
+assert.equal(months[8].ground.n,3);
+assert.equal(months[9].whole.n,1);
+assert.equal(months[9].whole.sd,null);
+assert.equal(read('agtronBuckets([{roastDate:"2026-09-01",roastData:{wholeColor:0,groundColor:0}}],reportPeriod("2026-09-01","month"),"week")[0].whole.n'),1,"retain explicitly measured numeric zero");
+assert.equal(read('agtronBuckets([],reportPeriod("2028-02-01","year"),"month")[1].end'),"2028-02-29");
+assert.equal(read('agtronBuckets([],reportPeriod("2027-01-01","year"),"week")[0].end'),"2027-01-03");
+vm.runInContext('activeAppView="reports";reportAnchor="2026-09-15";renderQcReport()',context);
+let html=elements.get("#reportContent").innerHTML;
+assert.ok(html.includes("아그트론 표준편차 · 월간"));
+assert.ok(html.includes("편차 판단 불가"));
+assert.ok(!html.includes("NaN")&&!html.includes("Infinity"));
+assert.ok(html.includes("52.00 / 2.00"));
+assert.ok(!html.includes("52.00°C"),"Agtron values are not temperature units");
+listeners.get("#reportContent:click")[0]({target:{closest:()=>({dataset:{agtronInterval:"week"}})}});
+assert.equal(read('reportAgtronInterval'),"week");
+assert.ok(elements.get("#reportContent").innerHTML.includes("아그트론 표준편차 · 주간"));
+assert.equal(read('buildQcReport(entries,reportPeriod(reportAnchor,"month")).roasting.length'),5);
+assert.equal(requests.length,1,"read-only statistics must not write or refetch the store");
+console.log("Agtron reports: population SD, missing/zero values, independent samples, roaster separation, week/month boundaries and read-only switching passed.");

@@ -3574,6 +3574,26 @@
     .report-legend .hold::before { background: transparent; border: 1.5px solid var(--amber); }
     .report-legend .issue::before { background: transparent; border: 1.5px solid var(--red); }
     .report-month-stat { color: var(--teal) !important; }
+    .agtron-toolbar { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: 18px 0 8px; }
+    .agtron-figure { margin: 20px 0; padding-top: 16px; border-top: 1px solid var(--line); }
+    .agtron-figure h5 { margin: 0; font-size: 14px; }
+    .agtron-chart { display: flex; gap: 3px; height: 148px; align-items: end; margin-top: 12px; }
+    .agtron-bucket { flex: 1; min-width: 0; text-align: center; }
+    .agtron-bucket.selected { background: rgba(82, 197, 255, 0.07); outline: 1px solid var(--line-strong); }
+    .agtron-track { display: flex; gap: 3px; align-items: end; justify-content: center; height: 105px; border-bottom: 1px solid var(--line); }
+    .agtron-mark { display: block; width: 35%; max-width: 10px; min-width: 1px; background: var(--teal); }
+    .agtron-mark.ground { background: var(--rust); }
+    .agtron-mark.missing { height: 6px; border: 1px dashed var(--muted-2); background: transparent; }
+    .agtron-bucket small { display: block; font-size: 10px; height: 25px; margin-top: 6px; white-space: nowrap; color: var(--muted); }
+    .agtron-key { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 10px; }
+    .agtron-key i { display: inline-block; width: 8px; height: 8px; background: var(--teal); margin-right: 5px; }
+    .agtron-key .ground { background: var(--rust); }
+    .agtron-key .missing { background: transparent; border: 1px dashed var(--muted-2); }
+    .agtron-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .agtron-table th, .agtron-table td { text-align: left; padding: 9px 6px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+    .agtron-table th:first-child { width: 22%; }
+    .agtron-table td small { display: block; color: var(--muted); margin-top: 3px; }
+    .agtron-figure summary { cursor: pointer; padding: 12px 0; color: var(--teal); font-size: 13px; }
     .report-group { padding: 18px 0; border-top: 1px solid var(--line-soft); break-inside: avoid; }
     .report-group h4 { margin: 0 0 12px; font-size: 17px; }
     .report-group h4 small { font-weight: 400; color: var(--muted); margin-left: 10px; }
@@ -5570,6 +5590,7 @@
     let activeBlendSheet = "올드독";
     let activeAppView = "dashboard";
     let reportMode = "month";
+    let reportAgtronInterval = "month";
     let reportAnchor = today();
     let dashboardCalendarMonth = "";
     let searchCalendarMonth = today().slice(0, 7);
@@ -10269,6 +10290,70 @@
         <svg style="height:180px" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(`${group.blend} ${group.roaster} ${title} 배치별 산점도, ${points.length}개 기록`)}"><title>${title} · 로스팅 일자 및 배치 순</title>${grid}${dots}${ticks.map((index) => `<text x="${x(index)}" y="170" text-anchor="${index === 0 ? "start" : index === group.entries.length - 1 ? "end" : "middle"}" fill="var(--muted)" font-size="11">${escapeHtml(group.entries[index].roastDate.slice(5))} ${escapeHtml(group.entries[index].batch)}</text>`).join("")}</svg></figure>`;
     }
 
+    function agtronValue(value) {
+      const text = String(value ?? "").trim();
+      return /^\d+(?:\.\d+)?$/.test(text) && Number.isFinite(Number(text)) ? Number(text) : null;
+    }
+
+    function agtronStats(values) {
+      let mean = 0, m2 = 0;
+      values.forEach((value, index) => {
+        const delta = value - mean;
+        mean += delta / (index + 1);
+        m2 += delta * (value - mean);
+      });
+      const n = values.length;
+      const min = n ? Math.min(...values) : null;
+      const max = n ? Math.max(...values) : null;
+      // These are all valid measurements in the period, not a sample estimate.
+      return { n, mean: n ? mean : null, sd: n >= 2 ? Math.sqrt(Math.max(0, m2 / n)) : null, min, max, range: n ? max - min : null };
+    }
+
+    function agtronBuckets(collection, period, interval) {
+      const buckets = [], byDate = new Map();
+      for (let start = period.start; start <= period.end;) {
+        const calendarEnd = reportPeriod(start, interval).end;
+        const end = calendarEnd < period.end ? calendarEnd : period.end;
+        const bucket = { start, end, whole: [], ground: [] };
+        buckets.push(bucket);
+        for (let date = start; date <= end; date = shiftDateInput(date, 1)) byDate.set(date, bucket);
+        start = shiftDateInput(end, 1);
+      }
+      collection.forEach((entry) => {
+        const bucket = byDate.get(entry.roastDate);
+        if (!bucket) return;
+        const data = entry.roastData || {};
+        const whole = agtronValue(data.wholeColor), ground = agtronValue(data.groundColor);
+        if (whole !== null) bucket.whole.push(whole);
+        if (ground !== null) bucket.ground.push(ground);
+      });
+      return buckets.map((bucket) => ({ start: bucket.start, end: bucket.end, whole: agtronStats(bucket.whole), ground: agtronStats(bucket.ground) }));
+    }
+
+    function agtronStatsText(stats) {
+      if (!stats.n) return "측정 없음";
+      return `평균 ${stats.mean.toFixed(2)} · 표준편차 ${stats.sd === null ? "측정 부족" : stats.sd.toFixed(2)} · 최솟값 ${stats.min.toFixed(2)} / 최댓값 ${stats.max.toFixed(2)} · 범위폭 ${stats.range.toFixed(2)} · ${stats.n}건`;
+    }
+
+    function reportAgtronMarkup(group) {
+      const weekly = reportAgtronInterval === "week";
+      const period = reportPeriod(reportAnchor, weekly ? reportMode : "year");
+      const buckets = agtronBuckets(group.entries, period, reportAgtronInterval);
+      if (!buckets.some((bucket) => bucket.whole.n || bucket.ground.n)) return `<div class="report-missing">아그트론 · ${period.start} ~ ${period.end} 유효한 측정값 없음</div>`;
+      const maxSd = Math.max(0, ...buckets.flatMap((bucket) => [bucket.whole.sd ?? 0, bucket.ground.sd ?? 0]));
+      const measurable = buckets.some((bucket) => bucket.whole.sd !== null || bucket.ground.sd !== null);
+      const scale = maxSd || 1;
+      const bars = buckets.map((bucket, index) => {
+        const selected = !weekly && reportMode === "month" && bucket.start.slice(0,7) === reportAnchor.slice(0,7);
+        const tick = buckets.length <= 12 || index === 0 || index === buckets.length - 1 || (index % 8 === 0 && index < buckets.length - 3);
+        const label = weekly ? bucket.start.slice(5).replace("-", "/") : `${Number(bucket.start.slice(5,7))}월`;
+        const description = `${bucket.start} ~ ${bucket.end} · 홀빈 ${agtronStatsText(bucket.whole)} · 그라운드 ${agtronStatsText(bucket.ground)}`;
+        return `<div class="agtron-bucket ${selected ? "selected" : ""}" role="img" aria-label="${escapeHtml(description)}" title="${escapeHtml(description)}"><div class="agtron-track">${[["whole",bucket.whole],["ground",bucket.ground]].map(([kind,stats]) => `<i class="agtron-mark ${kind} ${stats.sd === null ? "missing" : ""}" ${stats.sd === null ? "" : `style="height:${stats.sd / scale * 100}%"`}></i>`).join("")}</div><small>${tick ? label : ""}</small></div>`;
+      }).join("");
+      const cell = (stats) => stats.n ? `<strong>${stats.mean.toFixed(2)} / ${stats.sd === null ? "-" : stats.sd.toFixed(2)}</strong><small>최소 ${stats.min.toFixed(2)} ~ 최대 ${stats.max.toFixed(2)} · 폭 ${stats.range.toFixed(2)} · n=${stats.n}${stats.n === 1 ? " · 편차 판단 불가" : ""}</small>` : "측정 없음";
+      return `<div class="agtron-figure"><div class="report-section-head"><h5>아그트론 표준편차 · ${weekly ? "주간" : "월간"}</h5><span class="report-footnote">${period.start} ~ ${period.end} · ${measurable ? `세로축 최대 ${maxSd.toFixed(2)}` : "표준편차 산출 불가 (기간별 2건 미만)"}</span></div><div class="agtron-chart" role="group" aria-label="${escapeHtml(group.blend)} ${escapeHtml(group.roaster)} 아그트론 배치 간 편차">${bars}</div><div class="agtron-key"><span><i></i>홀빈</span><span><i class="ground"></i>그라운드</span><span><i class="missing"></i>측정 2건 미만</span></div><details><summary>기간별 평균·표준편차·범위·측정 수</summary><table class="agtron-table"><thead><tr><th>로스팅 기간</th><th>홀빈 평균 / 표준편차</th><th>그라운드 평균 / 표준편차</th></tr></thead><tbody>${buckets.map((bucket) => `<tr><td>${bucket.start.slice(5)}<small>~ ${bucket.end.slice(5)}</small></td><td>${cell(bucket.whole)}</td><td>${cell(bucket.ground)}</td></tr>`).join("")}</tbody></table></details></div>`;
+    }
+
     function reportCommentSourceMarkup(entry) {
       return `<div class="report-source"><strong>${escapeHtml(entryEvaluatorName(entry))}</strong><small> · ${displayCell(entry.roastDate)} · ${displayCell(entryRoaster(entry))} · ${displayCell(entry.batch)} · ${verdictLabel(normalizeStoredVerdict(entry.verdict))}</small><p>${escapeHtml(reportFlavorComment(entry) || "코멘트 미기록")}</p></div>`;
     }
@@ -10295,7 +10380,8 @@
       reportContent.innerHTML = `<div class="report-kpis">${statuses.map(([label, value]) => `<article><small>${label}</small><strong>${value.toLocaleString()}</strong></article>`).join("")}</div>
         <p class="report-footnote">평가 기록 ${model.commentCount}건 · 판정·커핑·ISSUE: ${reportMode === "year" ? "연간" : "선택 월"} 집계 · 로스팅 그래프: 기준연도 전체 · 판정은 현황판과 동일 기준 · 현재 저장된 기록 기준</p>
         <section class="report-section"><div class="report-section-head"><h3>연간 로스팅 동향</h3><div class="report-legend"><span class="year">연간 누적</span>${reportMode === "month" ? `<span class="month">선택 월</span>` : ""}<span class="hold">HOLD 테두리</span><span class="issue">ISSUE 테두리</span></div></div>
-          ${yearly.groups.length ? yearly.groups.map((group) => `<div class="report-group"><h4>${displayCell(group.blend)}<small>${displayCell(group.roaster || "로스터기 미기록")} · 연간 ${group.entries.length}배치</small></h4><div class="report-missing">시작온도 · 미수집</div>${reportScatterMarkup(group, "roastTime", "로스팅 시간")}${reportScatterMarkup(group, "dropTemp", "배출온도")}</div>`).join("") : `<div class="empty">선택한 연도에 로스팅 기록이 없습니다.</div>`}
+          <div class="agtron-toolbar"><strong>아그트론 배치 간 편차</strong><div class="report-segments" role="group" aria-label="아그트론 편차 집계"><button type="button" data-agtron-interval="week" aria-pressed="${reportAgtronInterval === "week"}">주간</button><button type="button" data-agtron-interval="month" aria-pressed="${reportAgtronInterval === "month"}">월간</button></div></div><p class="report-footnote">저장된 홀빈·그라운드 측정값 · 기간 내 유효 측정값의 모집단 표준편차 · 2건 미만은 편차 판단 제외 · 주간은 월~일, 특정 월 조회 시 해당 월 배치만 집계 · 월간은 기준연도 전체 비교</p>
+          ${yearly.groups.length ? yearly.groups.map((group) => `<div class="report-group"><h4>${displayCell(group.blend)}<small>${displayCell(group.roaster || "로스터기 미기록")} · 연간 ${group.entries.length}배치</small></h4><div class="report-missing">시작온도 · 미수집</div>${reportScatterMarkup(group, "roastTime", "로스팅 시간")}${reportScatterMarkup(group, "dropTemp", "배출온도")}${reportAgtronMarkup(group)}</div>`).join("") : `<div class="empty">선택한 연도에 로스팅 기록이 없습니다.</div>`}
         </section>
         <section class="report-section"><div class="report-section-head"><h3>커핑 종합</h3><span class="tag">평가 기록 기준</span></div><div class="report-comment-grid">
           ${model.cuppingGroups.length ? model.cuppingGroups.map((group) => {
@@ -10344,6 +10430,12 @@
     document.querySelector("#reportNextButton").addEventListener("click", () => moveReportPeriod(1));
     reportBlendInput.addEventListener("change", renderQcReport);
     reportRoasterInput.addEventListener("change", renderQcReport);
+    reportContent.addEventListener("click", (event) => {
+      const mode = event.target.closest("[data-agtron-interval]")?.dataset.agtronInterval;
+      if (mode !== "week" && mode !== "month") return;
+      reportAgtronInterval = mode;
+      renderQcReport();
+    });
     let reportResizeTimer;
     window.addEventListener("resize", () => {
       if (activeAppView !== "reports") return;
