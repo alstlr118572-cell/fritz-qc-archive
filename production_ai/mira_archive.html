@@ -3660,6 +3660,114 @@
       .report-table td { padding: 3px 0; border: 0; }
       .report-table td::before { content: attr(data-label); display: inline-block; width: 68px; color: var(--muted); }
     }
+    #qcReportPrintRoot { display: none; }
+    body.qc-report-previewing > *:not(#qcReportPrintRoot) { display: none !important; }
+    body.qc-report-previewing { background: #dfe4ea; overflow: auto; }
+    body.qc-report-previewing #qcReportPrintRoot { display: block; padding: 16px; overflow-x: auto; }
+    #qcReportPrintRoot {
+      --ink: #17212b; --muted: #475467; --muted-2: #667085;
+      --bg: #fff; --surface: #fff; --surface-2: #edf1f5; --surface-3: #fff;
+      --line: #cbd2db; --line-soft: #e4e7ec; --line-strong: #98a2b3;
+      --teal: #0879a8; --rust: #b34e29; --green: #087d53; --amber: #856300; --red: #c02b3b;
+      color-scheme: light; color: var(--ink); font-size: 10pt; line-height: 1.45;
+    }
+    #qcReportPrintRoot .pdf-toolbar { display: flex; gap: 12px; align-items: center; justify-content: space-between; position: sticky; top: 0; left: 0; padding: 12px; background: #fff; border-bottom: 1px solid var(--line); z-index: 2; }
+    #qcReportPrintRoot .pdf-toolbar button { color: var(--ink); background: #fff; border: 1px solid var(--line-strong); min-height: 44px; }
+    #qcReportPrintRoot .pdf-toolbar-actions { display: flex; gap: 8px; }
+    #qcReportPrintRoot .pdf-sheet { width: 297mm; min-height: 210mm; margin: 16px auto; padding: 10mm; background: #fff; display: flex; flex-direction: column; }
+    #qcReportPrintRoot .pdf-head { display: flex; justify-content: space-between; gap: 8mm; border-bottom: 2px solid var(--ink); padding-bottom: 3mm; margin-bottom: 4mm; }
+    #qcReportPrintRoot .pdf-head h2 { font-size: 17pt; margin: 0 0 1mm; }
+    #qcReportPrintRoot .pdf-head p { font-size: 9pt; margin: 0; color: var(--muted); }
+    #qcReportPrintRoot .pdf-brand { font-size: 10pt; white-space: nowrap; }
+    #qcReportPrintRoot .pdf-body { flex: 1; min-width: 0; }
+    #qcReportPrintRoot .pdf-footer { display: flex; justify-content: space-between; gap: 8mm; border-top: 1px solid var(--line); padding-top: 2mm; margin-top: 4mm; font-size: 8pt; color: var(--muted); }
+    #qcReportPrintRoot .pdf-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8mm; }
+    #qcReportPrintRoot .pdf-column { min-width: 0; }
+    #qcReportPrintRoot h3 { font-size: 12pt; margin: 0 0 2mm; }
+    #qcReportPrintRoot h4, #qcReportPrintRoot h5 { font-size: 10pt; margin: 2mm 0; }
+    #qcReportPrintRoot p { margin: 2mm 0; overflow-wrap: anywhere; }
+    #qcReportPrintRoot .pdf-note, #qcReportPrintRoot .report-footnote { font-size: 9pt; color: var(--muted); }
+    #qcReportPrintRoot .report-kpis { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 5mm; margin: 3mm 0 5mm; }
+    #qcReportPrintRoot .report-kpis strong { font-size: 23pt; }
+    #qcReportPrintRoot table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10pt; }
+    #qcReportPrintRoot th, #qcReportPrintRoot td { text-align: left; padding: 2.5mm 2mm; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+    #qcReportPrintRoot th { background: var(--surface-2); }
+    #qcReportPrintRoot .pdf-count { width: 11%; text-align: right; font-variant-numeric: tabular-nums; }
+    #qcReportPrintRoot .pdf-distribution { display: flex; height: 4mm; background: var(--surface-2); }
+    #qcReportPrintRoot .pdf-distribution i { display: block; height: 100%; }
+    #qcReportPrintRoot .report-chart { margin: 2mm 0 4mm; }
+    #qcReportPrintRoot .report-chart figcaption { display: block; font-size: 10pt; }
+    #qcReportPrintRoot .report-chart figcaption span { display: block; font-size: 9pt; }
+    #qcReportPrintRoot .report-chart svg { width: 100%; height: 43mm !important; }
+    #qcReportPrintRoot .agtron-mean-svg { width: 100%; height: 48mm; }
+    #qcReportPrintRoot .agtron-figure { margin: 0; padding: 0; border: 0; }
+    #qcReportPrintRoot .agtron-dispersion-title { margin-top: 3mm !important; }
+    #qcReportPrintRoot .agtron-chart { margin-top: 2mm; height: 34mm; }
+    #qcReportPrintRoot .agtron-track { height: 26mm; }
+    #qcReportPrintRoot .agtron-key { font-size: 9pt; gap: 3mm; }
+    #qcReportPrintRoot .report-comment-timeline { margin: 0; padding: 0; border: 0; }
+    #qcReportPrintRoot .report-occurrence-svg { width: 100%; height: 56mm; }
+    #qcReportPrintRoot .report-timeline-legend { font-size: 9pt; gap: 3mm; }
+    #qcReportPrintRoot .pdf-flavor-row { display: grid; grid-template-columns: 38mm minmax(0,1fr) 10mm; gap: 3mm; align-items: center; margin: 2mm 0; }
+    #qcReportPrintRoot .pdf-flavor-track { height: 3mm; background: var(--surface-2); }
+    #qcReportPrintRoot .pdf-flavor-track i { display: block; height: 100%; background: var(--teal); }
+    #qcReportPrintRoot .pdf-excerpt { border-left: 2px solid var(--line); padding-left: 3mm; margin: 0 0 3mm; }
+    #qcReportPrintRoot .pdf-excerpt small { display: block; color: var(--muted); font-size: 9pt; }
+    @page { size: A4 landscape; margin: 10mm; }
+    @media print {
+      body.qc-report-printing {
+        --ink: #17212b; --muted: #475467; --muted-2: #667085;
+        --bg: #fff; --surface: #fff; --surface-2: #edf1f5; --surface-3: #fff;
+        --line: #cbd2db; --line-soft: #e4e7ec; --line-strong: #98a2b3;
+        --teal: #0879a8; --rust: #b34e29; --green: #087d53; --amber: #856300; --red: #c02b3b;
+        color-scheme: light; background: #fff !important; color: var(--ink);
+        margin: 0; padding: 0; font-size: 10pt; overflow: visible !important;
+      }
+      body.qc-report-printing > *:not(#qcReportPrintRoot) { display: none !important; }
+      body.qc-report-printing #qcReportPrintRoot {
+        display: block !important; width: 100%; max-width: none; margin: 0; padding: 0;
+        print-color-adjust: exact; -webkit-print-color-adjust: exact;
+      }
+      #qcReportPrintRoot * { box-shadow: none !important; text-shadow: none !important; }
+      #qcReportPrintRoot .pdf-toolbar { display: none !important; }
+      #qcReportPrintRoot .pdf-sheet { width: 100%; min-height: 189mm; margin: 0; padding: 0; break-before: page; }
+      #qcReportPrintRoot .pdf-sheet:first-of-type { break-before: auto; }
+      #qcReportPrintRoot .pdf-head, #qcReportPrintRoot .pdf-footer { break-inside: avoid; }
+      #qcReportPrintRoot h1 { font-size: 19pt; margin: 0 0 2mm; }
+      #qcReportPrintRoot h2 { font-size: 14pt; margin: 0 0 2mm; }
+      #qcReportPrintRoot h3 { font-size: 13pt; }
+      #qcReportPrintRoot h4 { font-size: 12pt; }
+      #qcReportPrintRoot h5 { font-size: 10pt; }
+      #qcReportPrintRoot h1, #qcReportPrintRoot h2, #qcReportPrintRoot h3,
+      #qcReportPrintRoot h4, #qcReportPrintRoot h5, #qcReportPrintRoot summary { break-after: avoid; }
+      #qcReportPrintRoot p, #qcReportPrintRoot td { orphans: 3; widows: 3; }
+      #qcReportPrintRoot .report-kpis { grid-template-columns: repeat(5, minmax(0,1fr)); margin: 4mm 0; break-inside: avoid; }
+      #qcReportPrintRoot .report-kpis strong { font-size: 20pt; }
+      #qcReportPrintRoot .report-section, #qcReportPrintRoot .report-group,
+      #qcReportPrintRoot .report-comment, #qcReportPrintRoot .agtron-figure, #qcReportPrintRoot details { break-inside: auto; }
+      #qcReportPrintRoot .report-group { padding: 5mm 0; }
+      #qcReportPrintRoot .report-comment-grid { display: block; }
+      #qcReportPrintRoot .report-comment { border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 4mm 0; margin: 0; }
+      #qcReportPrintRoot .report-chart, #qcReportPrintRoot .report-comment-timeline,
+      #qcReportPrintRoot .report-flavor-visuals, #qcReportPrintRoot .report-source { break-inside: avoid; }
+      #qcReportPrintRoot .report-flavor-visuals { grid-template-columns: minmax(0,1fr) minmax(0,1.4fr); gap: 5mm; }
+      #qcReportPrintRoot svg { width: 100%; max-width: 100%; max-height: 75mm; overflow: visible; }
+      #qcReportPrintRoot .report-chart svg { height: 43mm !important; }
+      #qcReportPrintRoot .report-occurrence-svg { height: 56mm; break-inside: avoid; }
+      #qcReportPrintRoot .agtron-mean-svg { height: 48mm; break-inside: avoid; }
+      #qcReportPrintRoot .agtron-chart { break-inside: avoid; }
+      #qcReportPrintRoot .report-table-wrap { overflow: visible; }
+      #qcReportPrintRoot table { display: table; width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10pt; }
+      #qcReportPrintRoot thead { display: table-header-group; }
+      #qcReportPrintRoot tbody { display: table-row-group; }
+      #qcReportPrintRoot tr { display: table-row; break-inside: avoid; }
+      #qcReportPrintRoot th, #qcReportPrintRoot td { display: table-cell; white-space: pre-wrap; overflow-wrap: anywhere; padding: 2mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+      #qcReportPrintRoot td::before { display: none; }
+      #qcReportPrintRoot .report-footnote, #qcReportPrintRoot .report-print-header p { font-size: 8pt; color: var(--muted); }
+      #qcReportPrintRoot summary { list-style: none; color: var(--ink); font-size: 9pt; }
+      #qcReportPrintRoot summary::marker, #qcReportPrintRoot summary::-webkit-details-marker { display: none; }
+      #qcReportPrintRoot button, #qcReportPrintRoot .report-segments { display: none !important; }
+    }
   </style>
 </head>
 <body class="loading-active">
@@ -3965,6 +4073,7 @@
         <section class="panel app-panel report-page" data-app-panel="reports" hidden>
           <div class="report-header">
             <div><h2>QC 리포트</h2><p id="reportPeriodLabel"></p></div>
+            <button type="button" id="reportPdfButton" title="A4 PDF 저장" aria-label="A4 PDF 저장">↓ PDF</button>
           </div>
           <div class="report-controls">
             <div class="report-period-nav">
@@ -10237,13 +10346,13 @@
       }));
     }
 
-    function reportCommentTimelineMarkup(group, period) {
+    function reportCommentTimelineMarkup(group, period, requestedWidth = null, interactive = true) {
       const periods = reportCommentTimelineModel(group.comments, period);
       if (!periods.some((bucket) => bucket.evaluations)) return "";
       const colors = ["#50c5e8", "#f39c72", "#ed728b", "#c5a1ed", "#60c6ac", "#8eb5f4", "#e5b85c", "#a7c96b", "#e08bc5", "#6dcbd1", "#bca28a", "#a5aebd"];
       const series = [{ name: "전체 평가", color: "var(--ink)", value: (bucket) => bucket.evaluations, comments: (bucket) => bucket.comments },
         ...issueTypePatterns.filter(([type]) => periods.some((bucket) => bucket.types.has(type))).map(([type]) => ({ name: type, color: colors[issueTypePatterns.findIndex(([label]) => label === type) % colors.length], value: (bucket) => bucket.types.get(type) || 0, comments: (bucket) => bucket.comments.filter((entry) => reportIssueTypes(entry).includes(type)) }))];
-      const width = Math.max(280, Math.min(1000, (Number(reportContent.clientWidth) || 900) - 40));
+      const width = Math.max(280, Math.min(1000, requestedWidth || (Number(reportContent.clientWidth) || 900) - 40));
       const height = 250, left = 42, right = width - 18, top = 24, bottom = 212;
       const rawMax = Math.max(...periods.map((bucket) => Math.max(...series.map((line) => line.value(bucket)))));
       const step = Math.max(1, Math.ceil(rawMax / 4));
@@ -10260,6 +10369,7 @@
       const points = series.map((line) => periods.map((bucket, index) => {
         const comments = line.comments(bucket);
         if (!comments.length) return "";
+        if (!interactive) return `<circle cx="${x(index + 1)}" cy="${y(line.value(bucket))}" r="2.5" fill="${line.color}"/>`;
         const key = `timeline-${reportTimelineRows.size}`;
         reportTimelineRows.set(key, { date: bucket.date, name: line.name, comments });
         const label = `${bucket.date} · ${line.name} ${line.value(bucket)}건`;
@@ -10303,7 +10413,7 @@
       return { roasting, counts, groups: ordered, cuppingGroups: orderedCupping, unmatched, issues, commentCount: comments.size };
     }
 
-    function reportScatterMarkup(group, metric, title) {
+    function reportScatterMarkup(group, metric, title, requestedWidth = null) {
       const points = group.entries.map((entry, index) => ({ entry, index, value: reportMetricValue(normalizedRoastData(entry)[metric], metric) })).filter((point) => point.value !== null);
       if (!points.length) return `<div class="report-missing">${title} · 유효한 기록 없음 (${group.entries.length}배치)</div>`;
       const values = points.map((point) => point.value);
@@ -10311,7 +10421,7 @@
       const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
       const spread = Math.max((max - min) * 0.15, metric === "roastTime" ? 8 : 0.5);
       const low = Math.max(0, min - spread), high = max + spread;
-      const width = Math.max(300, Math.min(1400, Number(reportContent.clientWidth) || 900));
+      const width = Math.max(300, Math.min(1400, requestedWidth || Number(reportContent.clientWidth) || 900));
       const height = 180, left = 52, right = width - 16, top = 14, bottom = 148;
       const x = (index) => group.entries.length === 1 ? (left + right) / 2 : left + index / (group.entries.length - 1) * (right - left);
       const y = (value) => bottom - (value - low) / (high - low) * (bottom - top);
@@ -10406,8 +10516,8 @@
       return { width, left, right, top, bottom, low, high, points, paths };
     }
 
-    function reportAgtronMeanMarkup(group, buckets, weekly) {
-      const plot = agtronMeanPlot(buckets, Number(reportContent.clientWidth) || 900);
+    function reportAgtronMeanMarkup(group, buckets, weekly, requestedWidth = null) {
+      const plot = agtronMeanPlot(buckets, requestedWidth || Number(reportContent.clientWidth) || 900);
       if (!plot) return "";
       const colors = { whole: "var(--teal)", ground: "var(--rust)" };
       const selected = (bucket) => !weekly && reportMode === "month" && bucket.start.slice(0,7) === reportAnchor.slice(0,7);
@@ -10433,7 +10543,7 @@
       return `<h5>아그트론 평균 색도 · ${weekly ? "주간" : "월간"}</h5><p class="report-footnote">위쪽: 낮은 아그트론·어두운 배전 / 아래쪽: 높은 아그트론·밝은 배전</p><svg class="agtron-mean-svg" viewBox="0 0 ${plot.width} 210" role="img" aria-label="${escapeHtml(group.blend)} ${escapeHtml(group.roaster)} 평균 아그트론, 낮은 값이 위쪽인 반전 축">${backgrounds}${grid}${series}${points}${ticks}</svg><div class="agtron-key"><span><i></i>홀빈 평균</span><span><i class="ground"></i>그라운드 평균</span></div>`;
     }
 
-    function reportAgtronMarkup(group) {
+    function reportAgtronMarkup(group, requestedWidth = null) {
       const weekly = reportAgtronInterval === "week";
       const period = reportPeriod(reportAnchor, weekly ? reportMode : "year");
       const buckets = agtronBuckets(group.entries, period, reportAgtronInterval);
@@ -10449,7 +10559,7 @@
         return `<div class="agtron-bucket ${selected ? "selected" : ""}" role="img" aria-label="${escapeHtml(description)}" title="${escapeHtml(description)}"><div class="agtron-track">${[["whole",bucket.whole],["ground",bucket.ground]].map(([kind,stats]) => `<i class="agtron-mark ${kind} ${stats.sd === null ? "missing" : ""}" ${stats.sd === null ? "" : `style="height:${stats.sd / scale * 100}%"`}></i>`).join("")}</div><small>${tick ? label : ""}</small></div>`;
       }).join("");
       const cell = (stats) => stats.n ? `<strong>${stats.mean.toFixed(2)} / ${stats.sd === null ? "-" : stats.sd.toFixed(2)}</strong><small>최소 ${stats.min.toFixed(2)} ~ 최대 ${stats.max.toFixed(2)} · 폭 ${stats.range.toFixed(2)} · n=${stats.n}${stats.n === 1 ? " · 편차 판단 불가" : ""}</small>` : "측정 없음";
-      return `<div class="agtron-figure">${reportAgtronMeanMarkup(group, buckets, weekly)}<div class="report-section-head agtron-dispersion-title"><h5>아그트론 표준편차 · ${weekly ? "주간" : "월간"}</h5><span class="report-footnote">${period.start} ~ ${period.end} · ${measurable ? `세로축 최대 ${maxSd.toFixed(2)}` : "표준편차 산출 불가 (기간별 2건 미만)"}</span></div><div class="agtron-chart" role="group" aria-label="${escapeHtml(group.blend)} ${escapeHtml(group.roaster)} 아그트론 배치 간 편차">${bars}</div><div class="agtron-key"><span><i></i>홀빈</span><span><i class="ground"></i>그라운드</span><span><i class="missing"></i>측정 2건 미만</span></div><details><summary>기간별 평균·표준편차·범위·측정 수</summary><table class="agtron-table"><thead><tr><th>로스팅 기간</th><th>홀빈 평균 / 표준편차</th><th>그라운드 평균 / 표준편차</th></tr></thead><tbody>${buckets.map((bucket) => `<tr><td>${bucket.start.slice(5)}<small>~ ${bucket.end.slice(5)}</small></td><td>${cell(bucket.whole)}</td><td>${cell(bucket.ground)}</td></tr>`).join("")}</tbody></table></details></div>`;
+      return `<div class="agtron-figure">${reportAgtronMeanMarkup(group, buckets, weekly, requestedWidth)}<div class="report-section-head agtron-dispersion-title"><h5>아그트론 표준편차 · ${weekly ? "주간" : "월간"}</h5><span class="report-footnote">${period.start} ~ ${period.end} · ${measurable ? `세로축 최대 ${maxSd.toFixed(2)}` : "표준편차 산출 불가 (기간별 2건 미만)"}</span></div><div class="agtron-chart" role="group" aria-label="${escapeHtml(group.blend)} ${escapeHtml(group.roaster)} 아그트론 배치 간 편차">${bars}</div><div class="agtron-key"><span><i></i>홀빈</span><span><i class="ground"></i>그라운드</span><span><i class="missing"></i>측정 2건 미만</span></div><details><summary>기간별 평균·표준편차·범위·측정 수</summary><table class="agtron-table"><thead><tr><th>로스팅 기간</th><th>홀빈 평균 / 표준편차</th><th>그라운드 평균 / 표준편차</th></tr></thead><tbody>${buckets.map((bucket) => `<tr><td>${bucket.start.slice(5)}<small>~ ${bucket.end.slice(5)}</small></td><td>${cell(bucket.whole)}</td><td>${cell(bucket.ground)}</td></tr>`).join("")}</tbody></table></details></div>`;
     }
 
     function reportCommentSourceMarkup(entry) {
@@ -10503,6 +10613,99 @@
           ${model.issues.length ? `<div class="report-table-wrap"><table class="report-table"><thead><tr><th>로스팅일</th><th>블렌드</th><th>로스터기</th><th>배치</th><th>커핑 코멘트</th></tr></thead><tbody>${model.issues.map(({ entry, comments }) => `<tr><td data-label="로스팅일">${displayCell(entry.roastDate)}</td><td data-label="블렌드">${displayCell(entry.blend)}</td><td data-label="로스터기">${displayCell(entryRoaster(entry))}</td><td data-label="배치">${displayCell(entry.batch)}</td><td data-label="커핑">${escapeHtml(comments.map((comment) => `${entryEvaluatorName(comment)}: ${reportFlavorComment(comment)}`).join("\n") || "연결된 커핑 코멘트 없음")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">선택한 기간에 ISSUE 배치가 없습니다.</div>`}
         </section><section class="report-section"><h3>환경지표</h3><p class="report-missing">미수집 · 로스팅실 / 사일로 / 생두 창고 / MD 창고 온습도</p></section>`;
     }
+
+    let reportPrintTitle = null;
+    function reportPrintExcerpt(value, limit = 180) {
+      const chars = Array.from(String(value || "코멘트 미기록"));
+      return escapeHtml(chars.length > limit ? chars.slice(0, limit).join("") + "…" : chars.join(""));
+    }
+
+    function buildQcReportPrintMarkup() {
+      const period = reportPeriod(reportAnchor, reportMode);
+      const model = buildQcReport(entries, period, reportBlendInput.value, reportRoasterInput.value);
+      const annual = reportMode === "year" ? model : buildQcReport(entries, reportPeriod(reportAnchor, "year"), reportBlendInput.value, reportRoasterInput.value);
+      const pages = [];
+      const add = (title, body) => pages.push({ title, body });
+      const chunks = (items, size) => Array.from({length: Math.ceil(items.length / size)}, (_, index) => items.slice(index * size, (index + 1) * size));
+      const statuses = [["pass", "PASS", "var(--green)"], ["hold", "HOLD", "var(--amber)"], ["pending", "미평가", "var(--muted-2)"], ["issue", "ISSUE", "var(--red)"]];
+      const kpis = `<div class="report-kpis">${[["로스팅 배치", model.roasting.length], ...statuses.map(([key,label]) => [label, model.counts[key]])].map(([label,value]) => `<article><small>${label}</small><strong>${value.toLocaleString()}</strong></article>`).join("")}</div>`;
+      const summaryRows = model.groups.map((group) => {
+        const counts = { pass: 0, hold: 0, pending: 0, issue: 0 };
+        group.entries.forEach((entry) => counts[dashboardEntryStatus(entry)]++);
+        return `<tr><td>${displayCell(group.blend)}<br><small>${displayCell(group.roaster || "로스터기 미기록")}</small></td><td class="pdf-count">${group.entries.length}</td>${statuses.map(([key]) => `<td class="pdf-count">${counts[key]}</td>`).join("")}<td><div class="pdf-distribution">${statuses.map(([key,,color]) => `<i style="width:${counts[key] / group.entries.length * 100}%;background:${color}"></i>`).join("")}</div></td></tr>`;
+      });
+      const summaries = chunks(summaryRows, 6);
+      (summaries.length ? summaries : [[]]).forEach((rows,index) => add(`종합 현황${index ? " · 계속" : ""}`, `${kpis}<p class="pdf-note">평가 기록 ${model.commentCount}건 · 판정은 현황판과 동일 기준 · ${statuses.map(([,label]) => label).join(" / ")} 순서</p><table><thead><tr><th>블렌드 / 로스터기</th><th class="pdf-count">배치</th>${statuses.map(([,label]) => `<th class="pdf-count">${label}</th>`).join("")}<th>판정 분포</th></tr></thead><tbody>${rows.join("") || '<tr><td colspan="7">선택한 기간의 로스팅 기록이 없습니다.</td></tr>'}</tbody></table><p class="pdf-note">커핑 평가 ${model.cuppingGroups.length}개 블렌드 · 연결 확인 필요 ${model.unmatched.length}건 (배치 판정에서 제외) · 환경지표 미수집</p>`));
+      const blends = new Map();
+      annual.groups.forEach((group) => {
+        if (!blends.has(group.blend)) blends.set(group.blend, []);
+        blends.get(group.blend).push(group);
+      });
+      for (const [blend, groups] of blends) {
+        chunks(groups, 2).forEach((pair) => {
+          const column = (group, body) => `<div class="pdf-column"><h3>${displayCell(group.roaster || "로스터기 미기록")} · 연간 ${group.entries.length}배치</h3>${body}</div>`;
+          add(`${blend} · 로스팅 동향`, `<p class="pdf-note">${reportAnchor.slice(0,4)}년 전체 배치 · 회색: 연간 기록 / 파랑: 선택 월 / 노랑 테두리: HOLD / 빨강 테두리: ISSUE</p><div class="pdf-columns">${pair.map((group) => column(group, reportScatterMarkup(group,"roastTime","로스팅 시간",480) + reportScatterMarkup(group,"dropTemp","배출온도",480))).join("")}</div>`);
+          add(`${blend} · 아그트론`, `<p class="pdf-note">${reportAgtronInterval === "week" ? "주간 (월~일), 선택 조회 기간" : "월간, 기준연도 전체"} · 평균 색도: 낮은 값이 위쪽(어두운 배전) · 표준편차: 값이 클수록 배치 간 편차 큼 · 측정 2건 미만은 표준편차 제외</p><div class="pdf-columns">${pair.map((group) => column(group, reportAgtronMarkup(group,480))).join("")}</div>`);
+        });
+      }
+      model.cuppingGroups.forEach((group) => {
+        const evaluators = new Map();
+        [...group.comments].sort((a,b) => String(b.roastDate).localeCompare(String(a.roastDate)) || String(b.createdAt || "").localeCompare(String(a.createdAt || ""))).forEach((entry) => {
+          const key = entry.createdBy || entry.userId || entryEvaluatorName(entry);
+          if (!evaluators.has(key)) evaluators.set(key, entry);
+        });
+        const types = [...group.types].sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0],"ko"));
+        const max = Math.max(1,...types.map(([,count]) => count));
+        const ranking = `<h3>문제향미 발생 · 기간 합계</h3>${types.map(([label,count]) => `<div class="pdf-flavor-row"><span>${escapeHtml(label)}</span><div class="pdf-flavor-track"><i style="width:${count / max * 100}%"></i></div><strong>${count}건</strong></div>`).join("") || '<p class="pdf-note">선택된 문제향미 유형 없음</p>'}`;
+        add(`${group.blend} · 커핑 발생 추이`, `<p class="pdf-note">평가자 ${group.evaluators.size}명 · 평가 기록 ${group.comments.length}건 · 범위 코멘트는 평가 1건으로 집계</p>${reportCommentTimelineMarkup(group,period,960,false)}`);
+        chunks([...evaluators.values()], 2).forEach((comments,index) => add(`${group.blend} · 커핑 종합${index ? " · 계속" : ""}`, `<p class="pdf-note">평가자 ${group.evaluators.size}명 · 평가 기록 ${group.comments.length}건 · 각 평가자의 선택 기간 내 가장 최근 기록 발췌</p><div class="pdf-columns"><div>${ranking}</div><div><h3>평가자별 최근 코멘트 발췌</h3>${comments.map((entry) => `<div class="pdf-excerpt"><strong>${escapeHtml(entryEvaluatorName(entry))}</strong><small>${displayCell(entry.roastDate)} · ${displayCell(entryRoaster(entry))} · ${displayCell(entry.batch)} · ${verdictLabel(normalizeStoredVerdict(entry.verdict))}</small><p>${reportPrintExcerpt(reportFlavorComment(entry))}</p></div>`).join("")}</div></div>`));
+      });
+      const issueChunks = chunks(model.issues, 5);
+      (issueChunks.length ? issueChunks : [[]]).forEach((items,index) => add(`ISSUE 배치${index ? " · 계속" : ""}`, `<p class="pdf-note">선택 기간 ${model.issues.length}배치 · 배치별 연결 코멘트 발췌 · 상세 원문은 홈페이지에서 조회</p>${items.length ? `<table><thead><tr><th style="width:12%">로스팅일</th><th style="width:17%">블렌드</th><th style="width:12%">로스터기</th><th style="width:9%">배치</th><th>커핑 코멘트</th></tr></thead><tbody>${items.map(({entry,comments}) => `<tr><td>${displayCell(entry.roastDate)}</td><td>${displayCell(entry.blend)}</td><td>${displayCell(entryRoaster(entry))}</td><td>${displayCell(entry.batch)}</td><td>${reportPrintExcerpt(comments.map((comment) => `${entryEvaluatorName(comment)}: ${reportFlavorComment(comment)}`).join(" / ") || "연결된 커핑 코멘트 없음",240)}</td></tr>`).join("")}</tbody></table>` : '<p>선택한 기간에 ISSUE 배치가 없습니다.</p>'}`));
+      const scope = `${period.start} ~ ${period.end} · ${reportBlendInput.value || "전체 블렌드"} / ${reportRoasterInput.value || "전체 로스터기"}`;
+      return `<div class="pdf-toolbar"><strong>A4 가로 · QC 리포트 · ${pages.length}페이지</strong><div class="pdf-toolbar-actions"><button type="button" data-report-pdf-action="print" title="PDF 저장">↓ PDF 저장</button><button type="button" data-report-pdf-action="close" title="미리보기 닫기">닫기</button></div></div>${pages.map((page,index) => `<section class="pdf-sheet"><header class="pdf-head"><div><h2>${escapeHtml(page.title)}</h2><p>${escapeHtml(scope)}</p></div><strong class="pdf-brand">프릳츠 QC 아카이브</strong></header><div class="pdf-body">${page.body}</div><footer class="pdf-footer"><span>현재 저장 기록 기준 · 출력일 ${formatDateInput(new Date())}</span><span>${index + 1} / ${pages.length}</span></footer></section>`).join("")}`;
+    }
+
+    function finishQcReportPrint() {
+      document.querySelector("#qcReportPrintRoot")?.remove();
+      document.body.classList.remove("qc-report-printing");
+      document.body.classList.remove("qc-report-previewing");
+      if (reportPrintTitle !== null) document.title = reportPrintTitle;
+      reportPrintTitle = null;
+    }
+
+    function prepareQcReportPrint() {
+      if (activeAppView !== "reports" || !approvedSessionUser()) return false;
+      finishQcReportPrint();
+      const root = document.createElement("div");
+      root.id = "qcReportPrintRoot";
+      root.innerHTML = buildQcReportPrintMarkup();
+      root.querySelectorAll("details, .report-timeline-detail").forEach((element) => element.remove());
+      root.addEventListener("click", (event) => {
+        const action = event.target.closest("[data-report-pdf-action]")?.dataset.reportPdfAction;
+        if (action === "close") finishQcReportPrint();
+        if (action === "print") {
+          document.body.classList.add("qc-report-printing");
+          try { window.print(); }
+          catch (error) { finishQcReportPrint(); alert("PDF 출력 창을 열지 못했습니다. 브라우저 인쇄 기능을 이용해 주세요."); }
+        }
+      });
+      root.addEventListener("keydown", (event) => { if (event.key === "Escape") finishQcReportPrint(); });
+      document.body.append(root);
+      document.body.classList.add("qc-report-previewing");
+      reportPrintTitle = document.title;
+      document.title = `프릳츠_QC_리포트_${reportAnchor.slice(0, reportMode === "year" ? 4 : 7)}_${reportBlendInput.value || "전체블렌드"}_${reportRoasterInput.value || "전체로스터기"}`;
+      return true;
+    }
+
+    document.querySelector("#reportPdfButton").addEventListener("click", () => {
+      prepareQcReportPrint();
+    });
+    window.addEventListener("beforeprint", () => {
+      if (!document.querySelector("#qcReportPrintRoot") && !prepareQcReportPrint()) return;
+      document.body.classList.add("qc-report-printing");
+    });
+    window.addEventListener("afterprint", finishQcReportPrint);
 
     reportDateInput.addEventListener("change", () => {
       const value = reportDateInput.value;
