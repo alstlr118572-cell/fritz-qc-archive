@@ -3,41 +3,49 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const { runStartup } = require("./test_client_startup");
-const roasts = Array.from({length:7}, (_,i) => ({id:`r${i}`,entryType:"roasting",blend:"올드독",roastDate:"2026-09-01",batch:`#${i+1}`,roastData:{roaster:"검댕이",roastTime:"14:20",dropTemp:"174",wholeColor:47,groundColor:55}}));
-const comment = {id:"cup",entryType:"cupping",blend:"올드독",batch:"#1~7",roastDate:"2026-09-01",createdBy:"a",evaluatorName:"평가 A",verdict:"no_ship",tags:["단맛 부족"],note:"공개 코멘트 / 로스팅 문제 진단: SECRET",roastData:{roaster:"검댕이"}};
-const { context, listeners, requests } = runStartup({mira_blend_qc_entries_v1:[...roasts,comment]});
-vm.runInContext('activeAppView="reports";reportAnchor="2026-09-01";reportMode="month";reportBlendInput.value="올드독";reportRoasterInput.value="검댕이"',context);
-const read = code => JSON.parse(vm.runInContext(`JSON.stringify(${code})`,context));
-const markup = read("buildQcReportPrintMarkup()");
-assert.equal((markup.match(/class="pdf-sheet"/g)||[]).length,7,"separate overview, roasting, Agtron, cupping charts, excerpts and paginated issues");
-assert.ok(markup.includes("ISSUE 배치 · 계속"));
-assert.ok(markup.includes("2026-09-01 ~ 2026-09-30 · 올드독 / 검댕이"));
-assert.ok(markup.includes("평가자별 최근 코멘트 발췌")&&markup.includes("공개 코멘트"));
-assert.ok(!markup.includes("SECRET")&&!markup.includes("기간 내 전체 원문"));
-assert.ok(!markup.includes("data-report-timeline-row"),"print charts must not register interactive timeline controls");
-assert.equal(read("reportTimelineRows.size"),0);
-assert.equal(read('reportPrintExcerpt("<unsafe>".repeat(100),30)').endsWith("…"),true);
-assert.ok(!read('reportPrintExcerpt("<unsafe>")').includes("<unsafe>"));
-vm.runInContext('reportBlendInput.value="없는 블렌드"',context);
-assert.ok(read("buildQcReportPrintMarkup()").includes("선택한 기간의 로스팅 기록이 없습니다."));
-vm.runInContext('reportBlendInput.value="올드독"',context);
-const classes = new Set();
-let root = null;
-const node = () => ({
-  innerHTML:"", events:new Map(),
-  remove(){if(this===root)root=null;},
+const note = "원문 전체 유지 ".repeat(100) + "끝부분도 보존";
+const roasts = [{id:"r",entryType:"roasting",blend:"올드독",roastDate:"2026-09-01",batch:"#1",roastData:{roaster:"검댕이"}}];
+const comment = {id:"c",entryType:"cupping",blend:"올드독",roastDate:"2026-09-01",batch:"#1",createdBy:"a",evaluatorName:"평가 A",verdict:"pass",note,roastData:{roaster:"검댕이"}};
+const {context,elements,listeners,requests}=runStartup({mira_blend_qc_entries_v1:[...roasts,comment]});
+vm.runInContext('activeAppView="reports";reportAnchor="2026-09-01";renderQcReport()',context);
+const read=code=>JSON.parse(vm.runInContext(`JSON.stringify(${code})`,context));
+const original=read("reportContent.innerHTML");
+const mapSize=read("reportTimelineRows.size");
+assert.ok(original.includes(note));
+const classes=new Set();
+let root=null;
+const node=()=>({
+  children:[],events:new Map(),attributes:{},innerHTML:"",open:false,
+  append(...children){this.children.push(...children);},
+  remove(){if(this===root)root=null;this.removed=true;},
+  removeAttribute(name){delete this.attributes[name];},
   querySelectorAll(){return[];},
   addEventListener(type,callback){this.events.set(type,callback);}
 });
+const content=node();
+content.innerHTML=original;
+const controls=[node(),node(),node()];
+const disclosure=[{open:true},{open:false}];
+const interactive=node();
+interactive.attributes={role:"button",tabindex:"0","aria-pressed":"false","data-report-timeline-row":"timeline-0"};
+content.querySelectorAll=selector=>({"button, input, select, .report-segments":controls,"details":disclosure,"[data-report-timeline-row]":[interactive]})[selector]||[];
+elements.get("#reportContent").cloneNode=deep=>{assert.equal(deep,true);return content;};
 const originalQuery=context.document.querySelector;
 context.document.querySelector=selector=>selector==="#qcReportPrintRoot"?root:originalQuery(selector);
 context.document.createElement=node;
 context.document.body={append(value){root=value;},classList:{add:value=>classes.add(value),remove:value=>classes.delete(value)}};
 context.document.title="Original title";
+context.document.querySelector("#reportPeriodLabel").textContent="2026-09-01 ~ 2026-09-30 <unsafe>";
 listeners.get("#reportPdfButton:click")[0]();
 assert.ok(root&&classes.has("qc-report-previewing"));
-assert.ok(root.innerHTML.includes("종합 현황"));
-assert.ok(context.document.title.includes("2026-09_올드독_검댕이"));
+assert.equal(root.children[1].children[1],content,"use the rendered report itself, not a second report builder");
+assert.ok(root.children[1].children[0].innerHTML.includes("&lt;unsafe&gt;"));
+assert.equal(content.innerHTML,original,"preserve graph, comment and numeric order/content without excerpts");
+assert.equal(read("reportContent.innerHTML"),original,"leave the source report unchanged");
+assert.deepEqual(disclosure,[{open:true},{open:false}],"do not expand or collapse details automatically");
+assert.ok(controls.every(control=>control.removed));
+assert.deepEqual(interactive.attributes,{});
+assert.equal(read("reportTimelineRows.size"),mapSize,"do not rebuild charts or their controls");
 let prints=0;
 context.print=()=>{prints++;};
 root.events.get("click")({target:{closest:()=>({dataset:{reportPdfAction:"print"}})}});
@@ -56,9 +64,8 @@ context.print=()=>{throw Error("unavailable");};
 root.events.get("click")({target:{closest:()=>({dataset:{reportPdfAction:"print"}})}});
 assert.equal(root,null);
 assert.equal(classes.size,0);
-assert.equal(context.document.title,"Original title");
-assert.equal(requests.length,1,"PDF generation must not save or refetch records");
+assert.equal(requests.length,1,"printing must not save or refetch records");
 const html=fs.readFileSync(path.join(__dirname,"..","mira_archive.html"),"utf8");
 assert.match(html,/@page\s*\{\s*size:\s*A4 landscape/);
-assert.ok(html.includes('root.querySelectorAll("details, .report-timeline-detail")'));
-console.log("A4 landscape report: dedicated pages, fixed chart widths, issue pagination, excerpt privacy, filters, preview/print cleanup and read-only behavior passed.");
+assert.ok(!html.includes("function buildQcReportPrintMarkup")&&!html.includes("function reportPrintExcerpt"));
+console.log("A4 original report: exact rendered content/order, full notes, disclosure state, noninteractive controls, cleanup and read-only behavior passed.");
