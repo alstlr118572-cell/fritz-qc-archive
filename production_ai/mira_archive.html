@@ -3687,7 +3687,20 @@
     #qcReportPrintRoot .report-table tr { display: table-row; }
     #qcReportPrintRoot .report-table th, #qcReportPrintRoot .report-table td { display: table-cell; overflow-wrap: anywhere; white-space: pre-wrap; padding: 8px; border-bottom: 1px solid var(--line); }
     #qcReportPrintRoot .report-table td::before { display: none; }
+    #qcReportPrintRoot .visit-print-document { page: visit-report; width: 210mm; margin: 16px auto; padding: 12mm; background: #fff; color: #111; font-size: 10pt; }
+    #qcReportPrintRoot .visit-report-meta { display: flex; justify-content: space-between; gap: 8mm; margin-bottom: 3mm; font-size: 9pt; }
+    #qcReportPrintRoot .visit-report-title { margin: 0; padding: 5mm 2mm; border: 1.5px solid #222; border-bottom: 0; background: #d5d5d5; text-align: center; font-size: 19pt; }
+    #qcReportPrintRoot .visit-report-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 10pt; }
+    #qcReportPrintRoot .visit-report-table th, #qcReportPrintRoot .visit-report-table td { border: 1.5px solid #222; padding: 2.5mm 2mm; white-space: pre-wrap; overflow-wrap: anywhere; vertical-align: middle; }
+    #qcReportPrintRoot .visit-report-table th { background: #d5d5d5; text-align: center; }
+    #qcReportPrintRoot .visit-report-table td { text-align: center; }
+    #qcReportPrintRoot .visit-report-table .visit-recipe-cell { text-align: left; }
+    #qcReportPrintRoot .visit-recipe-cell p { margin: 1mm 0; }
+    #qcReportPrintRoot .visit-report-section { border: 1.5px solid #222; border-top: 0; }
+    #qcReportPrintRoot .visit-report-section h3 { margin: 0; padding: 2.5mm 2mm; background: #d5d5d5; border-bottom: 1.5px solid #222; font-size: 11pt; font-weight: 500; break-after: avoid; }
+    #qcReportPrintRoot .visit-report-section p { margin: 0; padding: 3mm 2mm; white-space: pre-wrap; overflow-wrap: anywhere; orphans: 3; widows: 3; }
     @page { size: A4 landscape; margin: 10mm; }
+    @page visit-report { size: A4 portrait; margin: 12mm; }
     @media print {
       body.qc-report-printing { margin: 0; padding: 0; background: #fff !important; overflow: visible !important; }
       body.qc-report-printing > *:not(#qcReportPrintRoot) { display: none !important; }
@@ -3697,6 +3710,9 @@
       }
       #qcReportPrintRoot .pdf-toolbar { display: none !important; }
       #qcReportPrintRoot .pdf-report { width: 100%; margin: 0; padding: 0; }
+      #qcReportPrintRoot .visit-print-document { width: 100%; margin: 0; padding: 0; }
+      #qcReportPrintRoot .visit-report-title, #qcReportPrintRoot .visit-report-meta { break-inside: avoid; break-after: avoid; }
+      #qcReportPrintRoot .visit-report-section, #qcReportPrintRoot .visit-recipe-row { break-inside: auto; }
       #qcReportPrintRoot * { box-shadow: none !important; text-shadow: none !important; }
       #qcReportPrintRoot h2, #qcReportPrintRoot h3, #qcReportPrintRoot h4,
       #qcReportPrintRoot h5, #qcReportPrintRoot summary { break-after: avoid; }
@@ -7963,11 +7979,11 @@
         roastDate: normalizeText(extraction.roastDate || extraction.date || ""),
         blend: normalizeText(extraction.blend || extraction.coffee || ""),
         batch: normalizeBatchRange(extraction.batch || ""),
-        dose: normalizeText(extraction.dose),
-        yield: normalizeText(extraction.yield),
-        time: normalizeText(extraction.time),
-        tds: normalizeText(extraction.tds),
-        extractionYield: normalizeText(extraction.extractionYield || extraction.extractionYieldPercent)
+        dose: normalizeText(extraction.dose ?? ""),
+        yield: normalizeText(extraction.yield ?? ""),
+        time: normalizeText(extraction.time ?? ""),
+        tds: normalizeText(extraction.tds ?? ""),
+        extractionYield: normalizeText(extraction.extractionYield || extraction.extractionYieldPercent || "")
       };
       item.extractionYield = item.extractionYield || calculateExtractionYield(item.dose, item.yield, item.tds);
       return item;
@@ -8800,7 +8816,8 @@
       const recipeText = visitData.recipe || extractionTexts.join(" · ");
       const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${escapeHtml(entry.id)}" data-edit-type="visit">수정</button>`;
       const deleteButton = compact || !canDeleteEntry(entry, user) ? "" : `<button class="delete" data-delete="${escapeHtml(entry.id)}" title="방문일지 삭제">×</button>`;
-      const actions = editButton || deleteButton ? `<div class="entry-actions">${editButton}${deleteButton}</div>` : "";
+      const pdfButton = compact || !canManageVisitLogs(user) ? "" : `<button type="button" data-print-visit="${escapeHtml(entry.id)}" title="방문일지 PDF 저장">↓ PDF</button>`;
+      const actions = editButton || deleteButton || pdfButton ? `<div class="entry-actions">${pdfButton}${editButton}${deleteButton}</div>` : "";
       const noteBlocks = [
         ["업장 및 상담특징", visitData.storeFeature],
         ["음료퀄리티", visitData.beverageQuality],
@@ -10558,22 +10575,47 @@
     }
 
     let reportPrintTitle = null;
+    let reportPrintScroll = null;
     function finishQcReportPrint() {
       document.querySelector("#qcReportPrintRoot")?.remove();
       document.body.classList.remove("qc-report-printing");
       document.body.classList.remove("qc-report-previewing");
       if (reportPrintTitle !== null) document.title = reportPrintTitle;
       reportPrintTitle = null;
+      if (reportPrintScroll !== null) window.scrollTo?.(0, reportPrintScroll);
+      reportPrintScroll = null;
     }
 
-    function prepareQcReportPrint() {
-      if (activeAppView !== "reports" || !approvedSessionUser()) return false;
+    function openReportPrintPreview(report, title, label) {
       finishQcReportPrint();
+      reportPrintScroll = Number(window.scrollY) || 0;
       const root = document.createElement("div");
       root.id = "qcReportPrintRoot";
       const toolbar = document.createElement("div");
       toolbar.className = "pdf-toolbar";
-      toolbar.innerHTML = '<strong>A4 가로 · QC 리포트</strong><div class="pdf-toolbar-actions"><button type="button" data-report-pdf-action="print" title="PDF 저장">↓ PDF 저장</button><button type="button" data-report-pdf-action="close" title="미리보기 닫기">닫기</button></div>';
+      toolbar.innerHTML = `<strong>${escapeHtml(label)}</strong><div class="pdf-toolbar-actions"><button type="button" data-report-pdf-action="print" title="PDF 저장">↓ PDF 저장</button><button type="button" data-report-pdf-action="close" title="미리보기 닫기">닫기</button></div>`;
+      root.append(toolbar, report);
+      root.addEventListener("click", (event) => {
+        const action = event.target.closest("[data-report-pdf-action]")?.dataset.reportPdfAction;
+        if (action === "close") finishQcReportPrint();
+        if (action === "print") {
+          document.body.classList.add("qc-report-printing");
+          try { window.print(); }
+          catch (error) { finishQcReportPrint(); alert("PDF 출력 창을 열지 못했습니다. 브라우저 인쇄 기능을 이용해 주세요."); }
+        }
+      });
+      root.addEventListener("keydown", (event) => { if (event.key === "Escape") finishQcReportPrint(); });
+      document.body.append(root);
+      document.body.classList.add("qc-report-previewing");
+      window.scrollTo?.(0, 0);
+      root.querySelector?.('[data-report-pdf-action="print"]')?.focus?.({preventScroll:true});
+      reportPrintTitle = document.title;
+      document.title = title;
+      return true;
+    }
+
+    function prepareQcReportPrint() {
+      if (activeAppView !== "reports" || !approvedSessionUser()) return false;
       const report = document.createElement("article");
       report.className = "pdf-report";
       const heading = document.createElement("header");
@@ -10592,22 +10634,41 @@
         element.removeAttribute("data-report-timeline-row");
       });
       report.append(heading, content);
-      root.append(toolbar, report);
-      root.addEventListener("click", (event) => {
-        const action = event.target.closest("[data-report-pdf-action]")?.dataset.reportPdfAction;
-        if (action === "close") finishQcReportPrint();
-        if (action === "print") {
-          document.body.classList.add("qc-report-printing");
-          try { window.print(); }
-          catch (error) { finishQcReportPrint(); alert("PDF 출력 창을 열지 못했습니다. 브라우저 인쇄 기능을 이용해 주세요."); }
-        }
-      });
-      root.addEventListener("keydown", (event) => { if (event.key === "Escape") finishQcReportPrint(); });
-      document.body.append(root);
-      document.body.classList.add("qc-report-previewing");
-      reportPrintTitle = document.title;
-      document.title = `프릳츠_QC_리포트_${reportAnchor.slice(0, reportMode === "year" ? 4 : 7)}_${reportBlendInput.value || "전체블렌드"}_${reportRoasterInput.value || "전체로스터기"}`;
-      return true;
+      return openReportPrintPreview(report, `프릳츠_QC_리포트_${reportAnchor.slice(0, reportMode === "year" ? 4 : 7)}_${reportBlendInput.value || "전체블렌드"}_${reportRoasterInput.value || "전체로스터기"}`, "A4 가로 · QC 리포트");
+    }
+
+    function visitReportMarkup(entry) {
+      const data = normalizedVisitData(entry);
+      const cell = (value) => escapeHtml(String(value ?? "").trim() || "-");
+      const measured = (value, unit) => {
+        const text = String(value ?? "").trim();
+        return text ? cell(text.endsWith(unit) ? text : text + unit) : "-";
+      };
+      const rows = [
+        ["고객명", data.customer, "주소", data.address],
+        ["상호명", data.store, "전화번호", data.phone],
+        ["사용커피", data.coffee, "월평균사용량", data.monthlyUsage],
+        ["머신", data.machine, "그라인더", data.grinder],
+        ["바스켓", data.basket, "머신 유량 및 압력", data.flowPressure]
+      ];
+      const recipes = data.extractions.map((extraction) => {
+        const roast = entries.find((item) => item.entryType === "roasting" && item.id === extraction.roastEntryId);
+        const context = [extraction.blend || roast?.blend, extraction.roastDate || roast?.roastDate, extraction.batch || roast?.batch, roast ? entryRoaster(roast) : ""].filter(Boolean).join(" · ");
+        return `<p>${context ? `<strong>${cell(context)}</strong><br>` : ""}Input: ${measured(extraction.dose,"g")} / Output: ${measured(extraction.yield,"g")} / Time: ${measured(extraction.time,"s")} / TDS: ${measured(extraction.tds,"%")} / Ext: ${measured(extraction.extractionYield,"%")}</p>`;
+      }).join("");
+      const sections = [["업장 및 상권특징",data.storeFeature],["음료퀄리티",data.beverageQuality],["기기장비 관리상태",data.equipment],["기타",data.extra]];
+      return `<div class="visit-report-meta"><span>방문일 ${cell(entry.visitDate)}</span><span>담당 ${cell(data.manager)}</span></div><h1 class="visit-report-title">도매거래처 방문일지</h1><table class="visit-report-table"><colgroup><col style="width:16%"><col style="width:34%"><col style="width:18%"><col style="width:32%"></colgroup><tbody>${rows.map(([label,value,secondLabel,secondValue]) => `<tr><th scope="row">${label}</th><td>${cell(value)}</td><th scope="row">${secondLabel}</th><td>${cell(secondValue)}</td></tr>`).join("")}<tr class="visit-recipe-row"><th scope="row">레시피</th><td colspan="3" class="visit-recipe-cell">${recipes}${data.recipe ? `<p>${cell(data.recipe)}</p>` : ""}${!recipes && !data.recipe ? "-" : ""}</td></tr></tbody></table>${sections.map(([label,value]) => `<section class="visit-report-section"><h3>${label}</h3><p>${cell(value)}</p></section>`).join("")}`;
+    }
+
+    function prepareVisitReportPrint(entryId) {
+      if (!canManageVisitLogs(approvedSessionUser())) return false;
+      const entry = entries.find((item) => item.id === entryId && item.entryType === "visit");
+      if (!entry) return false;
+      const data = normalizedVisitData(entry);
+      const report = document.createElement("article");
+      report.className = "visit-print-document";
+      report.innerHTML = visitReportMarkup(entry);
+      return openReportPrintPreview(report, `거래처_방문일지_${entry.visitDate || "날짜미기록"}_${data.store || "상호미기록"}`, "A4 세로 · 거래처 방문일지");
     }
 
     document.querySelector("#reportPdfButton").addEventListener("click", () => {
@@ -11705,6 +11766,11 @@
     });
 
     function handleEntryAction(event) {
+      const pdfButton = event.target.closest("[data-print-visit]");
+      if (pdfButton) {
+        prepareVisitReportPrint(pdfButton.dataset.printVisit);
+        return;
+      }
       const editButton = event.target.closest("[data-edit-entry]");
       if (editButton) {
         const entry = entries.find((item) => item.id === editButton.dataset.editEntry);
