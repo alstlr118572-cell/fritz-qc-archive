@@ -3660,6 +3660,90 @@
       .report-table td { padding: 3px 0; border: 0; }
       .report-table td::before { content: attr(data-label); display: inline-block; width: 68px; color: var(--muted); }
     }
+    [data-app-panel="cupping"] { background: #101114; }
+    body:has([data-app-panel="cupping"]:not([hidden])) .masthead { padding: 10px 0; }
+    body:has([data-app-panel="cupping"]:not([hidden])) #siteTitleText { font-size: 22px; line-height: 1.3; }
+    .cupping-date-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 0; border-block: 1px solid var(--line); }
+    .cupping-date-bar label { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 13px; }
+    .cupping-date-bar input { width: 160px; min-height: 44px; background: #191b20; }
+    #cuppingEvaluationProgress { color: var(--muted); font-size: 13px; }
+    .cupping-calendar-disclosure { margin: 12px 0 16px; }
+    .cupping-calendar-disclosure summary, .cupping-saved-disclosure summary { min-height: 44px; padding: 12px 0; cursor: pointer; font-size: 14px; }
+    .cupping-calendar-disclosure .calendar-day { min-height: 54px; }
+    .cupping-workspace { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,1fr); gap: 24px; align-items: start; margin-top: 12px; }
+    .cupping-pick-pane, .cupping-evaluate-pane { min-width: 0; }
+    .cupping-pick-pane h4, .cupping-selected-heading h4 { margin: 0; font-size: 17px; }
+    .cupping-pick-pane .section-title { margin-bottom: 12px; }
+    #cuppingBatchHint { margin: 6px 0 0; font-size: 12px; }
+    .cupping-list-tools { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 16px; }
+    .cupping-segments, .cupping-selection-tools, .cupping-group-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .cupping-list-tools button, .cupping-group-actions button { min-height: 36px; padding: 7px 10px; font-size: 12px; background: #191b20; }
+    .cupping-segments button[aria-pressed="true"] { border-color: #409cff; background: #18314d; color: #dceeff; }
+    #cuppingBatchList { max-height: none; overflow: visible; display: grid; gap: 16px; }
+    @media (min-width: 1101px) {
+      #cuppingBatchList { max-height: 650px; overflow-y: auto; scrollbar-gutter: stable; }
+    }
+    .cupping-roast-group { min-width: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+    .cupping-roast-group-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px; background: #191b20; }
+    summary.cupping-roast-group-head { cursor: pointer; min-height: 44px; }
+    summary.cupping-roast-group-head::before { content: ">"; font-size: 14px; color: var(--muted); }
+    .cupping-roast-group[open] > summary::before { transform: rotate(90deg); }
+    .cupping-roast-group-head h4 { flex: 1; }
+    .cupping-roast-group > .cupping-group-actions { justify-content: flex-end; padding: 6px 10px; background: #191b20; }
+    .cupping-roast-group-head h4 { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+    .cupping-roast-group-head small { color: var(--muted); font-weight: 400; }
+    .cupping-roast-row { display: grid; grid-template-columns: 20px minmax(44px,.7fr) minmax(0,1fr) minmax(0,1.25fr); gap: 10px; align-items: center; min-height: 48px; padding: 10px 12px; margin: 0; border-top: 1px solid var(--line); background: #141519; cursor: pointer; font-size: 13px; }
+    .cupping-roast-row input { width: 18px; height: 18px; min-height: 18px; margin: 0; accent-color: #0a84ff; }
+    .cupping-roast-row:has(input:checked) { background: #17324d; }
+    .cupping-roast-row:focus-within { outline: 2px solid #64d2ff; outline-offset: -2px; }
+    .cupping-roast-row span { color: var(--muted); white-space: nowrap; font-size: 12px; }
+    .cupping-roast-row b { color: var(--ink); font-variant-numeric: tabular-nums; font-weight: 500; }
+    .cupping-roast-row.completed { grid-template-columns: minmax(44px,.7fr) minmax(0,1fr) minmax(0,1.25fr) auto; cursor: default; }
+    .cupping-roast-row.completed small { color: #77ce9f; }
+    .cupping-evaluate-pane { border-left: 1px solid var(--line); padding-left: 24px; }
+    .cupping-selected-heading { margin-bottom: 20px; }
+    #cuppingSelectedSummary { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.6; }
+    .cupping-evaluate-pane .cupping-step { margin-bottom: 20px; padding-top: 0; border: 0; }
+    .cupping-evaluate-pane .cupping-step-title { margin: 0; font-size: 14px; }
+    #cuppingBatchVerdictInput { display: none; }
+    .cupping-verdicts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0; }
+    .cupping-verdicts button { min-height: 44px; border-radius: 0; background: #191b20; font-size: 14px; }
+    .cupping-verdicts button:first-child { border-radius: 6px 0 0 6px; color: #8bd99b; }
+    .cupping-verdicts button:nth-child(2) { color: #f1c86d; }
+    .cupping-verdicts button:last-child { border-radius: 0 6px 6px 0; color: #ff827b; }
+    .cupping-verdicts [data-cupping-verdict="pass"][aria-pressed="true"] { background: #193c29; border-color: #65bd83; }
+    .cupping-verdicts [data-cupping-verdict="hold"][aria-pressed="true"] { background: #513d18; border-color: #dfb451; }
+    .cupping-verdicts [data-cupping-verdict="no_ship"][aria-pressed="true"] { background: #502526; border-color: #ed807a; }
+    #cuppingBatchIssueTypeGroup label { background: #191b20; font-weight: 400; font-size: 13px; min-height: 44px; }
+    #cuppingBatchIssueTypeGroup label:has(input:checked) { background: #17324d; border-color: #409cff; }
+    #cuppingBatchCommentInput { min-height: 150px; background: #191b20; font-size: 15px; line-height: 1.7; }
+    .cupping-save-bar { position: sticky; bottom: 0; z-index: 12; grid-column: 1/-1; display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 10px; padding: 14px 0 max(14px,env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: #101114; }
+    .cupping-save-bar strong { display: block; font-size: 14px; }
+    #cuppingSaveSummary { display: block; max-width: 100%; margin-top: 4px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+    .cupping-save-bar button { min-height: 44px; }
+    #cuppingBatchMessage { grid-column: 1/-1; margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+    #cuppingBatchMessage:empty { display: none; }
+    @media (max-width: 1100px) {
+      .cupping-workspace { grid-template-columns: minmax(0,1fr); gap: 20px; }
+      .cupping-evaluate-pane { border-left: 0; border-top: 1px solid var(--line); padding: 20px 0 0; }
+    }
+    @media (max-width: 640px) {
+      .cupping-date-bar { gap: 8px; }
+      .cupping-date-bar label { gap: 8px; }
+      .cupping-date-bar input { width: 145px; font-size: 16px; }
+      .cupping-roast-row { gap: 6px; padding: 10px 8px; grid-template-columns: 18px minmax(36px,.65fr) minmax(0,1fr) minmax(0,1.3fr); }
+      .cupping-roast-row span { font-size: 11px; }
+      .cupping-roast-row b { font-size: 12px; }
+      .cupping-list-tools button, .cupping-group-actions button { min-height: 44px; }
+      #cuppingBatchIssueTypeGroup { grid-template-columns: minmax(0,1fr); }
+      #cuppingBatchCommentInput { font-size: 16px; }
+      .cupping-save-bar { gap: 8px; padding-bottom: max(12px,env(safe-area-inset-bottom)); }
+      [data-app-panel="cupping"]:not([hidden]) { padding-bottom: 170px; }
+      [data-app-panel="cupping"]:not([hidden]) .cupping-save-bar { position: fixed; left: 12px; right: 12px; bottom: 0; padding-inline: 12px; box-shadow: 0 -6px 18px rgba(0,0,0,.25); }
+      #cuppingBatchMessage { max-height: 80px; overflow-y: auto; }
+      #cuppingSaveSummary { display: none; }
+      .cupping-save-bar button { padding: 10px; font-size: 13px; }
+    }
     #visitRecentList { max-height: none; overflow: visible; }
     .visit-report-record { min-width: 0; margin: 20px 0 28px; }
     .visit-record-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -4541,14 +4625,18 @@
         <section class="panel cupping-panel app-panel" data-app-panel="cupping">
           <div class="section-title">
             <div>
-              <h3>커핑 코멘트 입력</h3>
-              <p class="hint">왼쪽 입력란에서 배치 범위별 커핑 코멘트를 저장합니다.</p>
+              <h3>커핑 입력</h3>
             </div>
           </div>
+          <div class="cupping-date-bar">
+            <label>로스팅일 <input type="date" id="cuppingPickerDateInput"></label>
+            <span id="cuppingEvaluationProgress" role="status"></span>
+          </div>
+          <details class="cupping-calendar-disclosure">
+            <summary>월간 달력</summary>
           <div class="calendar-head">
             <div>
               <h3 id="cuppingCalendarTitle">로스팅 배치 달력</h3>
-              <p class="hint">날짜를 누르면 해당 로스팅일의 배치를 선택해 커핑 코멘트를 저장합니다.</p>
             </div>
             <div class="calendar-actions">
               <button type="button" id="cuppingCalendarPrevButton">이전 달</button>
@@ -4559,30 +4647,46 @@
           </div>
           <div class="calendar-summary" id="cuppingCalendarSummary"></div>
           <div class="calendar-grid" id="cuppingCalendar"></div>
-          <form class="panel notice-panel cupping-flow-form" id="cuppingBatchForm" style="margin-top: 12px;">
-            <div class="section-title" style="margin-bottom: 0;">
+          </details>
+          <form class="cupping-workspace" id="cuppingBatchForm">
+            <section class="cupping-pick-pane" aria-label="평가할 배치">
+            <div class="section-title">
               <div>
-                <h3>연결 로스팅 배치 선택</h3>
+                <h4>평가할 배치</h4>
                 <p class="hint" id="cuppingBatchHint">달력에서 선택한 로스팅 데이터를 불러옵니다.</p>
               </div>
             </div>
-            <div class="cupping-step">
-              <p class="cupping-step-title">1. 배치 선택</p>
-              <div class="notice-list" id="cuppingBatchList"></div>
+            <div class="cupping-list-tools">
+              <div class="cupping-segments" role="group" aria-label="배치 평가 상태">
+                <button type="button" id="cuppingPendingButton" aria-pressed="true">미평가</button>
+                <button type="button" id="cuppingCompletedButton" aria-pressed="false">평가 완료</button>
+              </div>
+              <div class="cupping-selection-tools">
+                <button type="button" id="cuppingSelectAllButton">전체 선택</button>
+                <button type="button" id="cuppingClearAllButton">전체 해제</button>
+              </div>
             </div>
+              <div class="notice-list" id="cuppingBatchList"></div>
+            </section>
+            <section class="cupping-evaluate-pane" aria-label="선택 배치 평가">
+            <div class="cupping-selected-heading"><h4 id="cuppingSelectedCount">선택 배치 0개</h4><p id="cuppingSelectedSummary"></p></div>
             <div class="cupping-step">
-              <p class="cupping-step-title">2. 판정 선택</p>
+              <p class="cupping-step-title">판정</p>
               <div class="field">
-                <label for="cuppingBatchVerdictInput">판정</label>
-                <select id="cuppingBatchVerdictInput">
+                <select id="cuppingBatchVerdictInput" aria-label="판정" hidden>
                   <option value="pass">PASS</option>
                   <option value="hold">HOLD</option>
                   <option value="no_ship">ISSUE</option>
                 </select>
+                <div class="cupping-verdicts" role="group" aria-label="판정 선택">
+                  <button type="button" data-cupping-verdict="pass" aria-pressed="true">PASS</button>
+                  <button type="button" data-cupping-verdict="hold" aria-pressed="false">HOLD</button>
+                  <button type="button" data-cupping-verdict="no_ship" aria-pressed="false">ISSUE</button>
+                </div>
               </div>
             </div>
             <div class="cupping-step">
-              <p class="cupping-step-title">3. 문제향미 선택</p>
+              <p class="cupping-step-title">문제향미</p>
               <div class="issue-type-grid" id="cuppingBatchIssueTypeGroup">
                 <label><input type="checkbox" value="향미톤 낮음" data-cupping-issue-type>향미톤 낮음</label>
                 <label><input type="checkbox" value="캐릭터 향미 이탈" data-cupping-issue-type>캐릭터 향미 이탈</label>
@@ -4599,16 +4703,22 @@
               </div>
             </div>
             <div class="cupping-step">
-              <p class="cupping-step-title">4. 문제향미 지표 코멘트</p>
               <div class="field">
                 <label for="cuppingBatchCommentInput">문제향미 지표 코멘트</label>
-                <textarea id="cuppingBatchCommentInput" placeholder="예: #1~2 그슬린 향미 / #3~6 바디감 가벼움"></textarea>
+                <textarea id="cuppingBatchCommentInput"></textarea>
               </div>
             </div>
-            <button class="primary" type="submit">선택 배치 코멘트 저장</button>
-            <p id="cuppingBatchMessage"></p>
+            </section>
+            <div class="cupping-save-bar">
+              <div><strong id="cuppingSaveCount">0개 선택</strong><span id="cuppingSaveSummary"></span></div>
+              <button type="button" id="cuppingFooterClearButton">선택 해제</button>
+              <button class="primary" id="cuppingSaveButton" type="submit">평가 저장</button>
+              <p id="cuppingBatchMessage" role="status"></p>
+            </div>
           </form>
+          <details class="cupping-saved-disclosure"><summary>저장된 평가 내역</summary>
           <div class="panel record-list" id="cuppingRecentList"></div>
+          </details>
         </section>
 
         <section class="panel cupping-panel app-panel" data-app-panel="roasting">
@@ -5727,6 +5837,7 @@
     let singleOriginCalendarMonth = today().slice(0, 7);
     let selectedSingleOriginDate = "";
     let selectedCuppingBatchIds = new Set();
+    let cuppingPickerMode = "pending";
     let ratioCalendarMonth = today().slice(0, 7);
     let selectedRatioDate = "";
     let editingCuppingId = "";
@@ -9399,54 +9510,85 @@
       const completedCount = Math.max(0, allRoastingCount - candidates.length);
       const validIds = new Set(candidates.map((entry) => entry.id));
       selectedCuppingBatchIds = new Set([...selectedCuppingBatchIds].filter((id) => validIds.has(id)));
+      document.querySelector("#cuppingPickerDateInput").value = roastDate;
+      document.querySelector("#cuppingEvaluationProgress").textContent = `내 평가 ${completedCount} / ${allRoastingCount}`;
+      document.querySelector("#cuppingPendingButton").textContent = `미평가 ${candidates.length}`;
+      document.querySelector("#cuppingCompletedButton").textContent = `평가 완료 ${completedCount}`;
+      document.querySelector("#cuppingPendingButton").setAttribute("aria-pressed", String(cuppingPickerMode === "pending"));
+      document.querySelector("#cuppingCompletedButton").setAttribute("aria-pressed", String(cuppingPickerMode === "completed"));
+      document.querySelector("#cuppingSelectAllButton").disabled = !candidates.length || cuppingPickerMode === "completed";
+      renderCuppingSelectionSummary();
       if (!roastDate) {
         cuppingBatchFields.hint.textContent = "달력에서 로스팅일을 선택하면 해당 날짜의 배치가 표시됩니다.";
         cuppingBatchFields.list.innerHTML = `<div class="empty">먼저 로스팅 배치 달력에서 날짜를 선택해주세요.</div>`;
         return;
       }
       cuppingBatchFields.hint.textContent = `${roastDate} 로스팅 배치 중 이 계정에서 미평가 ${candidates.length}개, 평가 완료 ${completedCount}개입니다.`;
-      if (!candidates.length) {
+      const displayed = cuppingPickerMode === "completed"
+        ? entries.filter((entry) => entry.entryType === "roasting" && entry.roastDate === roastDate && !validIds.has(entry.id))
+        : candidates;
+      if (!displayed.length) {
         cuppingBatchFields.list.innerHTML = allRoastingCount
-          ? `<div class="empty">이 계정에서 ${roastDate} 로스팅 배치 평가는 모두 완료되었습니다.</div>`
+          ? `<div class="empty">${cuppingPickerMode === "completed" ? "아직 평가 완료한 배치가 없습니다." : "이 날짜의 배치 평가는 모두 완료되었습니다."}</div>`
           : `<div class="empty">${roastDate}에 저장된 로스팅 배치가 없습니다.</div>`;
         return;
       }
-      const grouped = candidates.reduce((acc, entry) => {
+      const grouped = displayed.reduce((acc, entry) => {
         const roaster = entryRoaster(entry) || "로스터기 미지정";
         const key = `${entry.blend || "미분류"}||${roaster}`;
         if (!acc[key]) acc[key] = [];
         acc[key].push(entry);
         return acc;
       }, {});
-      cuppingBatchFields.list.innerHTML = Object.entries(grouped).map(([groupKey, blendEntries]) => {
+      const previousOpen = new Map(Array.from(cuppingBatchFields.list.querySelectorAll("details[data-cupping-group]")).map((element) => [element.dataset.cuppingGroup, element.open]));
+      const groupOrder = Object.entries(grouped).sort(([, left], [, right]) => {
+        const blendRank = (entry) => { const index = blends.indexOf(entry.blend); return index < 0 ? blends.length : index; };
+        const blendDiff = blendRank(left[0]) - blendRank(right[0]) || String(left[0].blend).localeCompare(String(right[0].blend), "ko");
+        if (blendDiff) return blendDiff;
+        const roasterRank = (entry) => entryRoaster(entry) === "검댕이" ? 0 : entryRoaster(entry) === "노랭이" ? 1 : 2;
+        return roasterRank(left[0]) - roasterRank(right[0]);
+      });
+      cuppingBatchFields.list.innerHTML = groupOrder.map(([groupKey, blendEntries], index) => {
         const [blend, roaster] = groupKey.split("||");
-        const groupLabel = roaster && roaster !== "로스터기 미지정" ? `${blend} · ${roaster}` : blend;
+        const groupLabel = `${roaster} · ${blend}`;
         return `
-        <section class="comment-blend-group">
-          <div class="comment-blend-head">
-            <div>
-              <h4>${escapeHtml(groupLabel)}</h4>
-              <p class="hint">${escapeHtml(roastDate)} 로스팅 배치 ${blendEntries.length}개</p>
-            </div>
-            <div class="comment-blend-actions">
+        <details class="cupping-roast-group" data-cupping-group="${escapeHtml(groupKey)}"${(previousOpen.has(groupKey) ? previousOpen.get(groupKey) : !window.matchMedia?.("(max-width: 640px)")?.matches || index === 0) ? " open" : ""}>
+          <summary class="cupping-roast-group-head">
+              <h4>${escapeHtml(groupLabel)} <small>${blendEntries.length}개</small></h4>
+              ${cuppingPickerMode === "completed" ? `<span class="hint">평가 완료</span>` : ""}
+          </summary>
+            ${cuppingPickerMode === "pending" ? `<div class="cupping-group-actions">
               <button type="button" data-select-cupping-group="${escapeHtml(groupKey)}">전체 선택</button>
               <button type="button" data-clear-cupping-group="${escapeHtml(groupKey)}">선택 해제</button>
-            </div>
-          </div>
-          <div class="issue-type-grid cupping-batch-grid">
-            ${blendEntries.map((entry) => {
+            </div>` : ""}
+          <div class="cupping-roast-rows">
+            ${blendEntries.sort((a,b) => batchStartNumber(a.batch) - batchStartNumber(b.batch)).map((entry) => {
               const roastData = normalizedRoastData(entry);
+              if (cuppingPickerMode === "completed") return `<div class="cupping-roast-row completed"><strong>${escapeHtml(entry.batch || "-")}</strong><span>홀빈 <b>${escapeHtml(roastData.wholeColor || "-")}</b></span><span>그라운드 <b>${escapeHtml(roastData.groundColor || "-")}</b></span><small>완료</small></div>`;
               return `
-                <label>
-                  <input type="checkbox" data-cupping-roast-entry="${escapeHtml(entry.id)}" ${selectedCuppingBatchIds.has(entry.id) ? "checked" : ""}>
-                  ${escapeHtml(entry.batch || "-")} ${escapeHtml(roastData.roaster || roaster || "")}
+                <label class="cupping-roast-row">
+                  <input type="checkbox" aria-label="${escapeHtml(groupLabel)} ${escapeHtml(entry.batch || "-")}" data-cupping-roast-entry="${escapeHtml(entry.id)}" ${selectedCuppingBatchIds.has(entry.id) ? "checked" : ""}>
+                  <strong>${escapeHtml(entry.batch || "-")}</strong>
+                  <span>홀빈 <b>${escapeHtml(roastData.wholeColor || "-")}</b></span>
+                  <span>그라운드 <b>${escapeHtml(roastData.groundColor || "-")}</b></span>
                 </label>
               `;
             }).join("")}
           </div>
-        </section>
+        </details>
       `;
       }).join("");
+    }
+
+    function renderCuppingSelectionSummary() {
+      const selected = cuppingRoastingCandidates().filter((entry) => selectedCuppingBatchIds.has(entry.id));
+      const summary = groupSelectedRoastingEntries(selected).map((group) => `${group.roaster || "로스터기 미지정"} · ${group.blend} ${group.batch}`).join(" / ");
+      document.querySelector("#cuppingSelectedCount").textContent = `선택 배치 ${selected.length}개`;
+      document.querySelector("#cuppingSelectedSummary").textContent = summary || "선택한 배치 없음";
+      document.querySelector("#cuppingSaveCount").textContent = `${selected.length}개 선택`;
+      document.querySelector("#cuppingSaveSummary").textContent = summary;
+      document.querySelector("#cuppingSaveButton").disabled = !selected.length;
+      document.querySelectorAll("[data-cupping-verdict]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.cuppingVerdict === cuppingBatchFields.verdict.value)));
     }
 
     function dashboardDetailMarkup(entry) {
@@ -12009,15 +12151,51 @@
     cuppingBatchFields.list.addEventListener("change", (event) => {
       const input = event.target.closest("[data-cupping-roast-entry]");
       if (!input) return;
+      cuppingBatchFields.message.textContent = "";
       if (input.checked) selectedCuppingBatchIds.add(input.dataset.cuppingRoastEntry);
       else selectedCuppingBatchIds.delete(input.dataset.cuppingRoastEntry);
+      renderCuppingSelectionSummary();
+    });
+
+    document.querySelector("#cuppingPickerDateInput").addEventListener("change", (event) => {
+      selectedCuppingDate = event.target.value;
+      if (selectedCuppingDate) cuppingCalendarMonth = selectedCuppingDate.slice(0, 7);
+      selectedCuppingBatchIds = new Set();
+      cuppingPickerMode = "pending";
+      render();
+    });
+    ["pending", "completed"].forEach((mode) => {
+      document.querySelector(mode === "pending" ? "#cuppingPendingButton" : "#cuppingCompletedButton").addEventListener("click", () => {
+        cuppingPickerMode = mode;
+        renderCuppingBatchPicker();
+      });
+    });
+    document.querySelector("#cuppingSelectAllButton").addEventListener("click", () => {
+      if (cuppingPickerMode !== "pending") return;
+      cuppingBatchFields.message.textContent = "";
+      selectedCuppingBatchIds = new Set(cuppingRoastingCandidates().map((entry) => entry.id));
       renderCuppingBatchPicker();
+    });
+    ["#cuppingClearAllButton", "#cuppingFooterClearButton"].forEach((selector) => {
+      document.querySelector(selector).addEventListener("click", () => {
+        cuppingBatchFields.message.textContent = "";
+        selectedCuppingBatchIds = new Set();
+        renderCuppingBatchPicker();
+      });
+    });
+    cuppingBatchForm.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-cupping-verdict]");
+      if (!button) return;
+      cuppingBatchFields.verdict.value = button.dataset.cuppingVerdict;
+      cuppingBatchFields.message.textContent = "";
+      renderCuppingSelectionSummary();
     });
 
     cuppingBatchFields.list.addEventListener("click", (event) => {
       const button = event.target.closest("[data-select-cupping-group], [data-clear-cupping-group]");
       if (!button) return;
       const isClear = Boolean(button.dataset.clearCuppingGroup);
+      cuppingBatchFields.message.textContent = "";
       const [blend, roaster] = (button.dataset.selectCuppingGroup || button.dataset.clearCuppingGroup).split("||");
       cuppingRoastingCandidates()
         .filter((entry) => {
