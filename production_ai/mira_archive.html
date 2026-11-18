@@ -3660,6 +3660,13 @@
       .report-table td { padding: 3px 0; border: 0; }
       .report-table td::before { content: attr(data-label); display: inline-block; width: 68px; color: var(--muted); }
     }
+    .toolbar.visit-export-toolbar { grid-template-columns: minmax(0,1fr) minmax(140px,200px) auto; align-items: end; }
+    .visit-export-toolbar .field { min-width: 0; }
+    .visit-export-toolbar button { height: 44px; min-height: 44px; }
+    @media (max-width: 640px) {
+      .toolbar.visit-export-toolbar { grid-template-columns: minmax(0,1fr) auto; }
+      .visit-export-toolbar .field:first-child { grid-column: 1 / -1; }
+    }
     #qcReportPrintRoot { display: none; }
     body.qc-report-previewing > *:not(#qcReportPrintRoot) { display: none !important; }
     body.qc-report-previewing { background: #dfe4ea; overflow: auto; }
@@ -4776,12 +4783,18 @@
               <p class="hint">방문 매장 정보, 사용 원두, 추출 레시피, 상담 내용을 한 번에 기록합니다.</p>
             </div>
           </div>
-          <div class="toolbar" style="margin-bottom: 12px;">
+          <div class="toolbar visit-export-toolbar" style="margin-bottom: 12px;">
             <div class="field" style="margin: 0;">
               <label for="visitSearchInput">방문일지 검색</label>
               <input id="visitSearchInput" placeholder="상호명 또는 고객명 검색">
             </div>
+            <div class="field" style="margin: 0;">
+              <label for="visitExportScope">내보내기 범위</label>
+              <select id="visitExportScope"><option value="filtered">현재 조회 결과</option><option value="all">전체 방문일지</option></select>
+            </div>
+            <button type="button" id="visitCsvExportButton" title="Excel·Numbers용 CSV 내보내기">↓ CSV</button>
           </div>
+          <p id="visitExportStatus" class="hint" role="status"></p>
           <div class="calendar-head">
             <div>
               <h3 id="visitCalendarTitle">방문일지 달력</h3>
@@ -9328,6 +9341,11 @@
       return [visitData.store, visitData.customer].join(" ").toLowerCase().includes(query);
     }
 
+    function filteredVisitEntries() {
+      return entries.filter((entry) => entry.entryType === "visit" && matchesVisitSearch(entry) &&
+        (selectedVisitDate ? entry.visitDate === selectedVisitDate : entry.visitDate?.slice(0,7) === visitCalendarMonth));
+    }
+
     function renderVisitCalendar() {
       const [year, month] = visitCalendarMonth.split("-").map(Number);
       const firstDate = new Date(year, month - 1, 1);
@@ -10637,6 +10655,117 @@
       return openReportPrintPreview(report, `프릳츠_QC_리포트_${reportAnchor.slice(0, reportMode === "year" ? 4 : 7)}_${reportBlendInput.value || "전체블렌드"}_${reportRoasterInput.value || "전체로스터기"}`, "A4 가로 · QC 리포트");
     }
 
+    const visitCsvColumns = ["상호명", "사용커피", "배치번호", "input", "output", "time", "TDS", "Ext", "머신 유량 및 압력", "유량 분류", "바스켓", "출처 파일명"];
+
+    function visitExportCoffees(data) {
+      const names = [data.coffee, ...data.extractions.map((item) => item.blend)].filter(Boolean)
+        .flatMap((value) => String(value).split(/[,，、;；/|\n]+/))
+        .map((value) => canonicalBlendName(value.replace(/#\s*\d+(?:\s*[~～-]\s*#?\d+)?|\d+\s*번/g, "").trim())).filter(Boolean);
+      return [...new Set(names)];
+    }
+
+    function visitExportCoffeeText(text, coffee, coffees) {
+      const variants = coffees.flatMap((name) => [name, ...Object.entries(blendNameAliases).filter(([,canonical]) => canonical === name).map(([alias]) => alias)])
+        .filter((name) => name.replace(/\s/g, "").length >= 2).map((name) => ({name, coffee: canonicalBlendName(name)}))
+        .sort((a,b) => b.name.length - a.name.length);
+      if (!variants.length) return coffees.length === 1 ? String(text || "") : "";
+      const escape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const pattern = new RegExp(variants.map(({name}) => Array.from(name.replace(/\s/g, "")).map(escape).join("\\s*")).join("|"), "gi");
+      const input = String(text || "");
+      const mentions = [...input.matchAll(pattern)].map((match) => ({ index: match.index, coffee: variants.find(({name}) => name.replace(/\s/g, "").toLowerCase() === match[0].replace(/\s/g, "").toLowerCase())?.coffee }));
+      if (!mentions.length) return coffees.length === 1 ? input : "";
+      return mentions.map((mention,index) => mention.coffee === coffee ? input.slice(mention.index, mentions[index + 1]?.index ?? input.length) : "").filter(Boolean).join("\n");
+    }
+
+    function visitExportRoastDates(text, visitDate) {
+      const dates = [];
+      const pattern = /(?<!\d)(?:(\d{4}|\d{2})\s*[./-]\s*)?(\d{1,2})\s*(?:[./-]|월)\s*(\d{1,2})(?:\s*일)?(?![\d%gGsS])/g;
+      for (const match of String(text || "").matchAll(pattern)) {
+        let year = match[1] ? Number(match[1]) : Number(String(visitDate || "").slice(0,4));
+        if (!year) continue;
+        if (year < 100) year += 2000;
+        const month = Number(match[2]), day = Number(match[3]);
+        const iso = (y) => `${y}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+        if (!match[1] && /^\d{4}-\d{2}-\d{2}$/.test(visitDate || "") && iso(year) > visitDate) year--;
+        const date = new Date(Date.UTC(year,month - 1,day));
+        if (date.getUTCFullYear() !== year || date.getUTCMonth() + 1 !== month || date.getUTCDate() !== day) continue;
+        dates.push(`${String(year).slice(-2)}.${String(month).padStart(2,"0")}.${String(day).padStart(2,"0")}.`);
+      }
+      return [...new Set(dates)];
+    }
+
+    function visitExportStripUnits(value) {
+      return String(value ?? "").replace(/(\d)\s*(?:kg|g\s*\/\s*s|g|ml|bar|pa|hz|sec|s|%|그램|초|㎖)(?=$|[\s,，/;·)])/gi, "$1").trim();
+    }
+
+    function visitExportNumber(value) {
+      const text = visitExportStripUnits(value);
+      return /^[+-]?\d+(?:\.\d+)?$/.test(text) ? Number(text) : text;
+    }
+
+    function visitExportFlowClass(value) {
+      const text = String(value || "");
+      const read = (label) => {
+        const match = text.match(new RegExp(`(?:${label})\\s*(?:그룹)?\\s*[:：=]?\\s*(\\d+(?:[.,]\\d+)?)`, "i"));
+        return match ? Number(match[1].replace(",",".")) : null;
+      };
+      const left = read("왼쪽|좌측|좌쪽|좌|left"), right = read("오른쪽|우측|우쪽|우|right");
+      if (left === null || right === null) return "";
+      return left + right >= 600 ? "10g/s 이상" : "10g/s 이하";
+    }
+
+    function visitExportRecipe(text) {
+      const read = (label) => String(text || "").match(new RegExp(`(?:${label})\\s*[:：=]?\\s*(\\d+(?:\\.\\d+)?)`, "i"))?.[1] || "";
+      return {dose:read("input|도징량|도징"),yield:read("output|추출량"),time:read("time|시간"),tds:read("TDS"),extractionYield:read("Ext(?:raction)?|수율")};
+    }
+
+    function buildVisitExportRows(collection) {
+      const rows = [];
+      for (const entry of collection.filter((item) => item.entryType === "visit").slice().sort((a,b) => String(a.visitDate).localeCompare(String(b.visitDate)) || String(a.id).localeCompare(String(b.id)))) {
+        const data = normalizedVisitData(entry);
+        const coffees = visitExportCoffees(data);
+        for (const coffee of coffees.filter((name) => !/디카(?:페인)?|decaf/i.test(name))) {
+          const notes = visitExportCoffeeText(data.beverageQuality,coffee,coffees);
+          const noteDates = visitExportRoastDates(notes,entry.visitDate);
+          const extractions = data.extractions.filter((item) => canonicalBlendName(item.blend || (coffees.length === 1 ? coffee : "")) === coffee);
+          const recipe = visitExportRecipe(visitExportCoffeeText(data.recipe,coffee,coffees));
+          for (const extraction of extractions.length ? extractions : [{}]) {
+            const structuredDates = visitExportRoastDates(extraction.roastDate,entry.visitDate);
+            const date = noteDates.length ? (structuredDates.find((value) => noteDates.includes(value)) || noteDates.join(", ")) : structuredDates.join(", ");
+            const dose = extraction.dose || recipe.dose, output = extraction.yield || recipe.yield, tds = extraction.tds || recipe.tds;
+            const ext = extraction.extractionYield || recipe.extractionYield || calculateExtractionYield(dose,output,tds);
+            rows.push([data.store,coffee,date,visitExportNumber(dose),visitExportNumber(output),visitExportNumber(extraction.time || recipe.time),visitExportNumber(tds),visitExportNumber(ext),visitExportStripUnits(data.flowPressure),visitExportFlowClass(data.flowPressure),visitExportStripUnits(data.basket),entry.visitData?.sourceFileName || entry.sourceFileName || entry.visitData?.originalFileName || entry.originalFileName || ""]);
+          }
+        }
+      }
+      return rows;
+    }
+
+    function visitExportCsv(rows) {
+      const cell = (value) => {
+        let text = String(value ?? "");
+        if (typeof value !== "number" && /^(?:\s*[=+@-]|[\t\r])/.test(text)) text = "'" + text;
+        return '"' + text.replace(/"/g,'""') + '"';
+      };
+      return "\uFEFF" + [visitCsvColumns,...rows].map((row) => row.map(cell).join(",")).join("\r\n");
+    }
+
+    document.querySelector("#visitCsvExportButton").addEventListener("click", () => {
+      if (!canManageVisitLogs(approvedSessionUser())) return;
+      const all = document.querySelector("#visitExportScope").value === "all";
+      const rows = buildVisitExportRows(all ? entries : filteredVisitEntries());
+      const status = document.querySelector("#visitExportStatus");
+      if (!rows.length) { status.textContent = "내보낼 방문일지 데이터가 없습니다. 디카페인 기록은 제외됩니다."; return; }
+      const blob = new Blob([visitExportCsv(rows)],{type:"text/csv;charset=utf-8;"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `거래처_방문일지_${all ? "전체" : selectedVisitDate || visitCalendarMonth}.csv`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url),1000);
+      status.textContent = `${rows.length}행 내보내기 · 로스팅 날짜 미확인 ${rows.filter((row) => !row[2]).length}행 · 출처 파일명 미기록 ${rows.filter((row) => !row[11]).length}행`;
+    });
+
     function visitReportMarkup(entry) {
       const data = normalizedVisitData(entry);
       const cell = (value) => escapeHtml(String(value ?? "").trim() || "-");
@@ -10828,12 +10957,7 @@
       espressoRecentList.innerHTML = espressoEntries.length
         ? `<div class="list-summary"><span>${selectedEspressoDate ? selectedEspressoDate : monthLabel(espressoCalendarMonth)} 추출 평가 ${espressoEntries.length}개</span><span>${selectedEspressoDate ? "선택일" : "월간"}</span></div>${espressoEntries.map((entry) => cardMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 추출 평가가 없습니다.</div>`;
-      const visitEntries = entries.filter((entry) => {
-        if (entry.entryType !== "visit") return false;
-        if (!matchesVisitSearch(entry)) return false;
-        if (selectedVisitDate) return entry.visitDate === selectedVisitDate;
-        return entry.visitDate?.slice(0, 7) === visitCalendarMonth;
-      });
+      const visitEntries = filteredVisitEntries();
       visitRecentList.innerHTML = visitEntries.length
         ? `<div class="list-summary"><span>${selectedVisitDate ? selectedVisitDate : monthLabel(visitCalendarMonth)} 방문일지 ${visitEntries.length}개</span><span>${visitSearchInput.value.trim() ? "검색 결과" : selectedVisitDate ? "선택 방문일" : "월간"}</span></div>${visitEntries.map((entry) => visitCardMarkup(entry)).join("")}`
         : `<div class="empty">아직 저장된 거래처 방문일지가 없습니다.</div>`;
