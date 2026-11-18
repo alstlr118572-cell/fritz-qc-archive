@@ -8478,7 +8478,10 @@
         options.unshift(`<option value="">로스팅 배치 선택</option>`);
       }
       options.push(`<option value="__unknown_date__"${item.roastStatus === "unknown_date" ? " selected" : ""}>로스팅일자 불분명</option>`);
-      options.push(`<option value="__unknown_batch__"${item.roastStatus === "unknown_batch" ? " selected" : ""}>일자는 있지만 배치번호 불분명</option>`);
+      if (item.roastDate) {
+        const unknownBlends = [...new Set([...blends, ...roastEntries.map((entry) => entry.blend), item.blend].filter((blend) => blend && !["undefined", "null"].includes(blend)))];
+        options.push(`<optgroup label="배치번호 불분명">${unknownBlends.map((blend) => `<option value="__unknown_batch__:${escapeHtml(encodeURIComponent(blend))}" data-blend="${escapeHtml(blend)}"${item.roastStatus === "unknown_batch" && blend === item.blend ? " selected" : ""}>${escapeHtml(blend)} · 배치번호 불분명</option>`).join("")}</optgroup>`);
+      }
       if (item.blend && !matchedEntry && !item.roastStatus) {
         const label = [item.blend, item.batch].filter(Boolean).join(" ") || "기존 입력값";
         options.push(`<option value="__current__" data-blend="${escapeHtml(item.blend)}" data-batch="${escapeHtml(item.batch)}" selected>${escapeHtml(label)} (기존 입력)</option>`);
@@ -8505,9 +8508,9 @@
           <div class="field">
             <label>로스팅 배치</label>
             <select data-visit-roast-entry>${visitRoastingBatchOptionMarkup(item)}</select>
-            <div data-visit-unknown-blend-field${item.roastStatus ? "" : " hidden"}>
+            <div data-visit-unknown-blend-field${item.roastStatus === "unknown_date" ? "" : " hidden"}>
               <label>사용커피
-                <select data-visit-unknown-blend${item.roastStatus ? " required" : ""}>
+                <select data-visit-unknown-blend${item.roastStatus === "unknown_date" ? " required" : ""}>
                   <option value="">사용커피 선택</option>
                   ${[...new Set([...blends, item.blend].filter((blend) => blend && !["undefined", "null"].includes(blend)))].map((blend) => `<option value="${escapeHtml(blend)}"${blend === item.blend ? " selected" : ""}>${escapeHtml(blend)}</option>`).join("")}
                 </select>
@@ -8556,12 +8559,12 @@
     function selectedVisitExtractionFromRow(row) {
       const select = row.querySelector("[data-visit-roast-entry]");
       const selectedOption = select?.selectedOptions?.[0];
-      const roastStatus = select?.value === "__unknown_date__" ? "unknown_date" : select?.value === "__unknown_batch__" ? "unknown_batch" : "";
+      const roastStatus = select?.value === "__unknown_date__" ? "unknown_date" : select?.value?.startsWith("__unknown_batch__:") ? "unknown_batch" : "";
       return normalizedVisitExtraction({
         roastStatus,
         roastEntryId: select?.value && select.value !== "__current__" && !roastStatus ? select.value : "",
         roastDate: row.querySelector("[data-visit-roast-date]")?.value || "",
-        blend: roastStatus ? row.querySelector("[data-visit-unknown-blend]")?.value || "" : selectedOption?.dataset.blend || "",
+        blend: roastStatus === "unknown_date" ? row.querySelector("[data-visit-unknown-blend]")?.value || "" : selectedOption?.dataset.blend || "",
         batch: selectedOption?.dataset.batch || "",
         dose: row.querySelector("[data-visit-dose]")?.value || "",
         yield: row.querySelector("[data-visit-yield]")?.value || "",
@@ -12428,8 +12431,8 @@
         date.required = current.roastStatus === "unknown_batch";
         if (date.disabled) date.value = "";
         const blendField = row.querySelector("[data-visit-unknown-blend-field]");
-        blendField.hidden = !current.roastStatus;
-        row.querySelector("[data-visit-unknown-blend]").required = Boolean(current.roastStatus);
+        blendField.hidden = current.roastStatus !== "unknown_date";
+        row.querySelector("[data-visit-unknown-blend]").required = current.roastStatus === "unknown_date";
         return;
       }
       if (event.target.matches("[data-visit-roast-date]")) {
@@ -12438,6 +12441,7 @@
         if (select) {
           const current = selectedVisitExtractionFromRow(row);
           select.innerHTML = visitRoastingBatchOptionMarkup(current.roastStatus ? current : { roastDate: event.target.value });
+          event.target.required = selectedVisitExtractionFromRow(row).roastStatus === "unknown_batch";
         }
         return;
       }
