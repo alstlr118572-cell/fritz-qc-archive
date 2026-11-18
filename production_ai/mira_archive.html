@@ -3660,6 +3660,31 @@
       .report-table td { padding: 3px 0; border: 0; }
       .report-table td::before { content: attr(data-label); display: inline-block; width: 68px; color: var(--muted); }
     }
+    #visitRecentList { max-height: none; overflow: visible; }
+    .visit-report-record { min-width: 0; margin: 20px 0 28px; }
+    .visit-record-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .visit-record-toolbar h3 { margin: 0; font-size: 17px; overflow-wrap: anywhere; }
+    .visit-record-toolbar .entry-actions { display: flex; flex-direction: row; flex-wrap: wrap; width: auto; gap: 8px; }
+    .visit-record-toolbar .entry-actions button { width: auto; min-width: 44px; min-height: 44px; }
+    .visit-report-record .visit-report-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; color: var(--muted); font-size: 12px; }
+    .visit-report-record .visit-report-title { margin: 0; padding: 16px 12px; border: 1px solid var(--line); border-bottom: 0; background: var(--surface-2); text-align: center; font-size: 18px; }
+    .visit-report-record .visit-report-table { display: table; width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 14px; }
+    .visit-report-record .visit-report-table th, .visit-report-record .visit-report-table td { display: table-cell; padding: 12px 10px; border: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; vertical-align: middle; }
+    .visit-report-record .visit-report-table th { background: var(--surface-2); font-size: 13px; text-align: center; }
+    .visit-report-record .visit-report-table td { text-align: center; }
+    .visit-report-record .visit-report-table .visit-recipe-cell { text-align: left; }
+    .visit-report-record .visit-recipe-cell p { margin: 6px 0; }
+    .visit-report-record .visit-report-section { border: 1px solid var(--line); border-top: 0; }
+    .visit-report-record .visit-report-section h5 { margin: 0; padding: 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: 14px; }
+    .visit-report-record .visit-report-section p { margin: 0; padding: 16px 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.75; }
+    @media (max-width: 640px) {
+      .visit-report-record .visit-report-table, .visit-report-record .visit-report-table tbody { display: block; }
+      .visit-report-record .visit-report-table colgroup { display: none; }
+      .visit-report-record .visit-report-table tr { display: grid; grid-template-columns: minmax(88px,30%) minmax(0,1fr); }
+      .visit-report-record .visit-report-table th, .visit-report-record .visit-report-table td { display: block; padding: 10px 8px; }
+      .visit-report-record .visit-report-table .visit-recipe-row { display: block; }
+      .visit-report-record .visit-report-table td { text-align: left; }
+    }
     .toolbar.visit-export-toolbar { grid-template-columns: minmax(0,1fr) minmax(140px,200px) auto; align-items: end; }
     .visit-export-toolbar .field { min-width: 0; }
     .visit-export-toolbar button { height: 44px; min-height: 44px; }
@@ -8814,66 +8839,16 @@
     }
 
     function visitCardMarkup(entry, compact = false) {
-      const visitData = normalizedVisitData(entry);
+      const data = normalizedVisitData(entry);
+      if (compact) {
+        const recipe = data.recipe || data.extractions.map((item) => [item.roastDate,item.blend || data.coffee,item.batch,item.dose ? `도징 ${item.dose}` : "",item.yield ? `추출량 ${item.yield}` : "",item.time ? `시간 ${item.time}` : "",item.tds ? `TDS ${item.tds}` : "",item.extractionYield ? `수율 ${item.extractionYield}` : ""].filter(Boolean).join(" / ")).join(" · ");
+        return `<article class="qc-card"><div class="qc-head"><h4 class="qc-title">${escapeHtml(data.store || "상호명 미기록")} ${data.customer ? `· ${escapeHtml(data.customer)}` : ""}</h4><span class="tag blue">방문일지</span></div><p class="qc-body">${escapeHtml(data.storeFeature || data.beverageQuality || "방문 내용 미기록")}</p><div class="meta"><span class="tag">담당 ${escapeHtml(data.manager || "-")}</span><span class="tag">사용커피 ${escapeHtml(data.coffee || "-")}</span><span class="tag">월사용 ${escapeHtml(data.monthlyUsage || "-")}</span><span class="tag blue">머신 ${escapeHtml(data.machine || "-")}</span><span class="tag">그라인더 ${escapeHtml(data.grinder || "-")}</span><span class="tag amber">추출 ${escapeHtml(recipe || "-")}</span></div></article>`;
+      }
       const user = approvedSessionUser();
-      const extractionTexts = visitData.extractions.map((extraction) => [
-        extraction.roastDate || "",
-        extraction.blend || visitData.coffee || "",
-        extraction.batch || "",
-        extraction.dose ? `도징 ${extraction.dose}` : "",
-        extraction.yield ? `추출량 ${extraction.yield}` : "",
-        extraction.time ? `시간 ${extraction.time}` : "",
-        extraction.tds ? `TDS ${extraction.tds}` : "",
-        extraction.extractionYield ? `수율 ${extraction.extractionYield}` : ""
-      ].filter(Boolean).join(" / "));
-      const recipeText = visitData.recipe || extractionTexts.join(" · ");
-      const editButton = compact || !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${escapeHtml(entry.id)}" data-edit-type="visit">수정</button>`;
-      const deleteButton = compact || !canDeleteEntry(entry, user) ? "" : `<button class="delete" data-delete="${escapeHtml(entry.id)}" title="방문일지 삭제">×</button>`;
-      const pdfButton = compact || !canManageVisitLogs(user) ? "" : `<button type="button" data-print-visit="${escapeHtml(entry.id)}" title="방문일지 PDF 저장">↓ PDF</button>`;
-      const actions = editButton || deleteButton || pdfButton ? `<div class="entry-actions">${pdfButton}${editButton}${deleteButton}</div>` : "";
-      const noteBlocks = [
-        ["업장 및 상담특징", visitData.storeFeature],
-        ["음료퀄리티", visitData.beverageQuality],
-        ["기기장비 관리상태", visitData.equipment],
-        ["기타", visitData.extra]
-      ].filter(([, value]) => normalizeText(value));
-      return `
-        <article class="${compact ? "qc-card" : "record-item"}">
-          ${compact ? "" : `<div class="date">방문일<br>${escapeHtml(entry.visitDate || "-")}</div>`}
-          <div>
-            <div class="qc-head">
-              <h4 class="qc-title">${escapeHtml(visitData.store || "상호명 미기록")} ${visitData.customer ? `· ${escapeHtml(visitData.customer)}` : ""}</h4>
-              <span class="tag blue">방문일지</span>
-            </div>
-            <p class="qc-body">${escapeHtml(visitData.storeFeature || visitData.beverageQuality || "방문 내용 미기록")}</p>
-            <div class="meta">
-              <span class="tag">담당 ${escapeHtml(visitData.manager || "-")}</span>
-              <span class="tag">사용커피 ${escapeHtml(visitData.coffee || "-")}</span>
-              <span class="tag">월사용 ${escapeHtml(visitData.monthlyUsage || "-")}</span>
-              <span class="tag blue">머신 ${escapeHtml(visitData.machine || "-")}</span>
-              <span class="tag">그라인더 ${escapeHtml(visitData.grinder || "-")}</span>
-              <span class="tag amber">추출 ${escapeHtml(recipeText || "-")}</span>
-            </div>
-            ${compact ? "" : `
-              <div class="comment-field-block">
-                <strong>기본 정보</strong>
-                <p>${escapeHtml([visitData.address, visitData.phone, visitData.basket, visitData.flowPressure].filter(Boolean).join(" / ") || "기본 정보 미기록")}</p>
-              </div>
-              <div class="comment-field-block">
-                <strong>추출 기록</strong>
-                ${extractionTexts.length ? extractionTexts.map((text) => `<p>${escapeHtml(text)}</p>`).join("") : `<p>추출 기록 미기록</p>`}
-              </div>
-              ${noteBlocks.map(([label, value]) => `
-                <div class="comment-field-block">
-                  <strong>${escapeHtml(label)}</strong>
-                  <p>${escapeHtml(value)}</p>
-                </div>
-              `).join("")}
-            `}
-          </div>
-          ${actions}
-        </article>
-      `;
+      const editButton = !canEditEntry(entry, user) ? "" : `<button type="button" data-edit-entry="${escapeHtml(entry.id)}" data-edit-type="visit">수정</button>`;
+      const deleteButton = !canDeleteEntry(entry, user) ? "" : `<button class="delete" type="button" data-delete="${escapeHtml(entry.id)}" title="방문일지 삭제">×</button>`;
+      const pdfButton = !canManageVisitLogs(user) ? "" : `<button type="button" data-print-visit="${escapeHtml(entry.id)}" title="방문일지 PDF 저장">↓ PDF</button>`;
+      return `<article class="visit-report-record"><div class="visit-record-toolbar"><h3>${escapeHtml(data.store || "상호명 미기록")}</h3><div class="entry-actions">${pdfButton}${editButton}${deleteButton}</div></div>${visitReportMarkup(entry, true)}</article>`;
     }
 
     function cardMarkup(entry, compact = false) {
@@ -10766,7 +10741,7 @@
       status.textContent = `${rows.length}행 내보내기 · 로스팅 날짜 미확인 ${rows.filter((row) => !row[2]).length}행 · 출처 파일명 미기록 ${rows.filter((row) => !row[11]).length}행`;
     });
 
-    function visitReportMarkup(entry) {
+    function visitReportMarkup(entry, screen = false) {
       const data = normalizedVisitData(entry);
       const cell = (value) => escapeHtml(String(value ?? "").trim() || "-");
       const measured = (value, unit) => {
@@ -10786,7 +10761,8 @@
         return `<p>${context ? `<strong>${cell(context)}</strong><br>` : ""}Input: ${measured(extraction.dose,"g")} / Output: ${measured(extraction.yield,"g")} / Time: ${measured(extraction.time,"s")} / TDS: ${measured(extraction.tds,"%")} / Ext: ${measured(extraction.extractionYield,"%")}</p>`;
       }).join("");
       const sections = [["업장 및 상권특징",data.storeFeature],["음료퀄리티",data.beverageQuality],["기기장비 관리상태",data.equipment],["기타",data.extra]];
-      return `<div class="visit-report-meta"><span>방문일 ${cell(entry.visitDate)}</span><span>담당 ${cell(data.manager)}</span></div><h1 class="visit-report-title">도매거래처 방문일지</h1><table class="visit-report-table"><colgroup><col style="width:16%"><col style="width:34%"><col style="width:18%"><col style="width:32%"></colgroup><tbody>${rows.map(([label,value,secondLabel,secondValue]) => `<tr><th scope="row">${label}</th><td>${cell(value)}</td><th scope="row">${secondLabel}</th><td>${cell(secondValue)}</td></tr>`).join("")}<tr class="visit-recipe-row"><th scope="row">레시피</th><td colspan="3" class="visit-recipe-cell">${recipes}${data.recipe ? `<p>${cell(data.recipe)}</p>` : ""}${!recipes && !data.recipe ? "-" : ""}</td></tr></tbody></table>${sections.map(([label,value]) => `<section class="visit-report-section"><h3>${label}</h3><p>${cell(value)}</p></section>`).join("")}`;
+      const titleTag = screen ? "h4" : "h1", sectionTag = screen ? "h5" : "h3";
+      return `<div class="visit-report-meta"><span>방문일 ${cell(entry.visitDate)}</span><span>담당 ${cell(data.manager)}</span></div><${titleTag} class="visit-report-title">도매거래처 방문일지</${titleTag}><table class="visit-report-table"><colgroup><col style="width:16%"><col style="width:34%"><col style="width:18%"><col style="width:32%"></colgroup><tbody>${rows.map(([label,value,secondLabel,secondValue]) => `<tr><th scope="row">${label}</th><td>${cell(value)}</td><th scope="row">${secondLabel}</th><td>${cell(secondValue)}</td></tr>`).join("")}<tr class="visit-recipe-row"><th scope="row">레시피</th><td colspan="3" class="visit-recipe-cell">${recipes}${data.recipe ? `<p>${cell(data.recipe)}</p>` : ""}${!recipes && !data.recipe ? "-" : ""}</td></tr></tbody></table>${sections.map(([label,value]) => `<section class="visit-report-section"><${sectionTag}>${label}</${sectionTag}><p>${cell(value)}</p></section>`).join("")}`;
     }
 
     function prepareVisitReportPrint(entryId) {

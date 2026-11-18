@@ -30,6 +30,11 @@ const emptyReport=read('visitReportMarkup({entryType:"visit",visitData:{extracti
 assert.ok(emptyReport.includes("도매거래처 방문일지"));
 assert.ok(!emptyReport.includes("undefined")&&!emptyReport.includes("NaN"));
 assert.ok(read("visitCardMarkup(printVisitInput)").includes('data-print-visit="visit-print"'));
+const screenReport=read("visitCardMarkup(printVisitInput)");
+assert.ok(screenReport.includes('class="visit-report-record"'));
+assert.ok(screenReport.includes(read("visitReportMarkup(printVisitInput,true)")),"screen and PDF must use the same report structure");
+assert.ok(!screenReport.includes('class="comment-field-block"')&&!screenReport.includes('class="qc-body"'));
+assert.equal(screenReport.split(longNote).length-1,1,"do not repeat a summary and the same full note");
 assert.ok(!read("visitCardMarkup(printVisitInput,true)").includes('data-print-visit'));
 const classes=new Set();
 let root=null;
