@@ -8004,6 +8004,7 @@
     function visitExtractionHasValue(extraction) {
       return Boolean([
         extraction.roastEntryId,
+        extraction.roastStatus,
         extraction.roastDate,
         extraction.blend,
         extraction.batch,
@@ -8017,6 +8018,7 @@
 
     function normalizedVisitExtraction(extraction = {}) {
       const item = {
+        roastStatus: ["unknown_date", "unknown_batch"].includes(extraction.roastStatus) ? extraction.roastStatus : "",
         roastEntryId: normalizeText(extraction.roastEntryId || extraction.entryId || ""),
         roastDate: normalizeText(extraction.roastDate || extraction.date || ""),
         blend: normalizeText(extraction.blend || extraction.coffee || ""),
@@ -8027,6 +8029,11 @@
         tds: normalizeText(extraction.tds ?? ""),
         extractionYield: normalizeText(extraction.extractionYield || extraction.extractionYieldPercent || "")
       };
+      if (item.roastStatus) {
+        item.roastEntryId = "";
+        item.batch = "";
+        if (item.roastStatus === "unknown_date") item.roastDate = "";
+      }
       item.extractionYield = item.extractionYield || calculateExtractionYield(item.dose, item.yield, item.tds);
       return item;
     }
@@ -8042,6 +8049,12 @@
         tds: visitData.tds || "",
         extractionYield: visitData.extractionYield || ""
       });
+    }
+
+    function visitExtractionRoastLabel(extraction) {
+      if (extraction.roastStatus === "unknown_date") return "로스팅일자 불분명";
+      if (extraction.roastStatus === "unknown_batch") return [extraction.roastDate, "배치번호 불분명"].filter(Boolean).join(" · ");
+      return [extraction.roastDate, extraction.batch].filter(Boolean).join(" · ");
     }
 
     function normalizedVisitData(entry) {
@@ -8451,7 +8464,7 @@
     function visitRoastingBatchOptionMarkup(extraction = {}) {
       const item = normalizedVisitExtraction(extraction);
       const roastEntries = visitRoastingEntriesForDate(item.roastDate);
-      const matchedEntry = item.roastEntryId
+      const matchedEntry = item.roastStatus ? null : item.roastEntryId
         ? roastEntries.find((entry) => entry.id === item.roastEntryId)
         : roastEntries.find((entry) => canonicalBlendName(entry.blend) === canonicalBlendName(item.blend) && (!item.batch || batchesOverlap(entry.batch, item.batch)));
       const selectedId = matchedEntry?.id || item.roastEntryId || "";
@@ -8464,7 +8477,9 @@
       } else {
         options.unshift(`<option value="">로스팅 배치 선택</option>`);
       }
-      if (item.blend && !matchedEntry) {
+      options.push(`<option value="__unknown_date__"${item.roastStatus === "unknown_date" ? " selected" : ""}>로스팅일자 불분명</option>`);
+      options.push(`<option value="__unknown_batch__"${item.roastStatus === "unknown_batch" ? " selected" : ""}>일자는 있지만 배치번호 불분명</option>`);
+      if (item.blend && !matchedEntry && !item.roastStatus) {
         const label = [item.blend, item.batch].filter(Boolean).join(" ") || "기존 입력값";
         options.push(`<option value="__current__" data-blend="${escapeHtml(item.blend)}" data-batch="${escapeHtml(item.batch)}" selected>${escapeHtml(label)} (기존 입력)</option>`);
       }
@@ -8485,11 +8500,19 @@
         <div class="visit-extraction-row" data-visit-extraction-row>
           <div class="field">
             <label>로스팅일</label>
-            <input data-visit-roast-date type="date" value="${escapeHtml(item.roastDate || "")}">
+            <input data-visit-roast-date type="date" value="${escapeHtml(item.roastDate || "")}"${item.roastStatus === "unknown_date" ? " disabled" : ""}${item.roastStatus === "unknown_batch" ? " required" : ""}>
           </div>
           <div class="field">
             <label>로스팅 배치</label>
             <select data-visit-roast-entry>${visitRoastingBatchOptionMarkup(item)}</select>
+            <div data-visit-unknown-blend-field${item.roastStatus ? "" : " hidden"}>
+              <label>사용커피
+                <select data-visit-unknown-blend${item.roastStatus ? " required" : ""}>
+                  <option value="">사용커피 선택</option>
+                  ${[...new Set([...blends, item.blend].filter((blend) => blend && !["undefined", "null"].includes(blend)))].map((blend) => `<option value="${escapeHtml(blend)}"${blend === item.blend ? " selected" : ""}>${escapeHtml(blend)}</option>`).join("")}
+                </select>
+              </label>
+            </div>
           </div>
           <div class="field">
             <label>도징량</label>
@@ -8518,7 +8541,7 @@
 
     function addVisitExtractionRow(extraction = {}) {
       const item = normalizedVisitExtraction(extraction);
-      const rowData = item.roastDate ? item : { ...item, roastDate: visitFields.date.value || today() };
+      const rowData = item.roastDate || item.roastStatus ? item : { ...item, roastDate: visitFields.date.value || today() };
       visitFields.extractionList.insertAdjacentHTML("beforeend", visitExtractionRowMarkup(rowData));
       const row = getVisitExtractionRows().at(-1);
       if (row) updateVisitExtractionRowYield(row);
@@ -8533,10 +8556,12 @@
     function selectedVisitExtractionFromRow(row) {
       const select = row.querySelector("[data-visit-roast-entry]");
       const selectedOption = select?.selectedOptions?.[0];
+      const roastStatus = select?.value === "__unknown_date__" ? "unknown_date" : select?.value === "__unknown_batch__" ? "unknown_batch" : "";
       return normalizedVisitExtraction({
-        roastEntryId: select?.value && select.value !== "__current__" ? select.value : "",
+        roastStatus,
+        roastEntryId: select?.value && select.value !== "__current__" && !roastStatus ? select.value : "",
         roastDate: row.querySelector("[data-visit-roast-date]")?.value || "",
-        blend: selectedOption?.dataset.blend || "",
+        blend: roastStatus ? row.querySelector("[data-visit-unknown-blend]")?.value || "" : selectedOption?.dataset.blend || "",
         batch: selectedOption?.dataset.batch || "",
         dose: row.querySelector("[data-visit-dose]")?.value || "",
         yield: row.querySelector("[data-visit-yield]")?.value || "",
@@ -8845,7 +8870,7 @@
     function visitCardMarkup(entry, compact = false) {
       const data = normalizedVisitData(entry);
       if (compact) {
-        const recipe = data.recipe || data.extractions.map((item) => [item.roastDate,item.blend || data.coffee,item.batch,item.dose ? `도징 ${item.dose}` : "",item.yield ? `추출량 ${item.yield}` : "",item.time ? `시간 ${item.time}` : "",item.tds ? `TDS ${item.tds}` : "",item.extractionYield ? `수율 ${item.extractionYield}` : ""].filter(Boolean).join(" / ")).join(" · ");
+        const recipe = data.recipe || data.extractions.map((item) => [visitExtractionRoastLabel(item),item.blend || data.coffee,item.dose ? `도징 ${item.dose}` : "",item.yield ? `추출량 ${item.yield}` : "",item.time ? `시간 ${item.time}` : "",item.tds ? `TDS ${item.tds}` : "",item.extractionYield ? `수율 ${item.extractionYield}` : ""].filter(Boolean).join(" / ")).join(" · ");
         return `<article class="qc-card"><div class="qc-head"><h4 class="qc-title">${escapeHtml(data.store || "상호명 미기록")} ${data.customer ? `· ${escapeHtml(data.customer)}` : ""}</h4><span class="tag blue">방문일지</span></div><p class="qc-body">${escapeHtml(data.storeFeature || data.beverageQuality || "방문 내용 미기록")}</p><div class="meta"><span class="tag">담당 ${escapeHtml(data.manager || "-")}</span><span class="tag">사용커피 ${escapeHtml(data.coffee || "-")}</span><span class="tag">월사용 ${escapeHtml(data.monthlyUsage || "-")}</span><span class="tag blue">머신 ${escapeHtml(data.machine || "-")}</span><span class="tag">그라인더 ${escapeHtml(data.grinder || "-")}</span><span class="tag amber">추출 ${escapeHtml(recipe || "-")}</span></div></article>`;
       }
       const user = approvedSessionUser();
@@ -10710,7 +10735,7 @@
           const recipe = visitExportRecipe(visitExportCoffeeText(data.recipe,coffee,coffees));
           for (const extraction of extractions.length ? extractions : [{}]) {
             const structuredDates = visitExportRoastDates(extraction.roastDate,entry.visitDate);
-            const date = noteDates.length ? (structuredDates.find((value) => noteDates.includes(value)) || noteDates.join(", ")) : structuredDates.join(", ");
+            const date = extraction.roastStatus === "unknown_date" ? "" : extraction.roastStatus === "unknown_batch" ? structuredDates.join(", ") : noteDates.length ? (structuredDates.find((value) => noteDates.includes(value)) || noteDates.join(", ")) : structuredDates.join(", ");
             const dose = extraction.dose || recipe.dose, output = extraction.yield || recipe.yield, tds = extraction.tds || recipe.tds;
             const ext = extraction.extractionYield || recipe.extractionYield || calculateExtractionYield(dose,output,tds);
             rows.push([data.store,coffee,date,visitExportNumber(dose),visitExportNumber(output),visitExportNumber(extraction.time || recipe.time),visitExportNumber(tds),visitExportNumber(ext),visitExportStripUnits(data.flowPressure),visitExportFlowClass(data.flowPressure),visitExportStripUnits(data.basket),entry.visitData?.sourceFileName || entry.sourceFileName || entry.visitData?.originalFileName || entry.originalFileName || ""]);
@@ -10762,7 +10787,7 @@
       ];
       const recipes = data.extractions.map((extraction) => {
         const roast = entries.find((item) => item.entryType === "roasting" && item.id === extraction.roastEntryId);
-        const context = [extraction.blend || roast?.blend, extraction.roastDate || roast?.roastDate, extraction.batch || roast?.batch, roast ? entryRoaster(roast) : ""].filter(Boolean).join(" · ");
+        const context = [extraction.blend || roast?.blend, visitExtractionRoastLabel({...extraction, roastDate: extraction.roastDate || roast?.roastDate, batch: extraction.batch || roast?.batch}), roast ? entryRoaster(roast) : ""].filter(Boolean).join(" · ");
         return `<p>${context ? `<strong>${cell(context)}</strong><br>` : ""}Input: ${measured(extraction.dose,"g")} / Output: ${measured(extraction.yield,"g")} / Time: ${measured(extraction.time,"s")} / TDS: ${measured(extraction.tds,"%")} / Ext: ${measured(extraction.extractionYield,"%")}</p>`;
       }).join("");
       const sections = [["업장 및 상권특징",data.storeFeature],["음료퀄리티",data.beverageQuality],["기기장비 관리상태",data.equipment],["기타",data.extra]];
@@ -12381,7 +12406,7 @@
       if (!button) return;
       const rows = getVisitExtractionRows();
       if (rows.length <= 1) {
-        rows[0]?.querySelectorAll("input").forEach((input) => input.value = "");
+        resetVisitExtractionRows();
         return;
       }
       button.closest("[data-visit-extraction-row]")?.remove();
@@ -12394,11 +12419,25 @@
     });
 
     visitFields.extractionList.addEventListener("change", (event) => {
+      if (event.target.matches("[data-visit-roast-entry]")) {
+        const row = event.target.closest("[data-visit-extraction-row]");
+        if (!row) return;
+        const current = selectedVisitExtractionFromRow(row);
+        const date = row.querySelector("[data-visit-roast-date]");
+        date.disabled = current.roastStatus === "unknown_date";
+        date.required = current.roastStatus === "unknown_batch";
+        if (date.disabled) date.value = "";
+        const blendField = row.querySelector("[data-visit-unknown-blend-field]");
+        blendField.hidden = !current.roastStatus;
+        row.querySelector("[data-visit-unknown-blend]").required = Boolean(current.roastStatus);
+        return;
+      }
       if (event.target.matches("[data-visit-roast-date]")) {
         const row = event.target.closest("[data-visit-extraction-row]");
         const select = row?.querySelector("[data-visit-roast-entry]");
         if (select) {
-          select.innerHTML = visitRoastingBatchOptionMarkup({ roastDate: event.target.value });
+          const current = selectedVisitExtractionFromRow(row);
+          select.innerHTML = visitRoastingBatchOptionMarkup(current.roastStatus ? current : { roastDate: event.target.value });
         }
         return;
       }
