@@ -24,6 +24,12 @@ assert.ok(html.includes("&lt;script&gt;")&&html.includes("&lt;img src=x&gt;"));
 assert.ok(!html.includes("<script>")&&!html.includes("<img src=x>"));
 assert.ok(html.includes("2026-11-12")&&html.includes("담당자"));
 assert.ok(html.includes("추가 레시피 메모"));
+context.paragraphVisit = {entryType:"visit",visitData:{storeFeature:"첫 단락\r\n이어지는 줄\r\n\r\n두 번째 <문단>\n \n마지막 단락"}};
+for (const screen of [false, true]) {
+  const paragraphs = read(`visitReportMarkup(paragraphVisit,${screen})`);
+  assert.ok(paragraphs.includes('<div class="visit-report-notes"><p>첫 단락\n이어지는 줄</p><p>두 번째 &lt;문단&gt;</p><p>마지막 단락</p></div>'));
+}
+assert.equal(read("paragraphVisit.visitData.storeFeature"),context.paragraphVisit.visitData.storeFeature,"paragraph rendering must not rewrite stored text");
 context.legacyVisit={entryType:"visit",visitData:{dose:"18",yield:"36",time:"26",tds:"10",recipe:"예전 메모"}};
 assert.ok(read("visitReportMarkup(legacyVisit)").includes("Ext: 20.00%"));
 const emptyReport=read('visitReportMarkup({entryType:"visit",visitData:{extractions:[{}]}})');

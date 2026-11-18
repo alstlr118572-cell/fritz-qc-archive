@@ -3676,7 +3676,9 @@
     .visit-report-record .visit-recipe-cell p { margin: 6px 0; }
     .visit-report-record .visit-report-section { border: 1px solid var(--line); border-top: 0; }
     .visit-report-record .visit-report-section h5 { margin: 0; padding: 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); font-size: 14px; }
-    .visit-report-record .visit-report-section p { margin: 0; padding: 16px 12px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.75; }
+    .visit-report-record .visit-report-notes { padding: 16px 12px; }
+    .visit-report-record .visit-report-section p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.75; }
+    .visit-report-record .visit-report-section p + p { margin-top: 1em; }
     @media (max-width: 640px) {
       .visit-report-record .visit-report-table, .visit-report-record .visit-report-table tbody { display: block; }
       .visit-report-record .visit-report-table colgroup { display: none; }
@@ -3730,7 +3732,9 @@
     #qcReportPrintRoot .visit-recipe-cell p { margin: 1mm 0; }
     #qcReportPrintRoot .visit-report-section { border: 1.5px solid #222; border-top: 0; }
     #qcReportPrintRoot .visit-report-section h3 { margin: 0; padding: 2.5mm 2mm; background: #d5d5d5; border-bottom: 1.5px solid #222; font-size: 11pt; font-weight: 500; break-after: avoid; }
-    #qcReportPrintRoot .visit-report-section p { margin: 0; padding: 3mm 2mm; white-space: pre-wrap; overflow-wrap: anywhere; orphans: 3; widows: 3; }
+    #qcReportPrintRoot .visit-report-notes { padding: 3mm 2mm; }
+    #qcReportPrintRoot .visit-report-section p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; orphans: 3; widows: 3; }
+    #qcReportPrintRoot .visit-report-section p + p { margin-top: 1em; }
     @page { size: A4 landscape; margin: 10mm; }
     @page visit-report { size: A4 portrait; margin: 12mm; }
     @media print {
@@ -10744,6 +10748,7 @@
     function visitReportMarkup(entry, screen = false) {
       const data = normalizedVisitData(entry);
       const cell = (value) => escapeHtml(String(value ?? "").trim() || "-");
+      const paragraphs = (value) => String(value ?? "").replace(/\r\n?/g, "\n").trim().split(/\n[\t ]*\n+/).filter((text) => text.trim()).map((text) => `<p>${cell(text)}</p>`).join("") || "<p>-</p>";
       const measured = (value, unit) => {
         const text = String(value ?? "").trim();
         return text ? cell(text.endsWith(unit) ? text : text + unit) : "-";
@@ -10762,7 +10767,7 @@
       }).join("");
       const sections = [["업장 및 상권특징",data.storeFeature],["음료퀄리티",data.beverageQuality],["기기장비 관리상태",data.equipment],["기타",data.extra]];
       const titleTag = screen ? "h4" : "h1", sectionTag = screen ? "h5" : "h3";
-      return `<div class="visit-report-meta"><span>방문일 ${cell(entry.visitDate)}</span><span>담당 ${cell(data.manager)}</span></div><${titleTag} class="visit-report-title">도매거래처 방문일지</${titleTag}><table class="visit-report-table"><colgroup><col style="width:16%"><col style="width:34%"><col style="width:18%"><col style="width:32%"></colgroup><tbody>${rows.map(([label,value,secondLabel,secondValue]) => `<tr><th scope="row">${label}</th><td>${cell(value)}</td><th scope="row">${secondLabel}</th><td>${cell(secondValue)}</td></tr>`).join("")}<tr class="visit-recipe-row"><th scope="row">레시피</th><td colspan="3" class="visit-recipe-cell">${recipes}${data.recipe ? `<p>${cell(data.recipe)}</p>` : ""}${!recipes && !data.recipe ? "-" : ""}</td></tr></tbody></table>${sections.map(([label,value]) => `<section class="visit-report-section"><${sectionTag}>${label}</${sectionTag}><p>${cell(value)}</p></section>`).join("")}`;
+      return `<div class="visit-report-meta"><span>방문일 ${cell(entry.visitDate)}</span><span>담당 ${cell(data.manager)}</span></div><${titleTag} class="visit-report-title">도매거래처 방문일지</${titleTag}><table class="visit-report-table"><colgroup><col style="width:16%"><col style="width:34%"><col style="width:18%"><col style="width:32%"></colgroup><tbody>${rows.map(([label,value,secondLabel,secondValue]) => `<tr><th scope="row">${label}</th><td>${cell(value)}</td><th scope="row">${secondLabel}</th><td>${cell(secondValue)}</td></tr>`).join("")}<tr class="visit-recipe-row"><th scope="row">레시피</th><td colspan="3" class="visit-recipe-cell">${recipes}${data.recipe ? `<p>${cell(data.recipe)}</p>` : ""}${!recipes && !data.recipe ? "-" : ""}</td></tr></tbody></table>${sections.map(([label,value]) => `<section class="visit-report-section"><${sectionTag}>${label}</${sectionTag}><div class="visit-report-notes">${paragraphs(value)}</div></section>`).join("")}`;
     }
 
     function prepareVisitReportPrint(entryId) {
