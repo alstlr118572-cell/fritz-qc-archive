@@ -54,7 +54,13 @@ function runStartup(sharedStore, options = {}) {
       requests.push([this.method, this.url]);
       if (this.method === "PUT" && options.allowWrites) {
         this.status = options.writeStatus || 200;
-        options.onWrite?.(JSON.parse(body), this.url);
+        const payload = JSON.parse(body);
+        if (Array.isArray(payload.mutations)) {
+          const current = new Map((sharedStore.mira_blend_qc_entries_v1 || []).map(entry => [entry.id, entry]));
+          payload.mutations.forEach(({id,after}) => { if (after) current.set(id,after); else current.delete(id); });
+          payload.value = [...current.values()];
+        }
+        options.onWrite?.(payload, this.url);
         this.responseText = JSON.stringify(this.status === 200 ? {ok:true} : {error:"Test save failure"});
         return;
       }

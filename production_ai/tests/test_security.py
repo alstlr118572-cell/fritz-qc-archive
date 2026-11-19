@@ -106,6 +106,35 @@ class SecurityTests(unittest.TestCase):
         self.assertEqual(status, 403)
         self.assertEqual(app.read_store()[app.ENTRIES_KEY], [self.roast, self.visit])
 
+    def test_visit_mutation_preserves_other_pages_and_concurrent_additions(self):
+        path = "/api/store/" + app.ENTRIES_KEY
+        latest_cup = {"id": "c-latest", "entryType": "cupping", "note": "new"}
+        app.write_store({app.USERS_KEY: self.users, app.ENTRIES_KEY: [self.roast, self.visit, latest_cup]})
+        # A normalized full-array save tries to update read-only roasting metadata.
+        legacy = [{**self.roast, "blend": "undefined"}, self.visit]
+        self.assertEqual(self.request("PUT", path, {"value": legacy}, self.cookie("account_manager"))[0], 403)
+        changed = {**self.visit, "visitData": {"phone": "private", "store": "test visit"}}
+        status, _, _ = self.request("PUT", path, {"mutations": [{"id": "v1", "before": self.visit, "after": changed}]}, self.cookie("account_manager"))
+        self.assertEqual(status, 200)
+        self.assertEqual(app.read_store()[app.ENTRIES_KEY], [self.roast, changed, latest_cup])
+
+    def test_mutations_keep_permissions_and_prevent_stale_overwrites(self):
+        path = "/api/store/" + app.ENTRIES_KEY
+        changed = {**self.roast, "batch": "#999"}
+        self.assertEqual(self.request("PUT", path, {"mutations": [{"id": "r1", "before": self.roast, "after": changed}]}, self.cookie("account_manager"))[0], 403)
+        self.assertEqual(self.request("PUT", path, {"mutations": [{"id": "v1", "before": self.visit, "after": None}]}, self.cookie("cupper"))[0], 403)
+        self.assertEqual(self.request("PUT", path, {"mutations": [{"id": "v1", "before": None, "after": self.visit}]}, self.cookie("account_manager"))[0], 409)
+        self.assertEqual(app.read_store()[app.ENTRIES_KEY], [self.roast, self.visit])
+
+    def test_mutations_validate_markup_type_changes_and_deletions(self):
+        path = "/api/store/" + app.ENTRIES_KEY
+        for changed, status in [({**self.visit, "entryType": "roasting"}, 403),
+                                ({**self.visit, "note": "<script>bad</script>"}, 400),
+                                ({**self.visit, "id": "different"}, 400)]:
+            self.assertEqual(self.request("PUT", path, {"mutations": [{"id": "v1", "before": self.visit, "after": changed}]}, self.cookie("account_manager"))[0], status)
+        self.assertEqual(self.request("PUT", path, {"mutations": [{"id": "v1", "before": self.visit, "after": None}]}, self.cookie("account_manager"))[0], 200)
+        self.assertEqual(app.read_store()[app.ENTRIES_KEY], [self.roast])
+
     def test_cookie_security_and_signature(self):
         status, _, headers = self.request("POST", "/api/auth/login", {
             "userId": "viewer", "password": "test-password-123"}, headers={"X-Forwarded-Proto": "https"})

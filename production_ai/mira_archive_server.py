@@ -24,6 +24,7 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SU
 SUPABASE_TABLE = os.environ.get("MIRA_SUPABASE_TABLE", "mira_archive_store")
 USERS_KEY = "mira_blend_qc_users_v1"
 ENTRIES_KEY = "mira_blend_qc_entries_v1"
+ENTRY_WRITE_LOCK = threading.RLock()
 RATIO_NOTICES_KEY = "mira_blend_qc_ratio_notices_v1"
 NON_SHIP_RESULTS_KEY = "mira_blend_qc_non_ship_results_v1"
 CORRECTION_INDICATORS_KEY = "mira_blend_qc_correction_indicators_v1"
@@ -354,6 +355,37 @@ def merge_authorized_entries(user, previous, incoming):
             raise AuthError("다른 페이지의 기록을 삭제할 수 없습니다.")
     hidden = [item for item in previous if item not in visible_entries(user, [item])]
     return list(new.values()) + [item for item in hidden if item["id"] not in new]
+
+
+class EntryConflictError(ValueError):
+    pass
+
+
+def apply_entry_mutations(user, previous, mutations):
+    if not isinstance(mutations, list) or len(mutations) > 50000:
+        raise ValueError("수정 기록 형식이 올바르지 않습니다.")
+    current = {item["id"]: item for item in previous}
+    seen = set()
+    for mutation in mutations:
+        if not isinstance(mutation, dict) or not isinstance(mutation.get("id"), str):
+            raise ValueError("기록 ID가 필요합니다.")
+        identity = mutation["id"]
+        if identity in seen:
+            raise ValueError("중복 기록 ID입니다.")
+        seen.add(identity)
+        before, after = mutation.get("before"), mutation.get("after")
+        actual = current.get(identity)
+        if after is not None and (not isinstance(after, dict) or after.get("id") != identity):
+            raise ValueError("수정 기록 ID가 일치하지 않습니다.")
+        if not is_primary_admin(user) and any(item is not None and not has_permission(user, entry_permission(item)) for item in (actual, after)):
+            raise AuthError("다른 페이지의 기록을 수정할 수 없습니다.")
+        if before != actual:
+            raise EntryConflictError("다른 기기에서 이 기록이 변경되었습니다. 작성 내용을 보관한 뒤 최신 기록을 다시 확인해주세요.")
+        if after is None:
+            current.pop(identity, None)
+        else:
+            current[identity] = after
+    return list(current.values())
 
 
 def read_users_from_store():
@@ -774,14 +806,21 @@ class MiraArchiveHandler(SimpleHTTPRequestHandler):
             return
         try:
             value = payload.get("value")
-            previous = (read_store_key(key) or []) if key == ENTRIES_KEY else None
-            validate_store_value(key, value, previous)
-            if key == ENTRIES_KEY:
-                if any(not isinstance(item, dict) or not item.get("id") for item in value):
-                    raise ValueError("기록 ID가 필요합니다.")
-                value = merge_authorized_entries(user, previous, value)
-            write_store_key(key, value)
+            with ENTRY_WRITE_LOCK:
+                previous = (read_store_key(key) or []) if key == ENTRIES_KEY else None
+                if key == ENTRIES_KEY and "mutations" in payload:
+                    value = apply_entry_mutations(user, previous, payload["mutations"])
+                    validate_store_value(key, value, previous)
+                else:
+                    validate_store_value(key, value, previous)
+                    if key == ENTRIES_KEY:
+                        if any(not isinstance(item, dict) or not item.get("id") for item in value):
+                            raise ValueError("기록 ID가 필요합니다.")
+                        value = merge_authorized_entries(user, previous, value)
+                write_store_key(key, value)
             self.send_json(200, {"ok": True})
+        except EntryConflictError as error:
+            self.send_json(409, {"error": str(error)})
         except ValueError as error:
             self.send_json(400, {"error": str(error)})
         except AuthError as error:

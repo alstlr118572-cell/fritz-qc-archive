@@ -5943,7 +5943,7 @@
           const request = new XMLHttpRequest();
           request.open("PUT", `/api/store/${encodeURIComponent(key)}`, false);
           request.setRequestHeader("Content-Type", "application/json");
-          request.send(JSON.stringify({ value }));
+          request.send(JSON.stringify(options.payload || { value }));
           if (request.status === 200) return true;
           if (request.status === 401) {
             throw sharedStoreAuthError("로그인 세션이 만료되었습니다. 다시 로그인 후 저장해주세요.");
@@ -5951,7 +5951,7 @@
           let serverMessage = "";
           try {
             const response = JSON.parse(request.responseText || "{}");
-            if (request.status === 400 || request.status === 403) serverMessage = String(response.error || "");
+            if ([400, 403, 409].includes(request.status)) serverMessage = String(response.error || "");
           } catch {
             // Keep the status-based message when the server does not return JSON.
           }
@@ -6781,6 +6781,8 @@
       try {
         if (!Array.isArray(parsed)) return [];
         const normalized = normalizeEntryCollectionForCurrentRules(parsed);
+        rawEntriesSaveBaseline = JSON.parse(JSON.stringify(parsed));
+        entriesSaveBaseline = JSON.parse(JSON.stringify(normalized.entries));
         return normalized.entries;
       } catch {
         return [];
@@ -6788,7 +6790,35 @@
     }
 
     function writeEntries(value) {
-      writeStoreValue(storageKey, normalizeEntryCollectionForCurrentRules(value).entries);
+      const normalized = normalizeEntryCollectionForCurrentRules(value).entries;
+      if (!canUseSharedStore()) return writeStoreValue(storageKey, normalized);
+      const mutations = entrySaveMutations(entriesSaveBaseline, normalized, rawEntriesSaveBaseline);
+      if (mutations.length) writeStoreValue(storageKey, normalized, {payload: {mutations}});
+      const raw = new Map(rawEntriesSaveBaseline.map((entry) => [entry.id, entry]));
+      mutations.forEach(({id, after}) => { if (after) raw.set(id, after); else raw.delete(id); });
+      rawEntriesSaveBaseline = JSON.parse(JSON.stringify([...raw.values()]));
+      entriesSaveBaseline = JSON.parse(JSON.stringify(normalized));
+      return true;
+    }
+
+    function entrySaveMutations(before, after, rawBefore) {
+      const old = new Map(before.map((entry) => [entry.id, entry]));
+      const raw = new Map(rawBefore.map((entry) => [entry.id, entry]));
+      const next = new Map(after.map((entry) => [entry.id, entry]));
+      const mutations = [];
+      for (const [id, entry] of next) {
+        const previous = old.get(id);
+        if (JSON.stringify(previous) === JSON.stringify(entry)) continue;
+        if (!previous) { mutations.push({id, before: null, after: entry}); continue; }
+        const keys = [...new Set([...Object.keys(previous), ...Object.keys(entry)])].filter((key) => JSON.stringify(previous[key]) !== JSON.stringify(entry[key]));
+        if (entry.entryType === "roasting" && !canInputRoasting(approvedSessionUser()) && keys.every((key) => ["verdict", "updatedAt", "issueLocked"].includes(key))) continue;
+        // Only intentional edits are applied; display-time normalization stays local.
+        const updated = {...(raw.get(id) || previous)};
+        keys.forEach((key) => { if (Object.hasOwn(entry, key)) updated[key] = entry[key]; else delete updated[key]; });
+        mutations.push({id, before: raw.get(id) || null, after: updated});
+      }
+      for (const [id] of old) if (!next.has(id)) mutations.push({id, before: raw.get(id) || null, after: null});
+      return mutations;
     }
 
     function normalizeEntryCollectionForCurrentRules(value) {
@@ -6855,6 +6885,8 @@
 
     let nonShipResults = readNonShipResults();
     let entries = [];
+    let entriesSaveBaseline = [];
+    let rawEntriesSaveBaseline = [];
 
     function readCorrectionIndicators() {
       const parsed = readStoreValue(correctionIndicatorsKey);

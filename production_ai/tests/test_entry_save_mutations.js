@@ -1,0 +1,21 @@
+const assert = require("node:assert/strict");
+const vm = require("node:vm");
+const {runStartup} = require("./test_client_startup");
+const raw = [{id:"r1",entryType:"roasting",roastDate:"2026-11-18",blend:"올",batch:"#1",verdict:""},
+  {id:"v1",entryType:"visit",visitDate:"2026-11-19",visitData:{store:"test",customer:"customer"}}];
+let posted;
+const {context} = runStartup({mira_blend_qc_entries_v1:raw}, {allowWrites:true,onWrite:payload=>{posted=payload;}});
+vm.runInContext('approvedSessionUser=()=>({id:"manager",userId:"manager",role:"account_manager",permissions:[],status:"approved"})',context);
+const read = code=>JSON.parse(vm.runInContext(`JSON.stringify(${code})`,context));
+vm.runInContext('writeEntries(entries.map(e=>e.id==="v1"?{...e,visitData:{...e.visitData,store:"edited"}}:e))',context);
+assert.equal(posted.mutations.length,1);
+assert.equal(posted.mutations[0].id,"v1");
+assert.deepEqual(JSON.parse(JSON.stringify(posted.mutations[0].before)),raw[1]);
+assert.equal(posted.mutations[0].after.visitData.store,"edited");
+assert.ok(!Object.hasOwn(posted.mutations[0].after,"blend"),"do not persist display-only normalization fields");
+assert.equal(read('entriesSaveBaseline.find(e=>e.id==="v1").visitData.store'),"edited");
+const failed = runStartup({mira_blend_qc_entries_v1:raw},{allowWrites:true,writeStatus:403});
+assert.throws(()=>vm.runInContext('writeEntries([...entries,{id:"new",entryType:"visit",visitData:{store:"new"}}])',failed.context));
+assert.equal(vm.runInContext('entriesSaveBaseline.length',failed.context),2,"failed saves must retain the original diff baseline");
+assert.equal(vm.runInContext('rawEntriesSaveBaseline.length',failed.context),2);
+console.log("Entry mutations: visits save only intentional fields, unrelated normalization stays local and failed saves retain baselines.");
